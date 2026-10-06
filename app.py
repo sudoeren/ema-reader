@@ -17,6 +17,11 @@ Endpoints:
     GET    /api/books/ID                       one book with its text
     DELETE /api/books/ID
     PUT    /api/books/ID/progress              {"chapter": 0, "sentence": 12}
+    GET    /api/books/ID/cover                 the cover picture, if the book has one
+    POST   /api/books/ID/export                {"scope": "chapter" | "book", "chapter": 0, "format": "mp3", "split": false, "speed": 1}
+    GET    /api/exports/JOB                    {"state": "working" | "ready" | "failed", "progress": 0.4, "name"}
+    GET    /api/exports/JOB/file               the finished file
+    DELETE /api/exports/JOB                    cancel
     GET    /api/books/ID/chapters/N/audio      a chapter as one WAV file
     GET    /tts, POST /tts                     text, speed, seed, sample_rate, stream
 """
@@ -39,13 +44,15 @@ from urllib.parse import parse_qsl, urlparse
 
 import numpy as np
 
+import export
 from extract import extract_file, extract_url
 
 ROOT = Path(__file__).parent
 STATIC = ROOT / "static"
 LIBRARY = Path(os.environ.get("EMA_READER_LIBRARY") or ROOT / "library")
 MAX_UPLOAD = 200 * 1024 * 1024
-BOOK = re.compile(r"/api/books/([0-9a-f]{12})(/progress|/chapters/(\d+)/audio)?")
+BOOK = re.compile(r"/api/books/([0-9a-f]{12})(/progress|/cover|/export|/chapters/(\d+)/audio)?")
+EXPORT = re.compile(r"/api/exports/([0-9a-f]{12})(/file)?")
 
 # exported chapters: sentences are generated in batches and joined with short pauses
 EXPORT_RATE = 24000
@@ -82,6 +89,10 @@ def book_path(book_id):
     return LIBRARY / f"{book_id}.json"
 
 
+def cover_path(book_id):
+    return LIBRARY / f"{book_id}.cover"
+
+
 def read_book(book_id):
     return json.loads(book_path(book_id).read_text(encoding="utf-8"))
 
@@ -94,10 +105,14 @@ def write_book(book):
 
 
 def store(book, source):
-    """Put a freshly extracted book in the library."""
-    book.update(id=uuid.uuid4().hex[:12], source=source, added=time.time(), progress={"chapter": 0, "sentence": 0})
+    """Put a freshly extracted book in the library; its cover picture goes in a file of its own."""
+    picture = book.pop("cover", None)
+    book.update(id=uuid.uuid4().hex[:12], source=source, added=time.time(), progress={"chapter": 0, "sentence": 0},
+                cover=picture[1] if picture else None)
     with library_lock:
         write_book(book)
+        if picture:
+            cover_path(book["id"]).write_bytes(picture[0])
     return book
 
 
@@ -111,6 +126,7 @@ def summary(book):
         "title": book["title"],
         "author": book["author"],
         "article": book["source"].startswith(("http://", "https://")),
+        "cover": bool(book.get("cover")),
         "added": book["added"],
         "opened": book.get("opened", 0),
         "chapter": progress["chapter"],
@@ -160,6 +176,10 @@ class Handler(BaseHTTPRequestHandler):
             self.list_books()
         elif book and not book.group(2):
             self.with_book(book.group(1), lambda b: self.send_json(200, b))
+        elif book and book.group(2) == "/cover":
+            self.with_book(book.group(1), self.cover)
+        elif EXPORT.fullmatch(url.path):
+            self.export_get(*EXPORT.fullmatch(url.path).groups())
         elif book and book.group(3):
             self.with_book(book.group(1), lambda b: self.chapter_audio(b, int(book.group(3)), query))
         else:
@@ -173,6 +193,10 @@ class Handler(BaseHTTPRequestHandler):
                 self.tts(params)
         elif url.path == "/api/books":
             self.add_book(dict(parse_qsl(url.query)))
+        elif BOOK.fullmatch(url.path) and BOOK.fullmatch(url.path).group(2) == "/export":
+            params = self.read_json()
+            if params is not None:
+                self.with_book(BOOK.fullmatch(url.path).group(1), lambda b: self.export_start(b, params))
         else:
             self.send_json(404, {"error": "not found"})
 
@@ -185,11 +209,21 @@ class Handler(BaseHTTPRequestHandler):
             self.with_book(book.group(1), lambda b: self.set_progress(b, params))
 
     def do_DELETE(self):
-        book = BOOK.fullmatch(urlparse(self.path).path)
+        path = urlparse(self.path).path
+        job = EXPORT.fullmatch(path)
+        if job and not job.group(2):
+            found = export.jobs.get(job.group(1))
+            if found:
+                found.cancelled.set()
+                if found.state != "working":
+                    found.clean()
+            return self.send_json(200, {"cancelled": job.group(1)})
+        book = BOOK.fullmatch(path)
         if not book or book.group(2):
             return self.send_json(404, {"error": "not found"})
         with library_lock:
             book_path(book.group(1)).unlink(missing_ok=True)
+            cover_path(book.group(1)).unlink(missing_ok=True)
         self.send_json(200, {"deleted": book.group(1)})
 
     # library
@@ -241,6 +275,50 @@ class Handler(BaseHTTPRequestHandler):
             book["opened"] = time.time()
             write_book(book)
         self.send_json(200, book["progress"])
+
+    def cover(self, book):
+        try:
+            self.send(200, book.get("cover") or "application/octet-stream", cover_path(book["id"]).read_bytes(),
+                      {"Cache-Control": "max-age=31536000, immutable"})
+        except FileNotFoundError:
+            self.send_json(404, {"error": "this book has no cover"})
+
+    # keeping: a chapter or a book as audio or text files
+
+    def export_start(self, book, params):
+        try:
+            job = export.start(tts, book, scope=params.get("scope", "chapter"), chapter=int(params.get("chapter", 0)),
+                               kind=params.get("format", "mp3"), split=params.get("split", False),
+                               speed=float(params.get("speed", default_speed)))
+        except (ValueError, TypeError) as e:
+            return self.send_json(400, {"error": str(e)})
+        self.send_json(202, {"job": job.id, "name": job.name})
+
+    def export_get(self, job_id, wants_file):
+        job = export.jobs.get(job_id)
+        if not job:
+            return self.send_json(404, {"error": "no such export"})
+        if not wants_file:
+            return self.send_json(200, {"state": job.state, "progress": round(job.progress, 3), "name": job.name, "error": job.error})
+        if job.state != "ready":
+            return self.send_json(409, {"error": "the export is not ready"})
+        self.send_download(job.path, job.name)
+        job.clean()
+
+    def send_download(self, path, name):
+        from urllib.parse import quote
+
+        self.send_response(200)
+        self.send_header("Content-Type", mimetypes.guess_type(name)[0] or "application/octet-stream")
+        self.send_header("Content-Length", str(os.path.getsize(path)))
+        self.send_header("Content-Disposition", f"attachment; filename*=UTF-8''{quote(name)}")
+        self.end_headers()
+        try:
+            with open(path, "rb") as f:
+                while data := f.read(1 << 16):
+                    self.wfile.write(data)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
     def chapter_audio(self, book, number, query):
         try:

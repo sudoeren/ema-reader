@@ -3,7 +3,9 @@
     extract_file("kitap.epub", data)   # .epub, .pdf, .txt, .md, .html
     extract_url("https://...")
 
-Both return {"title", "author", "chapters": [{"title", "paragraphs": [[sentence, ...], ...]}]}.
+Both return {"title", "author", "chapters": [{"title", "paragraphs": [[sentence, ...], ...]}],
+"about": {"description", "publisher", "language", "date", "subjects"}, "cover": (bytes, type) or None}.
+A chapter without a name of its own has the title None.
 """
 
 import io
@@ -43,6 +45,7 @@ NOISE = re.compile(r"\[(\d+|değiştir[^\]]*|edit[^\]]*|kaynak belirtilmeli|cita
 def chapter(title, paragraphs):
     paragraphs = [" ".join(NOISE.sub("", p).split()) for p in paragraphs]
     paragraphs = [p for p in paragraphs if p]
+    title = " ".join(title.split()) if title else None  # None: the reader shows "Chapter N"
     if paragraphs and paragraphs[0] == title:
         paragraphs = paragraphs[1:]  # the heading is already shown as the chapter title
     return {"title": title, "paragraphs": [sentences(p) for p in paragraphs]}
@@ -97,31 +100,90 @@ def local(tag):
     return tag.rsplit("}", 1)[-1]
 
 
+def plain(html):
+    """Text of a short HTML fragment, such as a book description."""
+    return " ".join(" ".join(parse_html(html or "")[1]).split()) or None
+
+
+def epub_titles(book, opf_dir, manifest, items):
+    """Chapter names from the table of contents, by the file they point at."""
+    titles = {}
+
+    def note(href, base, label):
+        path = posixpath.normpath(posixpath.join(base, unquote(href.split("#")[0])))
+        label = " ".join((label or "").split())
+        if label:
+            titles.setdefault(path, label)
+
+    for item in items:
+        href, kind, properties = item.get("href"), item.get("media-type"), item.get("properties") or ""
+        path = posixpath.normpath(posixpath.join(opf_dir, unquote(href or "")))
+        try:
+            if "nav" in properties.split():  # EPUB 3
+                tree = ElementTree.fromstring(book.read(path))
+                for link in tree.iter():
+                    if local(link.tag) == "a" and link.get("href"):
+                        note(link.get("href"), posixpath.dirname(path), "".join(link.itertext()))
+            elif kind == "application/x-dtbncx+xml":  # EPUB 2
+                tree = ElementTree.fromstring(book.read(path))
+                for point in tree.iter():
+                    if local(point.tag) == "navPoint":
+                        label = next(("".join(e.itertext()) for e in point if local(e.tag) == "navLabel"), "")
+                        target = next((e.get("src") for e in point if local(e.tag) == "content"), None)
+                        if target:
+                            note(target, posixpath.dirname(path), label)
+        except (KeyError, ElementTree.ParseError):
+            continue
+    return titles
+
+
 def extract_epub(data):
     book = zipfile.ZipFile(io.BytesIO(data))
     container = ElementTree.fromstring(book.read("META-INF/container.xml"))
     opf_path = next(e for e in container.iter() if local(e.tag) == "rootfile").get("full-path")
+    opf_dir = posixpath.dirname(opf_path)
     opf = ElementTree.fromstring(book.read(opf_path))
 
-    def meta(name):
-        return next((e.text.strip() for e in opf.iter() if local(e.tag) == name and e.text), None)
+    def metas(name):
+        return [e.text.strip() for e in opf.iter() if local(e.tag) == name and e.text and e.text.strip()]
 
-    manifest = {e.get("id"): e.get("href") for e in opf.iter() if local(e.tag) == "item"}
+    def meta(name):
+        return next(iter(metas(name)), None)
+
+    items = [e for e in opf.iter() if local(e.tag) == "item"]
+    manifest = {e.get("id"): e.get("href") for e in items}
     spine = [e.get("idref") for e in opf.iter() if local(e.tag) == "itemref"]
+    titles = epub_titles(book, opf_dir, manifest, items)
 
     chapters = []
     for idref in spine:
         if idref not in manifest:
             continue
-        path = posixpath.normpath(posixpath.join(posixpath.dirname(opf_path), unquote(manifest[idref])))
+        path = posixpath.normpath(posixpath.join(opf_dir, unquote(manifest[idref])))
         try:
             html = book.read(path).decode("utf-8", errors="replace")
         except KeyError:
             continue
         heading, paragraphs = parse_html(html)
         if paragraphs:
-            chapters.append(chapter(heading or f"Section {len(chapters) + 1}", paragraphs))
-    return {"title": meta("title"), "author": meta("creator"), "chapters": chapters}
+            chapters.append(chapter(titles.get(path) or heading, paragraphs))
+
+    # the cover: marked as such in EPUB 3, named by a <meta> in EPUB 2, else an image called "cover"
+    images = [e for e in items if (e.get("media-type") or "").startswith("image/")]
+    named = next((e.get("content") for e in opf.iter() if local(e.tag) == "meta" and e.get("name") == "cover"), None)
+    cover = (next((e for e in images if "cover-image" in (e.get("properties") or "").split()), None)
+             or next((e for e in images if e.get("id") == named), None)
+             or next((e for e in images if "cover" in f"{e.get('id')} {e.get('href')}".lower()), None))
+    picture = None
+    if cover is not None:
+        try:
+            picture = (book.read(posixpath.normpath(posixpath.join(opf_dir, unquote(cover.get("href"))))), cover.get("media-type"))
+        except KeyError:
+            pass
+
+    about = {"description": plain(meta("description")), "publisher": meta("publisher"), "language": meta("language"),
+             "date": (meta("date") or "")[:10] or None, "subjects": metas("subject")}
+    return {"title": meta("title"), "author": ", ".join(metas("creator")) or None, "chapters": chapters, "about": about, "cover": picture}
 
 
 def pdf_paragraphs(text):
@@ -150,17 +212,30 @@ def extract_pdf(data):
         starts = []
     starts = sorted(set(s for s in starts if s[0] is not None))
     if len(starts) < 2:
-        starts = [(i, f"Pages {i + 1}–{min(i + PAGES_PER_CHAPTER, len(pages))}")
+        starts = [(i, f"{i + 1}–{min(i + PAGES_PER_CHAPTER, len(pages))}")
                   for i in range(0, len(pages), PAGES_PER_CHAPTER)]
     elif starts[0][0] > 0:
-        starts.insert(0, (0, "Front matter"))
+        starts.insert(0, (0, None))
 
     chapters = []
     for (start, title), (end, _) in zip(starts, starts[1:] + [(len(pages), None)]):
         paragraphs = pdf_paragraphs("\n".join(pages[start:end]))
         if any(p.strip() for p in paragraphs):
             chapters.append(chapter(title, paragraphs))
-    return {"title": info.get("/Title"), "author": info.get("/Author"), "chapters": chapters}
+    # a first page that is one picture is taken as the cover
+    picture = None
+    try:
+        images = list(reader.pages[0].images)
+        if len(images) == 1 and len(images[0].data) > 20_000:
+            kind = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png"}.get(images[0].name.rsplit(".", 1)[-1].lower())
+            if kind:
+                picture = (images[0].data, kind)
+    except Exception:
+        pass
+    about = {"description": info.get("/Subject") or None, "publisher": None, "language": None,
+             "date": None, "subjects": [k.strip() for k in (info.get("/Keywords") or "").split(",") if k.strip()]}
+    return {"title": info.get("/Title") or None, "author": info.get("/Author") or None, "chapters": chapters,
+            "about": about, "cover": picture}
 
 
 def extract_text(text):
@@ -170,7 +245,7 @@ def extract_text(text):
     def close():
         paragraphs = re.split(r"\n\s*\n", "\n".join(lines))
         if any(p.strip() for p in paragraphs):
-            chapters.append(chapter(title or "Text", paragraphs))
+            chapters.append(chapter(title, paragraphs))
 
     for line in text.splitlines():
         heading = re.match(r"#{1,3}\s+(.*)", line)
@@ -196,11 +271,10 @@ def extract_html(html):
         parts = re.split(r"\s[-–—|]\s", title)
         if len(parts) > 1 and len(parts[-1].split()) <= 3:
             title = title[: title.rindex(parts[-1])].rstrip(" -–—|")
-    return {
-        "title": title,
-        "author": None,
-        "chapters": [chapter(title or "Article", text.split("\n"))],
-    }
+    about = {"description": (meta.description if meta else None) or None, "publisher": (meta.sitename if meta else None) or None,
+             "language": None, "date": (meta.date if meta else None) or None, "subjects": []}
+    return {"title": title, "author": None, "chapters": [chapter(title, text.split("\n"))], "about": about,
+            "cover": None, "image": (meta.image if meta else None) or None}
 
 
 def extract_file(name, data):
@@ -230,10 +304,30 @@ def extract_url(url):
     book = extract_html(html)
     book["title"] = book["title"] or url
     book["author"] = urlparse(url).hostname  # page metadata rarely names the author reliably
+    book["cover"] = fetch_image(book.get("image"))
     return finish(book)
 
 
+def fetch_image(url):
+    """The page's preview picture, if it has one and it is a reasonable size."""
+    import urllib.request
+
+    if not url or not url.startswith(("http://", "https://")):
+        return None
+    try:
+        request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (EMA Reader)"})
+        with urllib.request.urlopen(request, timeout=8) as response:
+            kind = response.headers.get_content_type()
+            data = response.read(5_000_001)
+        return (data, kind) if kind.startswith("image/") and len(data) <= 5_000_000 else None
+    except Exception:
+        return None
+
+
 def finish(book):
+    book.pop("image", None)
+    book.setdefault("about", {"description": None, "publisher": None, "language": None, "date": None, "subjects": []})
+    book.setdefault("cover", None)
     book["chapters"] = [c for c in book["chapters"] if c["paragraphs"]]
     if not book["chapters"]:
         raise ValueError("no readable text found")
