@@ -120,8 +120,8 @@
   #speeds button.on { font-weight: 700; color: var(--accent); }
   #speeds small { color: var(--faint); font-weight: 400; }
 
-  #chapters { position: fixed; top: 0; right: 0; bottom: 0; width: min(340px, 100vw); background: #fff; box-shadow: -20px 0 60px -20px rgba(20,20,60,.25), 0 0 0 1px rgba(0,0,0,.06); display: flex; flex-direction: column; transform: translateX(105%); transition: transform .2s; z-index: 5; }
-  #chapters.open { transform: none; }
+  #chapters { position: fixed; top: 0; right: 0; bottom: 0; width: min(340px, 100vw); background: #fff; box-shadow: -20px 0 60px -20px rgba(20,20,60,.25), 0 0 0 1px rgba(0,0,0,.06); display: flex; flex-direction: column; transform: translateX(105%); visibility: hidden; transition: transform .2s, visibility .2s; z-index: 5; }
+  #chapters.open { transform: none; visibility: visible; }
   #chapters header { display: flex; align-items: center; padding: 14px 14px 10px 22px; }
   #chapters h3 { flex: 1; margin: 0; font-size: 16px; font-weight: 700; }
   #chapter-list { overflow-y: auto; padding: 0 10px 20px; }
@@ -132,6 +132,13 @@
   #chapter-list span { overflow-wrap: anywhere; }
 
   #toast { position: fixed; left: 50%; top: 20px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 10px; font-size: 14px; z-index: 20; }
+
+  /* inside the desktop window, whose header bar has the title and these buttons */
+  .shell .brand, .shell #add, .shell .rtop { display: none; }
+  .shell .top { justify-content: center; }
+  .shell .search { margin: 0; width: min(420px, 100%); }
+  .shell #library { padding-top: 6px; }
+  .shell h2.section:first-child, .shell #resume-box h2.section { margin-top: 20px; }
 
   @media (max-width: 720px) {
     #library { padding: 16px 18px 60px; }
@@ -286,6 +293,25 @@ document.querySelectorAll("[data-label]").forEach(el => { el.setAttribute("aria-
 document.querySelectorAll("[data-placeholder]").forEach(el => { el.placeholder = t(el.dataset.placeholder); el.setAttribute("aria-label", el.placeholder); });
 document.querySelectorAll("[data-title]").forEach(el => el.title = t(el.dataset.title));
 
+/* the desktop window: it shows the title and the buttons, the page tells it what is on screen */
+
+const shell = window.emaShell ? window.webkit?.messageHandlers?.shell : null;
+if (shell) document.documentElement.classList.add("shell");
+let searching = false;
+function tellShell() {
+  if (!shell) return;
+  shell.postMessage(book
+    ? {view: "reader", title: book.title, subtitle: book.author || "", chapters: book.chapters.length > 1}
+    : {view: "library", empty: books.length === 0});
+}
+window.shellAction = name => ({
+  back: showLibrary,
+  add: openAdd,
+  chapters: () => $("chapters").classList.toggle("open"),
+  download: () => $("download").click(),
+  search: () => { searching = !searching; renderLibrary(); if (searching) $("search").focus(); else { $("search").value = ""; renderLibrary(); } },
+})[name]?.();
+
 /* state */
 
 const CHARS_PER_SECOND = 17;          // how fast the voice reads at speed 1, to estimate times
@@ -379,7 +405,9 @@ function card(b) {
 
 function renderLibrary() {
   const empty = books.length === 0;
-  $("welcome").hidden = !empty; $("shelf").hidden = empty; $("add").hidden = empty; $("search-box").hidden = empty;
+  $("welcome").hidden = !empty; $("shelf").hidden = empty; $("add").hidden = empty;
+  $("search-box").hidden = empty || (shell && !searching);
+  tellShell();
 
   const query = $("search").value.trim().toLocaleLowerCase("tr");
   const shown = books.filter(b => `${b.title} ${b.author || ""}`.toLocaleLowerCase("tr").includes(query));
@@ -472,6 +500,7 @@ async function openBook(id, start = false) {
   $("library").hidden = true; $("reader").hidden = false;
   $("book-title").textContent = book.title; $("book-author").textContent = book.author || "";
   document.title = `${book.title} · EMA Reader`;
+  tellShell();
   $("open-chapters").hidden = book.chapters.length < 2;
   $("chapter-list").replaceChildren(...book.chapters.map((c, i) => {
     const b = document.createElement("button");
@@ -662,7 +691,8 @@ $("speed").onclick = e => {
 };
 document.addEventListener("click", e => {
   if (!e.target.closest("#speeds")) $("speeds").hidden = true;
-  if (!e.target.closest("#chapters, #open-chapters")) $("chapters").classList.remove("open");
+  if (!shell && !e.target.closest("#chapters, #open-chapters")) $("chapters").classList.remove("open");
+  if (shell && !e.target.closest("#chapters")) $("chapters").classList.remove("open");
 });
 showSpeed();
 
@@ -683,7 +713,10 @@ if ("mediaSession" in navigator) {
 }
 
 setPlaying(false);
-showLibrary();
+// "#book=ID" opens that book straight away; the desktop app uses it for files opened with it
+const wanted = location.hash.match(/^#book=([0-9a-f]{12})$/);
+history.replaceState(null, "", location.pathname);
+showLibrary().then(() => wanted && openBook(wanted[1]));
 </script>
 </body>
 </html>

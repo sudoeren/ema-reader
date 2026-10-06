@@ -93,6 +93,14 @@ def write_book(book):
     tmp.replace(book_path(book["id"]))
 
 
+def store(book, source):
+    """Put a freshly extracted book in the library."""
+    book.update(id=uuid.uuid4().hex[:12], source=source, added=time.time(), progress={"chapter": 0, "sentence": 0})
+    with library_lock:
+        write_book(book)
+    return book
+
+
 def summary(book):
     """What the library shows for a book; sizes are in characters, to estimate listening time."""
     sizes = [[len(s) for p in c["paragraphs"] for s in p] for c in book["chapters"]]
@@ -212,11 +220,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(400, {"error": str(e) or "could not read the request"})
         except Exception as e:  # a damaged file should not take the server down
             return self.send_json(400, {"error": f"could not read it: {e}"})
-        book.update(id=uuid.uuid4().hex[:12], source=source, added=time.time(),
-                    progress={"chapter": 0, "sentence": 0})
-        with library_lock:
-            write_book(book)
-        self.send_json(201, summary(book))
+        self.send_json(201, summary(store(book, source)))
 
     def with_book(self, book_id, action):
         try:
