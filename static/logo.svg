@@ -1,1 +1,50 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect x="3" y="3" width="506" height="506" rx="114" fill="#2b50ff"/><path fill="#ffffff" d="M180 108h152a24 24 0 0 1 24 24v262a8 8 0 0 1-12.3 6.700L256 344l-87.7 56.700A8 8 0 0 1 156 394V132a24 24 0 0 1 24-24z"/><path fill="#2b50ff" d="M230 180.500v83a8 8 0 0 0 12.2 6.800l66.5-41.500a8 8 0 0 0 0-13.600l-66.5-41.500a8 8 0 0 0-12.2 6.800z"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="cover" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3f63ff"/><stop offset="1" stop-color="#1c38c4"/>
+    </linearGradient>
+    <linearGradient id="left" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".8" stop-color="#f6f5f4"/><stop offset="1" stop-color="#dedddb"/>
+    </linearGradient>
+    <linearGradient id="right" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".8" stop-color="#f6f5f4"/><stop offset="1" stop-color="#e6e5e3"/>
+    </linearGradient>
+    <linearGradient id="voice" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#62d6ff"/><stop offset="1" stop-color="#2b50ff"/>
+    </linearGradient>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".16"/>
+    </linearGradient>
+  </defs>
+
+  <!-- cover -->
+  <path fill="url(#cover)" d="M12 92a8 8 0 0 1 8-8h216a8 8 0 0 1 8 8v124a8 8 0 0 1-8 8h-84c-10 0-18 4-24 12-6-8-14-12-24-12H20a8 8 0 0 1-8-8z"/>
+  <!-- the block of pages -->
+  <path fill="#c9c8c5" d="M20 86h216v128h-86c-9 0-16 3-22 10-6-7-13-10-22-10H20z"/>
+  <path fill="#deddda" d="M20 82h216v128h-86c-9 0-16 3-22 10-6-7-13-10-22-10H20z"/>
+  <!-- the two open pages -->
+  <path fill="url(#left)" d="M22 76h84c10 0 17 3 22 10v126c-5-7-12-10-22-10H22z"/>
+  <path fill="url(#right)" d="M234 76h-84c-10 0-17 3-22 10v126c5-7 12-10 22-10h84z"/>
+
+  <!-- right page: text, with the sentence being read marked -->
+  <g fill="#d5d3cf">
+    <rect x="150" y="98" width="68" height="7" rx="3.5"/>
+    <rect x="150" y="150" width="68" height="7" rx="3.5"/>
+    <rect x="150" y="164" width="68" height="7" rx="3.5"/>
+    <rect x="150" y="178" width="40" height="7" rx="3.5"/>
+  </g>
+  <rect x="146" y="113" width="76" height="27" rx="6" fill="#2b50ff" opacity=".16"/>
+  <g fill="#2b50ff">
+    <rect x="150" y="118" width="68" height="7" rx="3.5"/>
+    <rect x="150" y="129" width="46" height="7" rx="3.5"/>
+  </g>
+
+  <!-- left page: the voice rising out of the book -->
+  <g fill="url(#voice)">
+    <rect x="32" y="90" width="13" height="44" rx="6.5"/>
+    <rect x="49" y="64" width="13" height="96" rx="6.5"/>
+    <rect x="66" y="26" width="13" height="172" rx="6.5"/>
+    <rect x="83" y="52" width="13" height="120" rx="6.5"/>
+    <rect x="100" y="82" width="13" height="60" rx="6.5"/>
+  </g>
+</svg>

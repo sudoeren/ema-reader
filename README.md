@@ -27,6 +27,12 @@ uv run build.py                      # writes dist/EMA Reader/
 uv run --extra desktop desktop.py    # or run the window without packaging
 ```
 
+On Linux the window is GTK 4 / libadwaita with the controls in the header bar; it needs `gtk4`, `libadwaita` and `webkitgtk-6.0` from the system. To put EMA Reader in the applications menu with its icon, and offer it for opening EPUB and PDF files:
+
+```bash
+uv run --extra desktop desktop.py --install      # --uninstall removes it
+```
+
 The build uses a CPU-only PyTorch, because the model is fast enough without a GPU and the GPU libraries would add several gigabytes. The Linux build is about 500 MB compressed; much of that is PyTorch and the Qt window toolkit.
 
 The installers are not code-signed, so Windows SmartScreen and macOS Gatekeeper warn before the first start.

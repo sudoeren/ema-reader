@@ -6,6 +6,9 @@
 The window opens at once with a loading screen while the model loads, then shows the reader.
 On Linux it is a GTK 4 / libadwaita window whose header bar holds the app's controls; on
 Windows and macOS it is the system's web view.
+
+On Linux, `--install` adds EMA Reader to the applications menu with its icon and offers it
+for opening EPUB and PDF files; `--uninstall` removes that again.
 Books are kept in the user's data folder. `--check` starts everything without a window, makes
 one sentence of audio and exits, which is how a packaged build is tested.
 """
@@ -82,6 +85,46 @@ WORDS = {
     "en": {"back": "Back to library", "add": "Add a book or article", "search": "Search your library",
            "chapters": "Chapters", "download": "Download this chapter as an audio file", "saved": "Saved to Downloads: {}"},
 }
+
+
+APP_ID = "io.github.emareader.EMAReader"
+LAUNCHER = """[Desktop Entry]
+Type=Application
+Name=EMA Reader
+Comment=Listen to books and articles in Turkish
+Comment[tr]=Kitapları ve makaleleri Türkçe dinle
+Exec={exec} %f
+Icon={id}
+Terminal=false
+Categories=Office;Viewer;
+MimeType=application/epub+zip;application/pdf;text/plain;text/markdown;
+StartupWMClass={id}
+"""
+
+
+def launcher_paths():
+    share = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share")
+    return share / "applications" / f"{APP_ID}.desktop", share / "icons" / "hicolor" / "scalable" / "apps" / f"{APP_ID}.svg"
+
+
+def install_launcher():
+    """Add this copy of the app to the Linux applications menu, for the current user."""
+    import shlex
+
+    entry, icon = launcher_paths()
+    # a packaged build is one program; from source it is this script run by this Python
+    command = [sys.executable] if getattr(sys, "frozen", False) else [sys.executable, str(Path(__file__).resolve())]
+    entry.parent.mkdir(parents=True, exist_ok=True)
+    icon.parent.mkdir(parents=True, exist_ok=True)
+    entry.write_text(LAUNCHER.format(exec=" ".join(map(shlex.quote, command)), id=APP_ID), encoding="utf-8")
+    icon.write_bytes((ROOT / "static" / "logo.svg").read_bytes())
+    print(f"installed {entry}")
+
+
+def uninstall_launcher():
+    for path in launcher_paths():
+        path.unlink(missing_ok=True)
+    print("removed the launcher")
 
 
 def start_server(ready):
@@ -193,7 +236,7 @@ def run_gtk(data, splash):
         window.present()
         start_server(lambda url: GLib.idle_add(web.load_uri, url))
 
-    application = Adw.Application(application_id="io.github.emareader.EMAReader", flags=Gio.ApplicationFlags.NON_UNIQUE)
+    application = Adw.Application(application_id=APP_ID, flags=Gio.ApplicationFlags.NON_UNIQUE)
     application.connect("activate", activate)
     application.run(None)
 
@@ -211,6 +254,10 @@ def run_webview(data, splash):
 def main():
     if "--check" in sys.argv:
         return check()
+    if "--install" in sys.argv:
+        return install_launcher()
+    if "--uninstall" in sys.argv:
+        return uninstall_launcher()
     data = prepare()
 
     import base64
