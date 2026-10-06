@@ -14,23 +14,40 @@ This is an unofficial project built on EMA Lightning; it is not affiliated with 
 
 The model has a single voice and speaks Turkish only.
 
-## Install
+## Desktop app
+
+For people who should not have to touch a terminal, EMA Reader is packaged as a desktop app: one download, a double click, and it opens in its own window. Everything it needs is inside, including the model, so it works without an internet connection. Books are kept in the user's data folder.
+
+Installers are built by GitHub Actions for Windows (`EMA-Reader-Setup.exe`), macOS (`EMA-Reader.dmg`) and Linux (`EMA-Reader-linux.tar.gz`) whenever a version tag such as `v1.0.0` is pushed, and attached to that release.
+
+To build it yourself, for the system you are on:
+
+```bash
+uv run build.py                      # writes dist/EMA Reader/
+uv run --extra desktop desktop.py    # or run the window without packaging
+```
+
+The build uses a CPU-only PyTorch, because the model is fast enough without a GPU and the GPU libraries would add several gigabytes. The Linux build is about 500 MB compressed; much of that is PyTorch and the Qt window toolkit.
+
+The installers are not code-signed, so Windows SmartScreen and macOS Gatekeeper warn before the first start.
+
+## Run from source
+
 
 Requires [uv](https://docs.astral.sh/uv/).
 
 ```bash
 uv sync
+uv run app.py
 ```
+
+This opens the reader in the browser at `http://127.0.0.1:8000`.
 
 The model weights (about 34 MB) are downloaded from Hugging Face on first run. After that the model loads from disk without touching the network; once a day a background check fetches newer weights, which are used from the next start. Set `HF_HUB_OFFLINE=1` to turn that check off.
 
 ## Use
 
-```bash
-uv run app.py
-```
-
-This opens the reader at `http://127.0.0.1:8000`. Drop a file on the page, choose one, or paste the address of an article.
+Choose "Add a book or article", then drop a file, pick one, or paste the address of an article.
 
 | Source | Chapters |
 |---|---|
@@ -43,7 +60,9 @@ Scanned PDFs that contain only images have no text to read.
 
 In the reader, `Space` plays and pauses, and `←` / `→` move one sentence. Media keys work too.
 
-Books are stored as JSON in the `library/` folder next to the app.
+When run from source, books are stored as JSON in the `library/` folder next to the app.
+
+`app.py` takes these options:
 
 | Option | Description | Default |
 |---|---|---|

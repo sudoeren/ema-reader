@@ -1,0 +1,68 @@
+# Builds the desktop app for Windows, macOS and Linux.
+# Runs on every version tag (v1.0.0) and attaches the installers to a release;
+# it can also be started by hand from the Actions tab, which only produces downloadable artifacts.
+name: build
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Make the macOS icon
+        if: runner.os == 'macOS'
+        run: |
+          mkdir logo.iconset
+          for size in 16 32 128 256 512; do
+            sips -z $size $size static/logo.png --out logo.iconset/icon_${size}x${size}.png
+          done
+          iconutil -c icns logo.iconset -o static/logo.icns
+
+      - name: Build
+        run: uv run build.py
+
+      - name: Windows installer
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          [[ "$GITHUB_REF_TYPE" == "tag" ]] || version="0.0.0"
+          iscc "//DVersion=$version" packaging/windows.iss
+
+      - name: macOS disk image
+        if: runner.os == 'macOS'
+        run: hdiutil create -volname "EMA Reader" -srcfolder "dist/EMA Reader.app" -ov -format UDZO dist/EMA-Reader.dmg
+
+      - name: Linux archive
+        if: runner.os == 'Linux'
+        run: tar -C dist -czf dist/EMA-Reader-linux.tar.gz "EMA Reader"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ema-reader-${{ runner.os }}
+          path: |
+            dist/EMA-Reader-Setup.exe
+            dist/EMA-Reader.dmg
+            dist/EMA-Reader-linux.tar.gz
+
+      - name: Attach to the release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/EMA-Reader-Setup.exe
+            dist/EMA-Reader.dmg
+            dist/EMA-Reader-linux.tar.gz
