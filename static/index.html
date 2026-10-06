@@ -1,155 +1,303 @@
 <!doctype html>
-<html lang="en">
+<html lang="tr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EMA Reader</title>
 <link rel="icon" href="/static/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/fonts/fonts.css">
 <style>
   :root {
-    --bg: #f7f3ea; --surface: #fffdf8; --line: #e4dccb; --ink: #23223a; --muted: #7b7667;
-    --accent: #e8870e; --accent-ink: #ffffff; --mark: #ffe2a8; --danger: #b3261e;
-    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
-    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #14172e; --surface: #1c2040; --line: #2d3260; --ink: #ece8dc; --muted: #9a98ad;
-      --accent: #ffb238; --accent-ink: #14172e; --mark: #4b3d14; --danger: #ff8a80;
-    }
+    --ink: #16161a; --text: #2a2a31; --muted: #6b6b75; --faint: #8a8a93;
+    --line: #ececef; --soft: #f3f3f5; --bg: #ffffff;
+    --accent: #2b50ff; --accent-soft: #e4eaff; --danger: #c62828;
+    --sans: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --serif: Newsreader, "Iowan Old Style", Georgia, serif;
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; }
-  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  svg { display: block; flex: none; }
   button, input { font: inherit; color: inherit; }
-  button { cursor: pointer; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 8px 14px; }
-  button:hover { border-color: var(--accent); }
-  button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
-  button.ghost { border-color: transparent; background: none; }
+  button { border: 0; background: none; padding: 0; cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   [hidden] { display: none !important; }
 
-  header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line); }
-  header img { width: 34px; height: 34px; }
-  header h1 { font-size: 18px; margin: 0; letter-spacing: 0.2px; }
-  header .title { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 10px; background: var(--ink); color: #fff; font-weight: 600; font-size: 14px; white-space: nowrap; }
+  .btn:hover { background: #000; }
+  .btn.blue { background: var(--accent); border-radius: 999px; padding: 14px 24px; font-size: 15px; }
+  .btn.blue:hover { background: #1f40e0; }
+  .btn.quiet { background: var(--soft); color: var(--ink); }
+  .btn.quiet:hover { background: var(--line); }
+  .icon { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; color: var(--muted); }
+  .icon:hover { background: var(--soft); color: var(--ink); }
 
   /* library */
-  #library { max-width: 980px; margin: 0 auto; padding: 28px 20px 60px; }
-  .add { border: 2px dashed var(--line); border-radius: 16px; padding: 26px 20px; text-align: center; background: var(--surface); transition: border-color .15s, background .15s; }
-  .add.over { border-color: var(--accent); background: var(--mark); }
-  .add p { margin: 0 0 14px; color: var(--muted); }
-  .add .row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-  .add input[type=url] { flex: 1 1 280px; max-width: 420px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
-  #status { min-height: 22px; margin: 12px 0 0; font-size: 14px; color: var(--muted); }
+  #library { max-width: 1180px; margin: 0 auto; padding: 22px 44px 70px; }
+  .top { display: flex; align-items: center; gap: 16px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -.2px; }
+  .brand img { width: 30px; height: 30px; }
+  .search { margin-left: auto; display: flex; align-items: center; gap: 8px; width: 280px; padding: 0 14px; border-radius: 10px; background: var(--soft); color: var(--faint); }
+  .search input { flex: 1; min-width: 0; border: 0; background: none; outline: 0; padding: 9px 0; font-size: 14px; color: var(--ink); }
+  .search:focus-within { box-shadow: 0 0 0 2px var(--accent); }
+  h2.section { font-size: 13px; font-weight: 600; color: var(--faint); margin: 34px 0 14px; letter-spacing: .2px; }
+
+  .resume { display: flex; align-items: center; gap: 22px; padding: 18px; border: 1px solid var(--line); border-radius: 16px; }
+  .resume .cover { width: 84px; padding: 10px 8px; flex: none; }
+  .resume .cover strong { font-size: 11px; }
+  .resume .cover small { display: none; }
+  .resume .info { flex: 1; min-width: 0; }
+  .resume h3 { font-family: var(--serif); font-size: 27px; font-weight: 500; margin: 0 0 4px; letter-spacing: -.3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .resume p { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
+  .track { height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+  .track i { display: block; height: 100%; background: var(--accent); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 28px 22px; }
+  .item { position: relative; cursor: pointer; min-width: 0; }
+  .cover { aspect-ratio: 2 / 3; border-radius: 6px; padding: 14px 12px; display: flex; flex-direction: column; justify-content: space-between; color: #fff; font-family: var(--serif); box-shadow: 0 8px 18px -8px rgba(0,0,0,.35); overflow: hidden; transition: transform .15s, box-shadow .15s; }
+  .cover strong { font-size: 17px; font-weight: 600; line-height: 1.15; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+  .cover small { font-size: 10.5px; letter-spacing: .6px; text-transform: uppercase; opacity: .85; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cover.article { background: #e9e9ee; color: var(--ink); }
+  .cover.article small { text-transform: none; letter-spacing: 0; }
+  .item:hover .cover, .item:focus-visible .cover { transform: translateY(-3px); box-shadow: 0 14px 24px -10px rgba(0,0,0,.4); }
+  .item h4 { font-size: 14px; font-weight: 600; margin: 12px 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item span { font-size: 13px; color: var(--faint); }
+  .item .remove { position: absolute; top: 8px; right: 8px; height: 26px; min-width: 26px; padding: 0 7px; border-radius: 13px; background: rgba(0,0,0,.55); color: #fff; font-size: 12px; font-weight: 600; display: grid; place-items: center; opacity: 0; }
+  .item:hover .remove, .item .remove:focus-visible, .item .remove.armed { opacity: 1; }
+  .item .remove.armed { background: var(--danger); }
+  .none { color: var(--faint); font-size: 14px; }
+
+  .welcome { text-align: center; padding: 70px 20px 0; }
+  .welcome h1 { font-family: var(--serif); font-weight: 500; font-size: 38px; letter-spacing: -.6px; margin: 0 0 10px; }
+  .welcome p { color: var(--muted); margin: 0 0 30px; font-size: 16px; }
+
+  /* add dialog */
+  dialog { border: 0; border-radius: 20px; padding: 0; width: min(520px, calc(100vw - 32px)); box-shadow: 0 30px 80px -20px rgba(20,20,60,.45); color: var(--ink); }
+  dialog::backdrop { background: rgba(22,22,26,.35); }
+  .sheet { padding: 26px; }
+  .sheet header { display: flex; align-items: center; margin-bottom: 18px; }
+  .sheet h3 { flex: 1; margin: 0; font-size: 18px; font-weight: 700; }
+  .dropzone { border: 2px dashed #d5d5dc; border-radius: 14px; padding: 30px 20px; text-align: center; transition: border-color .15s, background .15s; }
+  .dropzone.over, body.dragging .dropzone { border-color: var(--accent); background: var(--accent-soft); }
+  .dropzone p { margin: 0 0 4px; font-weight: 600; }
+  .dropzone small { display: block; color: var(--faint); margin-bottom: 16px; }
+  .or { display: flex; align-items: center; gap: 12px; color: var(--faint); font-size: 13px; margin: 18px 0; }
+  .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .urlrow { display: flex; gap: 8px; }
+  .urlrow input { flex: 1; min-width: 0; padding: 10px 14px; border-radius: 10px; border: 1px solid #d5d5dc; outline: 0; font-size: 14px; }
+  .urlrow input:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  #status { min-height: 20px; margin: 14px 0 0; font-size: 14px; color: var(--muted); }
   #status.error { color: var(--danger); }
-  .books { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; margin-top: 26px; }
-  .book { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 18px 16px; cursor: pointer; display: flex; flex-direction: column; gap: 6px; min-height: 150px; }
-  .book:hover { border-color: var(--accent); }
-  .book h2 { font-family: var(--serif); font-size: 19px; line-height: 1.25; margin: 0 26px 0 0; overflow-wrap: anywhere; }
-  .book .by { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
-  .book .meta { margin-top: auto; padding-top: 10px; color: var(--muted); font-size: 13px; display: flex; justify-content: space-between; }
-  .bar { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
-  .bar i { display: block; height: 100%; background: var(--accent); }
-  .book .remove { position: absolute; top: 8px; right: 8px; padding: 2px 8px; font-size: 18px; line-height: 1.2; color: var(--muted); }
-  .book .remove:hover { color: var(--danger); }
-  .empty { text-align: center; color: var(--muted); margin-top: 40px; }
 
   /* reader */
-  #reader { display: grid; grid-template-columns: 270px 1fr; height: calc(100% - 63px); }
-  #chapters { border-right: 1px solid var(--line); overflow-y: auto; padding: 10px 8px 120px; }
-  #chapters button { display: block; width: 100%; text-align: left; border: none; background: none; padding: 9px 12px; border-radius: 8px; font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
-  #chapters button:hover { background: var(--surface); }
-  #chapters button.current { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: inset 3px 0 0 var(--accent); }
-  #page { overflow-y: auto; padding: 34px 24px 160px; scroll-behavior: smooth; }
-  #text { max-width: 680px; margin: 0 auto; font-family: var(--serif); font-size: 20px; line-height: 1.75; }
-  #text h2 { font-size: 30px; line-height: 1.2; margin: 0 0 28px; }
-  #text p { margin: 0 0 1.1em; }
-  #text span { border-radius: 4px; cursor: pointer; padding: 2px 0; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
-  #text span:hover { background: var(--line); }
-  #text span.current { background: var(--mark); }
+  #reader { height: 100%; display: flex; flex-direction: column; }
+  .rtop { display: flex; align-items: center; gap: 10px; padding: 10px 18px; color: var(--muted); font-size: 14px; }
+  .rtop b { color: var(--ink); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rtop .by { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+  #chapter-progress { height: 2px; background: var(--line); flex: none; }
+  #chapter-progress i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s; }
+  #page { flex: 1; overflow-y: auto; padding: 46px 24px 170px; }
+  #text { max-width: 640px; margin: 0 auto; font-family: var(--serif); font-size: 22px; line-height: 1.7; color: var(--text); }
+  #text .kicker { font-family: var(--sans); font-size: 13px; font-weight: 600; letter-spacing: 1.4px; text-transform: uppercase; color: var(--accent); margin: 0 0 10px; }
+  #text h2 { font-size: 40px; line-height: 1.12; font-weight: 500; color: var(--ink); margin: 0 0 28px; letter-spacing: -.6px; overflow-wrap: anywhere; }
+  #text p { margin: 0 0 1em; }
+  #text span { border-radius: 4px; padding: 3px 2px; cursor: pointer; box-decoration-break: clone; -webkit-box-decoration-break: clone; transition: background .15s; }
+  #text span:hover { background: var(--soft); }
+  #text span.current { background: var(--accent-soft); color: var(--ink); }
 
-  #player { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); padding: 10px 20px 12px; }
-  #player .seek { height: 4px; background: var(--line); border-radius: 2px; margin-bottom: 10px; overflow: hidden; }
-  #player .seek i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
-  #player .controls { display: flex; align-items: center; gap: 10px; max-width: 980px; margin: 0 auto; flex-wrap: wrap; }
-  #player .controls .spacer { flex: 1; }
-  #play { width: 46px; height: 46px; border-radius: 50%; padding: 0; font-size: 18px; }
-  #position { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 86px; }
-  label.speed { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
-  label.speed input { width: 120px; accent-color: var(--accent); }
-  label.speed output { min-width: 38px; font-variant-numeric: tabular-nums; color: var(--ink); }
-  #menu { display: none; }
+  #player { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; padding: 10px 14px 10px 12px; border-radius: 999px; background: #fff; box-shadow: 0 14px 40px -10px rgba(20,20,60,.3), 0 0 0 1px rgba(0,0,0,.06); }
+  #play { width: 48px; height: 48px; border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center; }
+  #play:hover { background: #000; }
+  #player .mini { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); }
+  #player .mini:hover { background: var(--soft); color: var(--ink); }
+  #player .sep { width: 1px; height: 24px; background: var(--line); }
+  #time { font-size: 13px; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  #speed { font-size: 14px; font-weight: 600; padding: 7px 12px; border-radius: 8px; background: var(--soft); font-variant-numeric: tabular-nums; }
+  #speed:hover { background: var(--line); }
+  #speeds { position: fixed; bottom: 96px; left: 50%; background: #fff; border-radius: 14px; padding: 6px; box-shadow: 0 14px 40px -10px rgba(20,20,60,.3), 0 0 0 1px rgba(0,0,0,.06); display: flex; flex-direction: column; min-width: 150px; }
+  #speeds button { display: flex; justify-content: space-between; gap: 18px; padding: 9px 12px; border-radius: 8px; font-size: 14px; text-align: left; }
+  #speeds button:hover { background: var(--soft); }
+  #speeds button.on { font-weight: 700; color: var(--accent); }
+  #speeds small { color: var(--faint); font-weight: 400; }
 
-  @media (max-width: 760px) {
-    #reader { grid-template-columns: 1fr; }
-    #chapters { position: fixed; inset: 63px 0 0 0; z-index: 5; background: var(--bg); border: none; display: none; }
-    #chapters.open { display: block; }
-    #menu { display: inline-block; }
-    #text { font-size: 18px; }
-    #page { padding: 22px 16px 190px; }
-    label.speed input { width: 90px; }
+  #chapters { position: fixed; top: 0; right: 0; bottom: 0; width: min(340px, 100vw); background: #fff; box-shadow: -20px 0 60px -20px rgba(20,20,60,.25), 0 0 0 1px rgba(0,0,0,.06); display: flex; flex-direction: column; transform: translateX(105%); transition: transform .2s; z-index: 5; }
+  #chapters.open { transform: none; }
+  #chapters header { display: flex; align-items: center; padding: 14px 14px 10px 22px; }
+  #chapters h3 { flex: 1; margin: 0; font-size: 16px; font-weight: 700; }
+  #chapter-list { overflow-y: auto; padding: 0 10px 20px; }
+  #chapter-list button { display: flex; gap: 12px; width: 100%; text-align: left; padding: 10px 12px; border-radius: 10px; font-size: 14px; color: var(--muted); }
+  #chapter-list button:hover { background: var(--soft); }
+  #chapter-list button.current { color: var(--ink); font-weight: 600; background: var(--accent-soft); }
+  #chapter-list i { font-style: normal; color: var(--faint); font-variant-numeric: tabular-nums; min-width: 22px; }
+  #chapter-list span { overflow-wrap: anywhere; }
+
+  #toast { position: fixed; left: 50%; top: 20px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 10px; font-size: 14px; z-index: 20; }
+
+  @media (max-width: 720px) {
+    #library { padding: 16px 18px 60px; }
+    .top { flex-wrap: wrap; }
+    .search { order: 3; width: 100%; margin: 0; }
+    .top .btn { margin-left: auto; }
+    .resume { flex-wrap: wrap; }
+    .resume .btn { width: 100%; justify-content: center; }
+    #text { font-size: 19px; }
+    #text h2 { font-size: 30px; }
+    #page { padding: 28px 18px 160px; }
+    #player { gap: 8px; bottom: 16px; }
+    .rtop .by { display: none; }
+    .rtop b { flex: 1; }
   }
 </style>
 </head>
 <body>
 
-<header>
-  <button id="back" class="ghost" hidden aria-label="Back to library">←</button>
-  <img src="/static/logo.svg" alt="">
-  <h1>EMA Reader</h1>
-  <span class="title" id="book-title"></span>
-  <button id="menu" class="ghost" hidden aria-label="Chapters">☰</button>
-</header>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5.100v13.800a1 1 0 0 0 1.5.900l11-6.900a1 1 0 0 0 0-1.800l-11-6.900A1 1 0 0 0 8 5.100z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4.4" height="14" rx="1.2" fill="currentColor"/><rect x="13.6" y="5" width="4.4" height="14" rx="1.2" fill="currentColor"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><path fill="currentColor" d="M6 5h2v14H6zM20 6.200v11.600a.8.8 0 0 1-1.2.700L9.5 12.700a.8.8 0 0 1 0-1.400l9.3-5.800a.8.8 0 0 1 1.2.700z"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path fill="currentColor" d="M16 5h2v14h-2zM4 6.200v11.600a.8.8 0 0 0 1.2.700l9.3-5.800a.8.8 0 0 0 0-1.400L5.2 5.500A.8.8 0 0 0 4 6.200z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="m16 16 4 4"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M14.5 5.5 8 12l6.5 6.5"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M8.5 6.500h11M8.5 12h11M8.5 17.500h11M4.5 6.500h.010M4.5 12h.010M4.5 17.500h.010"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M12 4.500V15m0 0 4.5-4.500M12 15l-4.5-4.500M5 19.500h14"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M6.5 6.500l11 11M17.5 6.500l-11 11"/></symbol>
+</svg>
 
 <main id="library">
-  <div class="add" id="drop">
-    <p>Drop an EPUB, PDF, text or Markdown file here, or paste the address of an article.</p>
-    <div class="row">
-      <button class="primary" id="choose">Choose a file</button>
-      <input type="file" id="file" accept=".epub,.pdf,.txt,.md,.html,.htm" hidden>
-      <input type="url" id="url" placeholder="https://…" aria-label="Article address">
-      <button id="add-url">Add article</button>
-    </div>
-    <p id="status" role="status"></p>
+  <div class="top">
+    <div class="brand"><img src="/static/logo.svg" alt="">EMA Reader</div>
+    <label class="search" id="search-box" hidden><svg width="16" height="16"><use href="#i-search"/></svg><input id="search" type="search" data-placeholder="search"></label>
+    <button class="btn" id="add" hidden><svg width="16" height="16"><use href="#i-plus"/></svg><span data-t="add"></span></button>
   </div>
-  <div class="books" id="books"></div>
-  <p class="empty" id="empty" hidden>Your library is empty. Add something to listen to.</p>
+
+  <div class="welcome" id="welcome" hidden>
+    <h1 data-t="welcomeTitle"></h1>
+    <p data-t="welcomeText"></p>
+    <button class="btn blue" id="add-first"><svg width="18" height="18"><use href="#i-plus"/></svg><span data-t="add"></span></button>
+  </div>
+
+  <div id="shelf" hidden>
+    <div id="resume-box" hidden>
+      <h2 class="section" data-t="continue"></h2>
+      <div class="resume" id="resume"></div>
+    </div>
+    <h2 class="section" data-t="library"></h2>
+    <div class="grid" id="books"></div>
+    <p class="none" id="no-match" hidden data-t="noMatch"></p>
+  </div>
 </main>
 
 <main id="reader" hidden>
-  <nav id="chapters" aria-label="Chapters"></nav>
-  <div id="page"><article id="text"></article></div>
-  <div id="player">
-    <div class="seek"><i id="seek"></i></div>
-    <div class="controls">
-      <button id="prev" aria-label="Previous sentence">⏮</button>
-      <button id="play" class="primary" aria-label="Play">▶</button>
-      <button id="next" aria-label="Next sentence">⏭</button>
-      <span id="position"></span>
-      <span class="spacer"></span>
-      <label class="speed">Speed
-        <input type="range" id="speed" min="0.6" max="1.6" step="0.05" value="1">
-        <output id="speed-value">1.00×</output>
-      </label>
-      <button id="download" title="Download this chapter as a WAV file">Download chapter</button>
-    </div>
+  <div class="rtop">
+    <button class="icon" id="back" data-label="backToLibrary"><svg width="20" height="20"><use href="#i-back"/></svg></button>
+    <b id="book-title"></b><span class="by" id="book-author"></span>
+    <button class="icon" id="download" data-label="download"><svg width="20" height="20"><use href="#i-down"/></svg></button>
+    <button class="icon" id="open-chapters" data-label="chapters"><svg width="20" height="20"><use href="#i-list"/></svg></button>
   </div>
+  <div id="chapter-progress"><i></i></div>
+  <div id="page"><article id="text"></article></div>
+
+  <div id="player">
+    <button id="play"><svg width="22" height="22"><use id="play-icon" href="#i-play"/></svg></button>
+    <button class="mini" id="prev" data-label="previous"><svg width="22" height="22"><use href="#i-prev"/></svg></button>
+    <button class="mini" id="next" data-label="next"><svg width="22" height="22"><use href="#i-next"/></svg></button>
+    <span class="sep"></span><span id="time" data-title="estimate"></span><span class="sep"></span>
+    <button id="speed" data-label="speed"></button>
+  </div>
+  <div id="speeds" hidden></div>
+
+  <aside id="chapters">
+    <header><h3 data-t="chapters"></h3><button class="icon" id="close-chapters" data-label="close"><svg width="20" height="20"><use href="#i-close"/></svg></button></header>
+    <div id="chapter-list"></div>
+  </aside>
 </main>
 
+<dialog id="add-dialog">
+  <div class="sheet">
+    <header><h3 data-t="add"></h3><button class="icon" id="close-add" data-label="close"><svg width="20" height="20"><use href="#i-close"/></svg></button></header>
+    <div class="dropzone" id="drop">
+      <p data-t="dropHere"></p><small data-t="formats"></small>
+      <button class="btn" id="choose" data-t="chooseFile"></button>
+      <input type="file" id="file" accept=".epub,.pdf,.txt,.md,.html,.htm" hidden>
+    </div>
+    <div class="or" data-t="or"></div>
+    <div class="urlrow"><input type="url" id="url" placeholder="https://…" data-label="articleAddress"><button class="btn quiet" id="add-url" data-t="addArticle"></button></div>
+    <p id="status" role="status"></p>
+  </div>
+</dialog>
+
+<div id="toast" role="alert" hidden></div>
 <audio id="audio" preload="auto"></audio>
 
 <script>
 const $ = id => document.getElementById(id);
 const audio = $("audio");
 
-// how long to wait between sentences, in milliseconds
-const SENTENCE_PAUSE = 150, PARAGRAPH_PAUSE = 500;
-const PREFETCH = 3, CACHE_LIMIT = 40;
+/* words */
 
+const WORDS = {
+  tr: {
+    add: "Kitap ya da makale ekle", search: "Kitaplığında ara", continue: "Kaldığın yerden devam et", library: "Kitaplığın",
+    resume: "Dinlemeye devam et", noMatch: "Aramana uyan bir şey yok.",
+    welcomeTitle: "Kitaplarını dinlemeye başla", welcomeText: "Bir kitap ya da makale ekle, EMA Reader sana Türkçe okusun.",
+    dropHere: "Dosyayı buraya bırak", formats: "EPUB, PDF, metin ya da Markdown", chooseFile: "Dosya seç", or: "ya da",
+    addArticle: "Makaleyi ekle", articleAddress: "Makale adresi", adding: n => `${n} ekleniyor…`, theArticle: "Makale",
+    chapters: "Bölümler", chapterOf: (n, total) => `Bölüm ${n} / ${total}`, chapterN: n => `${n}. bölüm`,
+    fresh: "Yeni", finished: "Bitti", article: "Makale", percent: n => `%${n}`,
+    minutes: n => `${n} dk`, hours: (h, m) => m ? `${h} sa ${m} dk` : `${h} sa`, left: s => `${s} kaldı`,
+    remove: "Kitaplıktan kaldır", confirmRemove: "Sil?", close: "Kapat", backToLibrary: "Kitaplığa dön",
+    download: "Bu bölümü ses dosyası olarak indir", previous: "Önceki cümle", next: "Sonraki cümle",
+    play: "Oynat", pause: "Duraklat", speed: "Okuma hızı", estimate: "Yaklaşık süre",
+    slow: "Yavaş", normal: "Normal", fast: "Hızlı", audioFailed: "Ses üretilemedi. Uygulamanın açık olduğundan emin ol.",
+    preparing: "Bölüm hazırlanıyor…",
+    // the server explains failures in English; these are the ones a reader can run into
+    errors: {
+      "unsupported file type": "Bu dosya türü desteklenmiyor. EPUB, PDF, metin ya da Markdown ekleyebilirsin.",
+      "no readable text found": "Burada okunacak metin bulunamadı. Taranmış (resim) PDF'ler okunamaz.",
+      "the address must start": "Adres http:// ya da https:// ile başlamalı.",
+      "could not download the page": "Sayfa indirilemedi. Adresi ve internet bağlantını kontrol et.",
+      "the file is too large": "Dosya çok büyük.",
+      "could not read it": "Bu dosya okunamadı; bozuk olabilir.",
+    },
+    addFailed: "Eklenemedi.",
+  },
+  en: {
+    add: "Add a book or article", search: "Search your library", continue: "Continue where you left off", library: "Your library",
+    resume: "Continue listening", noMatch: "Nothing matches your search.",
+    welcomeTitle: "Start listening to your books", welcomeText: "Add a book or an article and EMA Reader reads it to you in Turkish.",
+    dropHere: "Drop a file here", formats: "EPUB, PDF, text or Markdown", chooseFile: "Choose a file", or: "or",
+    addArticle: "Add article", articleAddress: "Article address", adding: n => `Adding ${n}…`, theArticle: "the article",
+    chapters: "Chapters", chapterOf: (n, total) => `Chapter ${n} of ${total}`, chapterN: n => `Chapter ${n}`,
+    fresh: "New", finished: "Finished", article: "Article", percent: n => `${n}%`,
+    minutes: n => `${n} min`, hours: (h, m) => m ? `${h} h ${m} min` : `${h} h`, left: s => `${s} left`,
+    remove: "Remove from library", confirmRemove: "Remove?", close: "Close", backToLibrary: "Back to library",
+    download: "Download this chapter as an audio file", previous: "Previous sentence", next: "Next sentence",
+    play: "Play", pause: "Pause", speed: "Reading speed", estimate: "Estimated time",
+    slow: "Slow", normal: "Normal", fast: "Fast", audioFailed: "Could not make the audio. Check that the app is still running.",
+    preparing: "Preparing the chapter…",
+  },
+};
+const lang = (navigator.language || "tr").toLowerCase().startsWith("tr") ? "tr" : "en";
+const t = (key, ...args) => typeof WORDS[lang][key] === "function" ? WORDS[lang][key](...args) : WORDS[lang][key];
+document.documentElement.lang = lang;
+document.querySelectorAll("[data-t]").forEach(el => el.textContent = t(el.dataset.t));
+document.querySelectorAll("[data-label]").forEach(el => { el.setAttribute("aria-label", t(el.dataset.label)); el.title = t(el.dataset.label); });
+document.querySelectorAll("[data-placeholder]").forEach(el => { el.placeholder = t(el.dataset.placeholder); el.setAttribute("aria-label", el.placeholder); });
+document.querySelectorAll("[data-title]").forEach(el => el.title = t(el.dataset.title));
+
+/* state */
+
+const CHARS_PER_SECOND = 17;          // how fast the voice reads at speed 1, to estimate times
+const SENTENCE_PAUSE = 150, PARAGRAPH_PAUSE = 500;   // milliseconds
+const PREFETCH = 3, CACHE_LIMIT = 40;
+const SPEEDS = [[0.75, "slow"], [0.9], [1, "normal"], [1.1], [1.25, "fast"], [1.5]];
+const COVERS = ["#1f3a5f", "#8c2f39", "#2f5d50", "#b5852f", "#3b3355", "#7a4b2a", "#245a6b", "#5a2d4f"];
+
+let books = [];         // the library
 let book = null;        // the open book
 let chapter = 0;        // index of the open chapter
-let sentences = [];     // the chapter's sentences: {text, el, endsParagraph}
+let sentences = [];     // the chapter's sentences: {text, el, endsParagraph, before}
 let index = 0;          // the sentence being read
 let playing = false;
 let run = 0;            // bumped whenever playback is restarted, so stale loops stop
@@ -166,7 +314,94 @@ async function api(path, options) {
   return data;
 }
 
+function duration(seconds) {
+  const minutes = Math.max(1, Math.round(seconds / 60));
+  return minutes < 60 ? t("minutes", minutes) : t("hours", Math.floor(minutes / 60), minutes % 60);
+}
+
+function clock(seconds) {
+  seconds = Math.round(seconds);
+  const h = Math.floor(seconds / 3600), m = Math.floor(seconds / 60) % 60, s = String(seconds % 60).padStart(2, "0");
+  return h ? `${h}:${String(m).padStart(2, "0")}:${s}` : `${m}:${s}`;
+}
+
+let toastTimer;
+function toast(message) {
+  $("toast").textContent = message; $("toast").hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => $("toast").hidden = true, 4000);
+}
+
 /* library */
+
+function cover(b) {
+  const el = document.createElement("div");
+  el.className = "cover" + (b.article ? " article" : "");
+  if (!b.article) {
+    let hash = 0;
+    for (const ch of b.title) hash = (hash * 31 + ch.codePointAt(0)) >>> 0;
+    el.style.background = COVERS[hash % COVERS.length];
+  }
+  const title = document.createElement("strong"); title.textContent = b.title;
+  const by = document.createElement("small"); by.textContent = b.author || "";
+  el.append(title, by);
+  return el;
+}
+
+const isFinished = b => b.done >= b.size;
+const remaining = b => duration((b.size - b.done) / CHARS_PER_SECOND / speed);
+
+function statusOf(b) {
+  if (isFinished(b)) return t("finished");
+  if (b.done === 0) return b.article ? `${t("article")} · ${remaining(b)}` : t("fresh");
+  return t("percent", Math.round(100 * b.done / b.size));
+}
+
+function card(b) {
+  const el = document.createElement("div");
+  el.className = "item"; el.tabIndex = 0;
+  const title = document.createElement("h4"); title.textContent = b.title;
+  const status = document.createElement("span"); status.textContent = statusOf(b);
+  const remove = document.createElement("button");
+  remove.className = "remove"; remove.textContent = "×"; remove.title = t("remove"); remove.setAttribute("aria-label", t("remove"));
+  remove.onclick = async e => {
+    e.stopPropagation();
+    if (remove.classList.contains("armed")) { await api(`/api/books/${b.id}`, {method: "DELETE"}); showLibrary(); }
+    else {
+      remove.classList.add("armed"); remove.textContent = t("confirmRemove");
+      setTimeout(() => { remove.classList.remove("armed"); remove.textContent = "×"; }, 2500);
+    }
+  };
+  el.append(cover(b), title, status, remove);
+  el.onclick = () => openBook(b.id);
+  el.onkeydown = e => { if (e.key === "Enter" && e.target === el) openBook(b.id); };
+  return el;
+}
+
+function renderLibrary() {
+  const empty = books.length === 0;
+  $("welcome").hidden = !empty; $("shelf").hidden = empty; $("add").hidden = empty; $("search-box").hidden = empty;
+
+  const query = $("search").value.trim().toLocaleLowerCase("tr");
+  const shown = books.filter(b => `${b.title} ${b.author || ""}`.toLocaleLowerCase("tr").includes(query));
+  $("books").replaceChildren(...shown.map(card));
+  $("no-match").hidden = shown.length > 0;
+
+  const last = books.filter(b => b.opened && b.done > 0 && !isFinished(b)).sort((x, y) => y.opened - x.opened)[0];
+  $("resume-box").hidden = !last || Boolean(query);
+  if (!last) return;
+  const info = document.createElement("div"); info.className = "info";
+  const title = document.createElement("h3"); title.textContent = last.title;
+  const line = document.createElement("p");
+  line.textContent = [last.author, last.chapters > 1 && t("chapterN", last.chapter + 1), t("left", remaining(last))].filter(Boolean).join(" · ");
+  const track = document.createElement("div"); track.className = "track";
+  track.innerHTML = `<i style="width:${100 * last.done / last.size}%"></i>`;
+  info.append(title, line, track);
+  const go = document.createElement("button"); go.className = "btn blue";
+  go.innerHTML = `<svg width="18" height="18"><use href="#i-play"/></svg>`;
+  go.append(t("resume"));
+  go.onclick = () => openBook(last.id, true);
+  $("resume").replaceChildren(cover(last), info, go);
+}
 
 async function showLibrary() {
   stop();
@@ -174,36 +409,21 @@ async function showLibrary() {
   clearTimeout(saveTimer);
   await pendingSave?.();   // so the library shows the position just left
   $("reader").hidden = true; $("library").hidden = false;
-  $("back").hidden = true; $("menu").hidden = true; $("book-title").textContent = "";
+  $("chapters").classList.remove("open"); $("speeds").hidden = true;
   document.title = "EMA Reader";
-  const books = await api("/api/books");
-  $("empty").hidden = books.length > 0;
-  $("books").replaceChildren(...books.map(card));
+  books = await api("/api/books");
+  renderLibrary();
 }
 
-function card(b) {
-  const el = document.createElement("div");
-  el.className = "book"; el.tabIndex = 0;
-  const title = document.createElement("h2"); title.textContent = b.title;
-  const by = document.createElement("div"); by.className = "by"; by.textContent = b.author || "";
-  const percent = b.sentences ? Math.round(100 * b.done / b.sentences) : 0;
-  const meta = document.createElement("div"); meta.className = "meta";
-  meta.innerHTML = `<span>${b.chapters} ${b.chapters === 1 ? "chapter" : "chapters"}</span><span>${percent}%</span>`;
-  const bar = document.createElement("div"); bar.className = "bar";
-  bar.innerHTML = `<i style="width:${percent}%"></i>`;
-  const remove = document.createElement("button");
-  remove.className = "remove ghost"; remove.textContent = "×"; remove.title = "Remove from library";
-  remove.setAttribute("aria-label", `Remove ${b.title}`);
-  remove.onclick = async e => {
-    e.stopPropagation();
-    if (remove.dataset.armed) { await api(`/api/books/${b.id}`, {method: "DELETE"}); showLibrary(); }
-    else { remove.dataset.armed = 1; remove.textContent = "Remove?"; setTimeout(() => { delete remove.dataset.armed; remove.textContent = "×"; }, 2500); }
-  };
-  el.append(title, by, meta, bar, remove);
-  el.onclick = () => openBook(b.id);
-  el.onkeydown = e => { if (e.key === "Enter") openBook(b.id); };
-  return el;
-}
+$("search").oninput = renderLibrary;
+
+/* adding */
+
+const dialog = $("add-dialog");
+function openAdd() { status(""); dialog.showModal(); }
+$("add").onclick = openAdd; $("add-first").onclick = openAdd;
+$("close-add").onclick = () => dialog.close();
+dialog.onclick = e => { if (e.target === dialog) dialog.close(); };
 
 function status(message, error = false) {
   $("status").textContent = message;
@@ -211,90 +431,118 @@ function status(message, error = false) {
 }
 
 async function add(request, label) {
-  status(`Adding ${label}…`);
+  if (!dialog.open) dialog.showModal();
+  status(t("adding", label));
   try {
     const added = await request();
-    status("");
+    dialog.close();
     openBook(added.id);
   } catch (e) {
-    status(e.message, true);
+    const known = WORDS[lang].errors;
+    const match = known && Object.keys(known).find(start => e.message.startsWith(start));
+    status(known ? (match ? known[match] : t("addFailed")) : e.message, true);
   }
 }
 
 const addFile = file => add(() => api(`/api/books?name=${encodeURIComponent(file.name)}`, {method: "POST", body: file}), file.name);
-const addUrl = url => add(() => api("/api/books", {method: "POST", body: JSON.stringify({url})}), "the article");
+const addUrl = url => add(() => api("/api/books", {method: "POST", body: JSON.stringify({url})}), t("theArticle"));
 
 $("choose").onclick = () => $("file").click();
 $("file").onchange = () => { if ($("file").files[0]) addFile($("file").files[0]); $("file").value = ""; };
 $("add-url").onclick = () => { const url = $("url").value.trim(); if (url) { addUrl(url); $("url").value = ""; } };
 $("url").onkeydown = e => { if (e.key === "Enter") $("add-url").click(); };
-const drop = $("drop");
-window.addEventListener("dragover", e => { e.preventDefault(); if (!book) drop.classList.add("over"); });
-window.addEventListener("dragleave", e => { if (!e.relatedTarget) drop.classList.remove("over"); });
+
+// a file can be dropped anywhere while the library is showing
+window.addEventListener("dragover", e => {
+  e.preventDefault();
+  if (book) return;
+  document.body.classList.add("dragging");
+  if (!dialog.open) openAdd();
+});
+window.addEventListener("dragleave", e => { if (!e.relatedTarget) document.body.classList.remove("dragging"); });
 window.addEventListener("drop", e => {
-  e.preventDefault(); drop.classList.remove("over");
+  e.preventDefault(); document.body.classList.remove("dragging");
   if (!book && e.dataTransfer.files[0]) addFile(e.dataTransfer.files[0]);
 });
 
 /* reader */
 
-async function openBook(id) {
+async function openBook(id, start = false) {
   book = await api(`/api/books/${id}`);
   $("library").hidden = true; $("reader").hidden = false;
-  $("back").hidden = false; $("menu").hidden = false;
-  $("book-title").textContent = book.title; document.title = `${book.title} · EMA Reader`;
-  $("chapters").replaceChildren(...book.chapters.map((c, i) => {
+  $("book-title").textContent = book.title; $("book-author").textContent = book.author || "";
+  document.title = `${book.title} · EMA Reader`;
+  $("open-chapters").hidden = book.chapters.length < 2;
+  $("chapter-list").replaceChildren(...book.chapters.map((c, i) => {
     const b = document.createElement("button");
-    b.textContent = c.title;
-    b.onclick = () => { openChapter(i, 0, playing); $("chapters").classList.remove("open"); };
+    const n = document.createElement("i"); n.textContent = i + 1;
+    const name = document.createElement("span"); name.textContent = c.title;
+    b.append(n, name);
+    b.onclick = () => { $("chapters").classList.remove("open"); openChapter(i, 0, playing); };
     return b;
   }));
-  openChapter(book.progress.chapter, book.progress.sentence, false);
+  openChapter(book.progress.chapter, book.progress.sentence, start);
 }
 
 function openChapter(number, sentence, keepPlaying) {
   stop();
   chapter = number;
   sentences = [];
+  let before = 0;
+  const nodes = [];
+  if (book.chapters.length > 1) {
+    const kicker = document.createElement("p"); kicker.className = "kicker";
+    kicker.textContent = t("chapterOf", chapter + 1, book.chapters.length);
+    nodes.push(kicker);
+  }
   const heading = document.createElement("h2");
   heading.textContent = book.chapters[chapter].title;
-  const paragraphs = book.chapters[chapter].paragraphs.map(parts => {
+  nodes.push(heading);
+  for (const parts of book.chapters[chapter].paragraphs) {
     const p = document.createElement("p");
     parts.forEach((text, i) => {
       const el = document.createElement("span");
       el.textContent = text;
       const at = sentences.length;
       el.onclick = () => jump(at, true);
-      sentences.push({text, el, endsParagraph: i === parts.length - 1});
+      sentences.push({text, el, endsParagraph: i === parts.length - 1, before});
+      before += text.length;
       p.append(el, " ");
     });
-    return p;
-  });
-  $("text").replaceChildren(heading, ...paragraphs);
-  [...$("chapters").children].forEach((b, i) => b.classList.toggle("current", i === chapter));
+    nodes.push(p);
+  }
+  sentences.total = before;
+  $("text").replaceChildren(...nodes);
+  [...$("chapter-list").children].forEach((b, i) => b.classList.toggle("current", i === chapter));
   $("page").scrollTop = 0;
-  select(Math.min(sentence, sentences.length - 1));
+  select(Math.min(sentence, sentences.length - 1), sentence >= sentences.length);
   if (keepPlaying) play();
 }
 
-function select(i) {
+function showTime() {
+  const rate = CHARS_PER_SECOND * speed;
+  $("time").textContent = `${clock(sentences[index].before / rate)} / ${clock(sentences.total / rate)}`;
+}
+
+function select(i, finished = false) {
   sentences[index]?.el.classList.remove("current");
   index = i;
   const current = sentences[index];
   current.el.classList.add("current");
   const box = current.el.getBoundingClientRect(), page = $("page").getBoundingClientRect();
-  if (box.top < page.top + 60 || box.bottom > page.bottom - 160) {
-    $("page").scrollTop += box.top - page.top - page.height / 3;
+  if (box.top < page.top + 40 || box.bottom > page.bottom - 190) {
+    $("page").scrollTo({top: $("page").scrollTop + box.top - page.top - page.height / 3, behavior: "smooth"});
   }
-  $("position").textContent = `${index + 1} / ${sentences.length}`;
-  $("seek").style.width = `${100 * (index + 1) / sentences.length}%`;
-  saveProgress();
+  $("chapter-progress").firstElementChild.style.width = `${100 * (current.before + (finished ? current.text.length : 0)) / sentences.total}%`;
+  showTime();
+  saveProgress(finished);
 }
 
 let saveTimer, pendingSave = null;
-function saveProgress() {
+function saveProgress(finished = false) {
   clearTimeout(saveTimer);
-  const id = book.id, body = JSON.stringify({chapter, sentence: index});
+  // one past the last sentence marks the book as finished
+  const id = book.id, body = JSON.stringify({chapter, sentence: finished ? sentences.length : index});
   pendingSave = () => { pendingSave = null; return fetch(`/api/books/${id}/progress`, {method: "PUT", body, keepalive: true}); };
   saveTimer = setTimeout(() => pendingSave?.(), 600);
 }
@@ -305,7 +553,7 @@ function clip(i) {
   const key = `${book.id}:${chapter}:${i}:${speed}`;
   if (!cache.has(key)) {
     const url = fetch("/tts", {method: "POST", body: JSON.stringify({text: sentences[i].text, speed})})
-      .then(r => { if (!r.ok) throw new Error("could not make the audio"); return r.blob(); })
+      .then(r => { if (!r.ok) throw new Error("no audio"); return r.blob(); })
       .then(blob => URL.createObjectURL(blob));
     url.catch(() => cache.delete(key));
     cache.set(key, url);
@@ -341,11 +589,11 @@ async function play() {
       if (mine !== run) return;
       if (index + 1 < sentences.length) select(index + 1);
       else if (chapter + 1 < book.chapters.length) return openChapter(chapter + 1, 0, true);
-      else break;
+      else { select(index, true); break; }
     }
   } catch (e) {
     if (mine !== run) return;   // interrupted on purpose
-    $("position").textContent = e.message;
+    toast(t("audioFailed"));
   }
   if (mine === run) setPlaying(false);
 }
@@ -363,8 +611,8 @@ function stop() {
 
 function setPlaying(value) {
   playing = value;
-  $("play").textContent = value ? "⏸" : "▶";
-  $("play").setAttribute("aria-label", value ? "Pause" : "Play");
+  $("play-icon").setAttribute("href", value ? "#i-pause" : "#i-play");
+  $("play").setAttribute("aria-label", t(value ? "pause" : "play")); $("play").title = t(value ? "pause" : "play");
   if ("mediaSession" in navigator) navigator.mediaSession.playbackState = value ? "playing" : "paused";
 }
 
@@ -380,20 +628,48 @@ $("play").onclick = toggle;
 $("prev").onclick = () => jump(index - 1);
 $("next").onclick = () => jump(index + 1);
 $("back").onclick = showLibrary;
-$("menu").onclick = () => $("chapters").classList.toggle("open");
-$("download").onclick = () => { location.href = `/api/books/${book.id}/chapters/${chapter}/audio?speed=${speed}`; };
+$("open-chapters").onclick = () => $("chapters").classList.toggle("open");
+$("close-chapters").onclick = () => $("chapters").classList.remove("open");
+$("download").onclick = () => { toast(t("preparing")); location.href = `/api/books/${book.id}/chapters/${chapter}/audio?speed=${speed}`; };
 
-function showSpeed() { $("speed").value = speed; $("speed-value").textContent = speed.toFixed(2) + "×"; }
-$("speed").oninput = () => { speed = Number($("speed").value); showSpeed(); };
-$("speed").onchange = () => {
+/* speed */
+
+const speedLabel = value => value.toLocaleString(lang, {minimumFractionDigits: 1, maximumFractionDigits: 2}) + "×";
+function showSpeed() {
+  $("speed").textContent = speedLabel(speed);
+  $("speeds").replaceChildren(...SPEEDS.map(([value, name]) => {
+    const b = document.createElement("button");
+    b.className = value === speed ? "on" : "";
+    const hint = document.createElement("small"); hint.textContent = name ? t(name) : "";
+    b.append(speedLabel(value), hint);
+    b.onclick = () => setSpeed(value);
+    return b;
+  }));
+}
+function setSpeed(value) {
+  speed = value;
   try { localStorage.setItem("speed", speed); } catch {}
+  $("speeds").hidden = true;
+  showSpeed(); showTime();
   if (playing) jump(index, true);   // re-read the current sentence at the new speed
   else loaded = null;
+}
+$("speed").onclick = e => {
+  e.stopPropagation();
+  $("speeds").hidden = !$("speeds").hidden;
+  const box = $("speed").getBoundingClientRect();
+  $("speeds").style.left = `${Math.max(8, box.right - $("speeds").offsetWidth)}px`;
 };
+document.addEventListener("click", e => {
+  if (!e.target.closest("#speeds")) $("speeds").hidden = true;
+  if (!e.target.closest("#chapters, #open-chapters")) $("chapters").classList.remove("open");
+});
 showSpeed();
 
 document.addEventListener("keydown", e => {
-  if (!book || e.target.matches("input, button")) return;
+  if (e.key === "Escape") { $("speeds").hidden = true; $("chapters").classList.remove("open"); }
+  if (!book || dialog.open || e.target.matches("input")) return;
+  if (e.key === " " && e.target.matches("button")) return;   // the focused button handles it
   if (e.key === " ") { e.preventDefault(); toggle(); }
   else if (e.key === "ArrowRight") jump(index + 1);
   else if (e.key === "ArrowLeft") jump(index - 1);
@@ -406,6 +682,7 @@ if ("mediaSession" in navigator) {
   navigator.mediaSession.setActionHandler("previoustrack", () => jump(index - 1));
 }
 
+setPlaying(false);
 showLibrary();
 </script>
 </body>

@@ -94,17 +94,20 @@ def write_book(book):
 
 
 def summary(book):
-    counts = [sum(len(p) for p in c["paragraphs"]) for c in book["chapters"]]
+    """What the library shows for a book; sizes are in characters, to estimate listening time."""
+    sizes = [[len(s) for p in c["paragraphs"] for s in p] for c in book["chapters"]]
     progress = book["progress"]
-    done = sum(counts[: progress["chapter"]]) + progress["sentence"]
+    done = sum(map(sum, sizes[: progress["chapter"]])) + sum(sizes[progress["chapter"]][: progress["sentence"]])
     return {
         "id": book["id"],
         "title": book["title"],
         "author": book["author"],
-        "source": book["source"],
+        "article": book["source"].startswith(("http://", "https://")),
         "added": book["added"],
-        "chapters": len(counts),
-        "sentences": sum(counts),
+        "opened": book.get("opened", 0),
+        "chapter": progress["chapter"],
+        "chapters": len(sizes),
+        "size": sum(map(sum, sizes)),
         "done": done,
     }
 
@@ -231,6 +234,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(400, {"error": "chapter and sentence must be valid positions"})
         with library_lock:
             book["progress"] = {"chapter": chapter, "sentence": sentence}
+            book["opened"] = time.time()
             write_book(book)
         self.send_json(200, book["progress"])
 

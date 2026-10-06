@@ -191,6 +191,11 @@ def extract_html(html):
         raise ValueError("no readable text found on the page")
     meta = trafilatura.extract_metadata(html)
     title = meta.title if meta else None
+    if title:
+        # "Meddah - Vikipedi" -> "Meddah": drop a short site name after the last separator
+        parts = re.split(r"\s[-–—|]\s", title)
+        if len(parts) > 1 and len(parts[-1].split()) <= 3:
+            title = title[: title.rindex(parts[-1])].rstrip(" -–—|")
     return {
         "title": title,
         "author": None,
