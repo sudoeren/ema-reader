@@ -1,18 +1,19 @@
-"""EMA Lightning için minimal CLI: metni Türkçe seslendirir.
+"""A minimal CLI for EMA Lightning: speaks Turkish text.
 
-    uv run ema.py "Merhaba dünya"            # hoparlörden çal
-    uv run ema.py "Merhaba" -o merhaba.wav   # dosyaya yaz
-    uv run ema.py -f metin.txt -o klipler    # her satır ayrı klip: 0.wav, 1.wav, ...
-    echo "Merhaba" | uv run ema.py           # stdin'den oku
-    uv run ema.py                            # etkileşimli mod
+    uv run ema.py "Merhaba dünya"            # play through the speakers
+    uv run ema.py "Merhaba" -o merhaba.wav   # write to a file
+    uv run ema.py -f text.txt -o clips       # one clip per line: 0.wav, 1.wav, ...
+    echo "Merhaba" | uv run ema.py           # read from stdin
+    uv run ema.py                            # interactive mode
 
-    uv run ema.py "Merhaba" --api http://127.0.0.1:8000   # açık duran api.py'yi kullan (hızlı)
+    uv run ema.py "Merhaba" --api http://127.0.0.1:8000   # use a running api.py (fast)
 """
 
 import argparse
 import json
 import os
 import sys
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -21,24 +22,58 @@ from pathlib import Path
 import numpy as np
 
 
+REPO = "canberkkkkkk/ema-lightning"
+FILES = ("config.json", "ema.pt", "decoder.pt")
+UPDATE_CHECK_INTERVAL = 24 * 3600
+
+
 def load_model(cpu=False, lightning=False):
+    import logging
+
     from huggingface_hub import constants, try_to_load_from_cache
 
-    # ağırlıklar diskteyse Hub'a hiç bağlanma: açılış hızlanır, HF_TOKEN uyarısı çıkmaz
-    files = ("config.json", "ema.pt", "decoder.pt")
-    if all(isinstance(try_to_load_from_cache("canberkkkkkk/ema-lightning", f), str) for f in files):
-        constants.HF_HUB_OFFLINE = True
+    # the Hub answers anonymous requests with a "set a HF_TOKEN" notice; the model is public
+    logging.getLogger("huggingface_hub.utils._http").setLevel(logging.ERROR)
+
+    # with the weights on disk, load without touching the network so startup stays fast
+    cached = [try_to_load_from_cache(REPO, f) for f in FILES]
+    offline = all(isinstance(path, str) for path in cached)
+    constants.HF_HUB_OFFLINE = constants.HF_HUB_OFFLINE or offline
 
     from ema_lightning import EMA
 
     tts = EMA(device="cpu" if cpu else "auto")
     if lightning:
         tts.lightning()
+
+    if offline and not os.environ.get("HF_HUB_OFFLINE"):
+        constants.HF_HUB_OFFLINE = False
+        threading.Thread(target=update_model, args=(cached,)).start()
     return tts
 
 
+def update_model(cached):
+    """Once a day, fetch newer weights in the background; they are used from the next start."""
+    from huggingface_hub import constants, hf_hub_download, model_info
+
+    stamp = Path(constants.HF_HUB_CACHE) / ("models--" + REPO.replace("/", "--")) / ".last-update-check"
+    try:
+        if time.time() - stamp.stat().st_mtime < UPDATE_CHECK_INTERVAL:
+            return
+    except OSError:
+        pass
+    try:
+        model_info(REPO)  # raises without network, where hf_hub_download quietly returns the cached files
+        latest = [hf_hub_download(REPO, f) for f in FILES]
+        stamp.touch()
+    except Exception:
+        return  # no network: try again on the next start
+    if [os.path.realpath(p) for p in latest] != [os.path.realpath(p) for p in cached]:
+        print("model updated; the new version is used from the next start", file=sys.stderr)
+
+
 class Local:
-    """Modeli bu süreçte yükler."""
+    """Loads the model in this process."""
 
     def __init__(self, cpu, lightning):
         self.tts = load_model(cpu, lightning)
@@ -47,13 +82,13 @@ class Local:
         return self.tts.stream(text, **opts)
 
     def save(self, texts, paths, **opts):
-        # hepsi tek seferde, ortak batch'lerde üretilir
+        # all texts are generated together, in shared batches
         for speech, path in zip(self.tts.say(texts, **opts), paths):
             write_wav(path, speech.audio, speech.sample_rate)
 
 
 class Remote:
-    """Açık duran api.py'ye bağlanır; model yükleme beklemesi olmaz."""
+    """Talks to a running api.py, so there is no model load to wait for."""
 
     def __init__(self, url):
         self.url = url.rstrip("/") + "/tts"
@@ -66,7 +101,7 @@ class Remote:
         except urllib.error.HTTPError as e:
             raise ValueError(json.loads(e.read())["error"]) from None
         except urllib.error.URLError as e:
-            sys.exit(f"API'ye ulaşılamadı ({self.url}): {e.reason}")
+            sys.exit(f"could not reach the API ({self.url}): {e.reason}")
 
     def stream(self, text, **opts):
         with self.post(text, stream=True, **opts) as resp:
@@ -90,17 +125,17 @@ def write_wav(path, audio, sample_rate):
 
 
 def main():
-    p = argparse.ArgumentParser(description="EMA Lightning Türkçe TTS")
-    p.add_argument("text", nargs="*", help="seslendirilecek metin (boşsa stdin ya da etkileşimli mod)")
-    p.add_argument("-f", "--file", help="metin dosyası; her satır ayrı seslendirilir")
-    p.add_argument("-o", "--out", help="çalmak yerine yaz: tek metin için .wav, birden çok satır için klasör")
-    p.add_argument("--speed", type=float, default=1.0, help="0.25 - 4 (varsayılan 1.0)")
-    p.add_argument("--seed", type=int, help="aynı seed aynı sesi verir")
-    p.add_argument("--rate", type=int, default=48000, choices=[48000, 24000, 16000, 8000], help="örnekleme hızı")
+    p = argparse.ArgumentParser(description="EMA Lightning Turkish text to speech")
+    p.add_argument("text", nargs="*", help="text to speak (stdin or interactive mode if omitted)")
+    p.add_argument("-f", "--file", help="text file; each line is spoken separately")
+    p.add_argument("-o", "--out", help="write instead of playing: a .wav for one text, a folder for several lines")
+    p.add_argument("--speed", type=float, default=1.0, help="0.25 to 4 (default 1.0)")
+    p.add_argument("--seed", type=int, help="the same seed gives the same audio")
+    p.add_argument("--rate", type=int, default=48000, choices=[48000, 24000, 16000, 8000], help="sample rate")
     p.add_argument("--api", default=os.environ.get("EMA_API"), metavar="URL",
-                   help="modeli yüklemek yerine açık duran api.py'yi kullan (ya da EMA_API ortam değişkeni)")
-    p.add_argument("--cpu", action="store_true", help="GPU yerine CPU kullan")
-    p.add_argument("--lightning", action="store_true", help="NVIDIA hızlı yolu (açılış dakikalar sürer)")
+                   help="use a running api.py instead of loading the model (or set EMA_API)")
+    p.add_argument("--cpu", action="store_true", help="use the CPU instead of the GPU")
+    p.add_argument("--lightning", action="store_true", help="NVIDIA fast path (startup takes minutes)")
     args = p.parse_args()
 
     if args.text:
@@ -110,13 +145,13 @@ def main():
     elif not sys.stdin.isatty():
         texts = sys.stdin.read().splitlines()
     else:
-        texts = None  # etkileşimli mod
+        texts = None  # interactive mode
     if texts is not None:
         texts = [t.strip() for t in texts if t.strip()]
         if not texts:
-            p.error("seslendirilecek metin yok")
+            p.error("no text to speak")
     elif args.out:
-        p.error("-o için metin, -f ya da stdin gerekli")
+        p.error("-o needs a text, -f or stdin")
 
     opts = {"speed": args.speed, "sample_rate": args.rate}
     if args.seed is not None:
@@ -130,7 +165,7 @@ def main():
         else:
             play(backend, texts, args.rate, opts)
     except ValueError as e:
-        sys.exit(f"hata: {e}")
+        sys.exit(f"error: {e}")
 
 
 def save(backend, texts, out, opts):
@@ -142,14 +177,14 @@ def save(backend, texts, out, opts):
     start = time.perf_counter()
     backend.save(texts, paths, **opts)
     took = time.perf_counter() - start
-    where = out if len(texts) == 1 else f"{out}/ ({len(texts)} klip)"
+    where = out if len(texts) == 1 else f"{out}/ ({len(texts)} clips)"
     print(f"{where}: {took * 1000:.0f} ms")
 
 
 def play(backend, texts, rate, opts):
     import sounddevice as sd
 
-    # hoparlörü bir kez aç: her cümlede yeniden açmak ~100-400 ms sürüyor
+    # open the speaker once: reopening it for every sentence costs ~100-400 ms
     speaker = sd.OutputStream(samplerate=rate, channels=1, dtype="float32")
     speaker.start()
 
@@ -161,18 +196,18 @@ def play(backend, texts, rate, opts):
                 first = time.perf_counter() - start
             speaker.write(chunk)
         if first is not None:
-            print(f"ilk ses {first * 1000:.0f} ms")
+            print(f"first audio in {first * 1000:.0f} ms")
 
     if texts is not None:
         for text in texts:
             speak(text)
-        speaker.stop()  # tampondaki sesin bitmesini bekler
+        speaker.stop()  # waits for the buffered audio to finish
         return
 
     if isinstance(backend, Local):
-        for _ in backend.stream("Merhaba."):  # ısınma: ilk cümlenin ~500 ms gecikmesini açılışa taşır
+        for _ in backend.stream("Merhaba."):  # warm-up: moves the first sentence's ~500 ms delay to startup
             pass
-    print("Metin yazıp Enter'a basın (Ctrl+C: sesi kes, Ctrl+D: çıkış)")
+    print("Type a text and press Enter (Ctrl+C: stop audio, Ctrl+D: quit)")
     while True:
         try:
             line = input("> ").strip()
@@ -191,7 +226,7 @@ def play(backend, texts, rate, opts):
             speaker.start()
             print()
         except ValueError as e:
-            print(f"hata: {e}")
+            print(f"error: {e}")
 
 
 if __name__ == "__main__":

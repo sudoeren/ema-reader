@@ -1,17 +1,17 @@
-"""EMA Lightning için basit HTTP API. Modeli bir kez yükler ve sıcak tutar.
+"""A simple HTTP API for EMA Lightning. Loads the model once and keeps it warm.
 
     uv run api.py                      # http://127.0.0.1:8000
 
     curl "localhost:8000/tts?text=Merhaba" -o merhaba.wav
     curl localhost:8000/tts -d '{"text": "Merhaba", "speed": 1.2}' -o merhaba.wav
 
-Uç noktalar:
-    GET  /health   durum
-    GET  /tts      parametreler sorgu dizgisinde
-    POST /tts      parametreler JSON gövdede
+Endpoints:
+    GET  /health   status
+    GET  /tts      parameters in the query string
+    POST /tts      parameters in a JSON body
 
-Parametreler: text (zorunlu), speed, seed, sample_rate, stream.
-Yanıt bir WAV dosyasıdır. stream=true ise ham PCM (16 bit, mono) üretildikçe akar.
+Parameters: text (required), speed, seed, sample_rate, stream.
+The response is a WAV file. With stream=true, raw PCM (16-bit, mono) is sent as it is generated.
 """
 
 import argparse
@@ -31,10 +31,10 @@ def pcm16(audio):
 
 
 def parse(params):
-    """İstek parametrelerini EMA'nın beklediği türlere çevirir."""
+    """Convert request parameters to the types EMA expects."""
     text = params.get("text")
     if not isinstance(text, str) or not text.strip():
-        raise ValueError("text zorunlu")
+        raise ValueError("text is required")
     opts = {}
     if params.get("speed") is not None:
         opts["speed"] = float(params["speed"])
@@ -54,18 +54,18 @@ class Handler(BaseHTTPRequestHandler):
         elif url.path == "/tts":
             self.tts(dict(parse_qsl(url.query)))
         else:
-            self.send_json(404, {"error": "bulunamadı"})
+            self.send_json(404, {"error": "not found"})
 
     def do_POST(self):
         if urlparse(self.path).path != "/tts":
-            return self.send_json(404, {"error": "bulunamadı"})
+            return self.send_json(404, {"error": "not found"})
         try:
             body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
             params = json.loads(body)
             if not isinstance(params, dict):
                 raise ValueError
         except ValueError:
-            return self.send_json(400, {"error": "gövde bir JSON nesnesi olmalı"})
+            return self.send_json(400, {"error": "body must be a JSON object"})
         self.tts(params)
 
     def tts(self, params):
@@ -73,7 +73,7 @@ class Handler(BaseHTTPRequestHandler):
             text, opts, stream = parse(params)
             if stream:
                 chunks = tts.stream(text, **opts)
-                first = next(chunks, None)  # ayar hataları başlıklar gitmeden ortaya çıksın
+                first = next(chunks, None)  # surface invalid settings before the headers go out
             else:
                 speech = tts.say(text, **opts)
         except (ValueError, TypeError) as e:
@@ -88,7 +88,7 @@ class Handler(BaseHTTPRequestHandler):
                 w.writeframes(pcm16(speech.audio))
             return self.send(200, "audio/wav", buf.getvalue(), {"X-Seed": speech.seed})
 
-        # uzunluk baştan bilinmediği için gövde bağlantı kapanınca biter
+        # the length is not known up front, so the body ends when the connection closes
         self.send_response(200)
         self.send_header("Content-Type", "audio/L16")
         self.send_header("X-Sample-Rate", str(opts.get("sample_rate", 48000)))
@@ -99,7 +99,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.flush()
                 first = next(chunks, None)
         except (BrokenPipeError, ConnectionResetError):
-            chunks.close()  # dinleyen gitti, kalan işi bırak
+            chunks.close()  # the listener left, drop the rest of the work
 
     def send_json(self, status, obj):
         self.send(status, "application/json", json.dumps(obj, ensure_ascii=False).encode())
@@ -117,19 +117,19 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     global tts
     p = argparse.ArgumentParser(description="EMA Lightning HTTP API")
-    p.add_argument("--host", default="127.0.0.1", help="ağa açmak için 0.0.0.0")
+    p.add_argument("--host", default="127.0.0.1", help="0.0.0.0 to expose it to the network")
     p.add_argument("--port", type=int, default=8000)
-    p.add_argument("--cpu", action="store_true", help="GPU yerine CPU kullan")
-    p.add_argument("--lightning", action="store_true", help="NVIDIA hızlı yolu (açılış dakikalar sürer)")
+    p.add_argument("--cpu", action="store_true", help="use the CPU instead of the GPU")
+    p.add_argument("--lightning", action="store_true", help="NVIDIA fast path (startup takes minutes)")
     args = p.parse_args()
 
     from ema import load_model
 
     tts = load_model(args.cpu, args.lightning)
-    tts.say("Merhaba.")  # ısınma: ilk isteğin gecikmesini açılışa taşır
+    tts.say("Merhaba.")  # warm-up: moves the first request's delay to startup
 
     server = ThreadingHTTPServer((args.host, args.port), Handler)
-    print(f"hazır: http://{args.host}:{args.port}")
+    print(f"ready: http://{args.host}:{args.port}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
