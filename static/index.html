@@ -218,7 +218,7 @@
   @keyframes tour-pop { from { opacity: 0; } to { opacity: 1; } }
   #tour-note { position: absolute; width: 300px; pointer-events: auto; animation: tour-note .45s ease-out both; }
   /* a soft patch of background behind the note, so it reads over whatever is underneath */
-  #tour-note::before { content: ""; position: absolute; inset: -26px -34px; z-index: -1; border-radius: 40px; background: var(--bg); opacity: .93; filter: blur(14px); }
+  #tour-note:not(.center)::before { content: ""; position: absolute; inset: -34px -44px; z-index: -1; background: radial-gradient(closest-side, var(--bg) 62%, transparent); }
   @keyframes tour-note { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
   #tour-note p { margin: 0 0 12px; font-family: Caveat, "Segoe Print", "Bradley Hand", cursive; font-size: 31px; font-weight: 600; line-height: 1.12; color: var(--ink); }
   #tour-note .row { display: flex; align-items: center; gap: 14px; }
@@ -441,7 +441,7 @@ const ACCENTS = {   // name: [light, light soft, dark, dark soft]
   graphite: ["#3a3a44", "#e9e9ee", "#c9c9d2", "#34343c"],
 };
 const SIZES = {small: 19, medium: 22, large: 25, huge: 29};
-const settings = {theme: "system", accent: "blue", size: "medium", language: "auto"};
+const settings = {theme: "light", accent: "blue", size: "medium", language: "auto"};
 try { Object.assign(settings, JSON.parse(localStorage.getItem("settings") || "{}")); } catch {}
 const darkQuery = matchMedia("(prefers-color-scheme: dark)");
 const shell = window.emaShell ? window.webkit?.messageHandlers?.shell : null;   // the desktop window, if the page is inside it
@@ -876,7 +876,7 @@ $("download-dialog").addEventListener("close", () => {
 /* settings and about */
 
 function drawSettings() {
-  pick("set-theme", ["system", "light", "dark"], settings.theme, v => t(v), v => { settings.theme = v; saveSettings(); drawSettings(); });
+  pick("set-theme", ["light", "dark", "system"], settings.theme, v => t(v), v => { settings.theme = v; saveSettings(); drawSettings(); });
   pick("set-size", Object.keys(SIZES), settings.size, v => t("sizes")[v], v => { settings.size = v; saveSettings(); drawSettings(); });
   pick("set-language", ["auto", "tr", "en"], settings.language, v => ({auto: t("auto"), tr: "Türkçe", en: "English"})[v],
        v => { settings.language = v; saveSettings(); location.reload(); });   // every text on the page changes
