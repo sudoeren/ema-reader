@@ -12,7 +12,7 @@ Requires [uv](https://docs.astral.sh/uv/). Playing through the speakers needs Po
 uv sync
 ```
 
-The model weights are downloaded from Hugging Face on first run.
+The model weights are downloaded from Hugging Face on first run. After that the model loads from disk without touching the network; once a day a background check fetches newer weights, which are used from the next start. Set `HF_HUB_OFFLINE=1` to turn that check off.
 
 ## CLI
 
