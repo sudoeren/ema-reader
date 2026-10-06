@@ -26,6 +26,7 @@ PORT = int(os.environ.get("EMA_READER_PORT", 47800))
 
 SPLASH = """<!doctype html><meta charset="utf-8"><style>
 html,body{height:100%;margin:0}body{display:grid;place-items:center;font-family:system-ui,sans-serif;color:#6b6b75;background:#fff}
+@media(prefers-color-scheme:dark){body{background:#131316;color:#a0a0ab}}
 div{text-align:center}img{width:72px;height:72px;display:block;margin:0 auto 18px;animation:p 1.6s ease-in-out infinite}
 @keyframes p{50%{opacity:.45}}</style><div><img src="data:image/svg+xml;base64,LOGO" alt=""><span></span></div>
 <script>document.querySelector("span").textContent=(navigator.language||"tr").toLowerCase().startsWith("tr")?"EMA Reader açılıyor…":"Starting EMA Reader…"</script>"""
@@ -80,10 +81,10 @@ def check():
 
 
 WORDS = {
-    "tr": {"back": "Kitaplığa dön", "add": "Kitap ya da makale ekle", "search": "Kitaplığında ara",
-           "chapters": "Bölümler", "download": "Bu bölümü ses dosyası olarak indir", "saved": "İndirilenler klasörüne kaydedildi: {}"},
-    "en": {"back": "Back to library", "add": "Add a book or article", "search": "Search your library",
-           "chapters": "Chapters", "download": "Download this chapter as an audio file", "saved": "Saved to Downloads: {}"},
+    "tr": {"back": "Kitaplığa dön", "add": "Kitap ya da makale ekle", "search": "Kitaplığında ara", "settings": "Ayarlar",
+           "info": "Kitap hakkında", "chapters": "Bölümler", "download": "İndir", "saved": "İndirilenler klasörüne kaydedildi: {}"},
+    "en": {"back": "Back to library", "add": "Add a book or article", "search": "Search your library", "settings": "Settings",
+           "info": "About this book", "chapters": "Chapters", "download": "Download", "saved": "Saved to Downloads: {}"},
 }
 
 
@@ -163,10 +164,16 @@ def run_gtk(data, splash):
     words = WORDS["tr" if (locale.getlocale()[0] or "").lower().startswith("tr") else "en"]
 
     def activate(application):
-        Adw.StyleManager.get_default().set_color_scheme(Adw.ColorScheme.FORCE_LIGHT)  # the reader is light
+        style = Adw.StyleManager.get_default()
         css = Gtk.CssProvider()
-        css.load_from_string("window, headerbar { background: #fff; }")
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
+        def set_theme(dark):
+            """The window follows the page: the header bar and the page are one surface."""
+            style.set_color_scheme(Adw.ColorScheme.FORCE_DARK if dark else Adw.ColorScheme.FORCE_LIGHT)
+            colour = "#131316" if dark else "#ffffff"
+            css.load_from_string(f"window, headerbar {{ background: {colour}; }}")
+            web.set_background_color(Gdk.RGBA(*((0.075, 0.075, 0.086, 1) if dark else (1, 1, 1, 1))))
 
         # what the page tells the window, and the page itself
         manager = WebKit.UserContentManager()
@@ -176,40 +183,63 @@ def run_gtk(data, splash):
         session = WebKit.NetworkSession.new(str(data / "webview"), str(data / "webview-cache"))  # keeps page settings
         web = WebKit.WebView(user_content_manager=manager, network_session=session,
                              website_policies=WebKit.WebsitePolicies(autoplay=WebKit.AutoplayPolicy.ALLOW))
-        web.set_background_color(Gdk.RGBA(1, 1, 1, 1))
+        set_theme(style.get_dark())
 
-        def act(name):
-            return lambda *_: web.evaluate_javascript(f"shellAction({json.dumps(name)})", -1, None, None, None, None, None)
+        def run(script):
+            web.evaluate_javascript(script, -1, None, None, None, None, None)
 
         def button(icon, word, side):
             b = Gtk.Button(icon_name=icon, tooltip_text=words[word], visible=False)
-            b.connect("clicked", act(word))
+            b.connect("clicked", lambda *_: run(f"shellAction({json.dumps(word)})"))
             (header.pack_start if side == "start" else header.pack_end)(b)
             return b
 
         header = Adw.HeaderBar()
         title = Adw.WindowTitle(title=NAME)
         header.set_title_widget(title)
-        back = button("go-previous-symbolic", "back", "start")
-        add = button("list-add-symbolic", "add", "start")
-        chapters = button("view-list-symbolic", "chapters", "end")
-        download = button("folder-download-symbolic", "download", "end")
-        search = button("system-search-symbolic", "search", "end")
+        buttons = {
+            "back": button("go-previous-symbolic", "back", "start"),
+            "add": button("list-add-symbolic", "add", "start"),
+            "settings": button("emblem-system-symbolic", "settings", "end"),
+            "chapters": button("view-list-symbolic", "chapters", "end"),
+            "download": button("folder-download-symbolic", "download", "end"),
+            "info": button("help-about-symbolic", "info", "end"),
+            "search": button("system-search-symbolic", "search", "end"),
+        }
 
         def on_message(_manager, value):
-            # {"view": "library" | "reader", "title", "subtitle", "empty", "chapters"}
-            state = json.loads(value.to_json(0))
-            reader = state["view"] == "reader"
-            title.set_title(state.get("title") or NAME)
-            title.set_subtitle(state.get("subtitle") or "")
-            back.set_visible(reader)
-            download.set_visible(reader)
-            chapters.set_visible(reader and state.get("chapters", False))
-            add.set_visible(not reader and not state.get("empty", False))
-            search.set_visible(not reader and not state.get("empty", False))
+            message = json.loads(value.to_json(0))
+            if "view" in message:  # {"view": "library" | "reader", "title", "subtitle", "empty", "chapters"}
+                reader, empty = message["view"] == "reader", message.get("empty", False)
+                title.set_title(message.get("title") or NAME)
+                title.set_subtitle(message.get("subtitle") or "")
+                shown = {"back": reader, "info": reader, "download": reader, "chapters": reader and message.get("chapters", False),
+                         "add": not reader and not empty, "search": not reader and not empty, "settings": not reader}
+                for name, visible in shown.items():
+                    buttons[name].set_visible(visible)
+            if "theme" in message:
+                set_theme(message["theme"] == "dark")
+            if "open" in message and str(message["open"]).startswith(("http://", "https://")):
+                Gio.AppInfo.launch_default_for_uri(message["open"], None)
+            if "highlight" in message:  # the tour points at one of these buttons
+                for name, b in buttons.items():
+                    (b.add_css_class if name == message["highlight"] else b.remove_css_class)("suggested-action")
+            if message.get("ask") in buttons:  # where a button is, in the page's coordinates
+                found, box = buttons[message["ask"]].compute_bounds(web)
+                answer = {"left": box.get_x(), "right": box.get_x() + box.get_width()} if found else None
+                run(f"shellAnswer({json.dumps(answer)})")
 
         manager.connect("script-message-received::shell", on_message)
 
+        def on_policy(_web, decision, kind):
+            # a link clicked in the page goes to the system's browser, not into this window
+            if kind == WebKit.PolicyDecisionType.NEW_WINDOW_ACTION:
+                Gio.AppInfo.launch_default_for_uri(decision.get_navigation_action().get_request().get_uri(), None)
+                decision.ignore()
+                return True
+            return False
+
+        web.connect("decide-policy", on_policy)
         toasts = Adw.ToastOverlay(child=web)
 
         def on_download(_session, download):
@@ -246,7 +276,8 @@ def run_webview(data, splash):
     import webview
 
     window = webview.create_window(NAME, html=splash, width=1220, height=820, min_size=(420, 560))
-    webview.settings["ALLOW_DOWNLOADS"] = True  # "download chapter"
+    webview.settings["ALLOW_DOWNLOADS"] = True  # "download"
+    webview.settings["OPEN_EXTERNAL_LINKS_IN_BROWSER"] = True
     webview.start(lambda: start_server(window.load_url), private_mode=False, storage_path=str(data / "webview"),
                   icon=str(ROOT / "static" / "logo.png"))
 

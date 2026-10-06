@@ -47,6 +47,7 @@ import numpy as np
 import export
 from extract import extract_file, extract_url
 
+VERSION = "1.0.0"
 ROOT = Path(__file__).parent
 STATIC = ROOT / "static"
 LIBRARY = Path(os.environ.get("EMA_READER_LIBRARY") or ROOT / "library")
@@ -169,7 +170,7 @@ class Handler(BaseHTTPRequestHandler):
         elif url.path.startswith("/static/"):
             self.send_file(STATIC / url.path[len("/static/") :])
         elif url.path == "/health":
-            self.send_json(200, {"status": "ok"})
+            self.send_json(200, {"status": "ok", "version": VERSION})
         elif url.path == "/tts":
             self.tts(query)
         elif url.path == "/api/books":
