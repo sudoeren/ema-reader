@@ -123,11 +123,9 @@ def main():
     p.add_argument("--lightning", action="store_true", help="NVIDIA hızlı yolu (açılış dakikalar sürer)")
     args = p.parse_args()
 
-    from ema_lightning import EMA
+    from ema import load_model
 
-    tts = EMA(device="cpu" if args.cpu else "auto")
-    if args.lightning:
-        tts.lightning()
+    tts = load_model(args.cpu, args.lightning)
     tts.say("Merhaba.")  # ısınma: ilk isteğin gecikmesini açılışa taşır
 
     server = ThreadingHTTPServer((args.host, args.port), Handler)

@@ -21,15 +21,27 @@ from pathlib import Path
 import numpy as np
 
 
+def load_model(cpu=False, lightning=False):
+    from huggingface_hub import constants, try_to_load_from_cache
+
+    # ağırlıklar diskteyse Hub'a hiç bağlanma: açılış hızlanır, HF_TOKEN uyarısı çıkmaz
+    files = ("config.json", "ema.pt", "decoder.pt")
+    if all(isinstance(try_to_load_from_cache("canberkkkkkk/ema-lightning", f), str) for f in files):
+        constants.HF_HUB_OFFLINE = True
+
+    from ema_lightning import EMA
+
+    tts = EMA(device="cpu" if cpu else "auto")
+    if lightning:
+        tts.lightning()
+    return tts
+
+
 class Local:
     """Modeli bu süreçte yükler."""
 
     def __init__(self, cpu, lightning):
-        from ema_lightning import EMA
-
-        self.tts = EMA(device="cpu" if cpu else "auto")
-        if lightning:
-            self.tts.lightning()
+        self.tts = load_model(cpu, lightning)
 
     def stream(self, text, **opts):
         return self.tts.stream(text, **opts)
