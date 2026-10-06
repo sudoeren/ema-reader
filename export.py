@@ -37,7 +37,7 @@ jobs = {}
 
 def safe(name):
     """A file name that every system accepts."""
-    return re.sub(r'[\\/:*?"<>|\x00-\x1f]+', " ", name).strip(" .")[:80] or "EMA Reader"
+    return " ".join(re.sub(r'[\\/:*?"<>|\x00-\x1f]+', " ", name).split()).strip(" .")[:80] or "EMA Reader"
 
 
 def chapter_name(book, number):

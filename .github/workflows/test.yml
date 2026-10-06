@@ -1,0 +1,16 @@
+# Runs the tests on every push and pull request.
+# They cover text extraction and exports and do not load the model, so the heavy packages are left out.
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv run --no-project --python 3.12 --with pytest --with numpy --with pypdf --with trafilatura pytest

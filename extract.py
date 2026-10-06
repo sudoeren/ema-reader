@@ -171,9 +171,12 @@ def extract_epub(data):
     # the cover: marked as such in EPUB 3, named by a <meta> in EPUB 2, else an image called "cover"
     images = [e for e in items if (e.get("media-type") or "").startswith("image/")]
     named = next((e.get("content") for e in opf.iter() if local(e.tag) == "meta" and e.get("name") == "cover"), None)
-    cover = (next((e for e in images if "cover-image" in (e.get("properties") or "").split()), None)
-             or next((e for e in images if e.get("id") == named), None)
-             or next((e for e in images if "cover" in f"{e.get('id')} {e.get('href')}".lower()), None))
+    candidates = (
+        (e for e in images if "cover-image" in (e.get("properties") or "").split()),
+        (e for e in images if e.get("id") == named),
+        (e for e in images if "cover" in f"{e.get('id')} {e.get('href')}".lower()),
+    )
+    cover = next((e for found in candidates for e in found), None)  # not `or`: an element without children is falsy
     picture = None
     if cover is not None:
         try:

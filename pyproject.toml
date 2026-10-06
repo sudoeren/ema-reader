@@ -20,3 +20,7 @@ desktop = [
     "pywebview>=5; sys_platform != 'linux'",
     "pygobject>=3.50; sys_platform == 'linux'",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

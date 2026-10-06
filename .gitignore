@@ -4,3 +4,4 @@ __pycache__/
 library/
 .build/
 dist/
+.pytest_cache/
