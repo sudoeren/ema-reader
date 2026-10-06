@@ -1,6 +1,8 @@
 [project]
 name = "ema-cli"
 version = "0.1.0"
+description = "EMA Lightning Türkçe TTS için minimal CLI ve HTTP API"
+readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "ema-lightning>=1.0.1",
