@@ -43,7 +43,7 @@ from extract import extract_file, extract_url
 
 ROOT = Path(__file__).parent
 STATIC = ROOT / "static"
-LIBRARY = ROOT / "library"
+LIBRARY = Path(os.environ.get("EMA_READER_LIBRARY") or ROOT / "library")
 MAX_UPLOAD = 200 * 1024 * 1024
 BOOK = re.compile(r"/api/books/([0-9a-f]{12})(/progress|/chapters/(\d+)/audio)?")
 
@@ -87,7 +87,7 @@ def read_book(book_id):
 
 
 def write_book(book):
-    LIBRARY.mkdir(exist_ok=True)
+    LIBRARY.mkdir(parents=True, exist_ok=True)
     tmp = book_path(book["id"]).with_suffix(".tmp")
     tmp.write_text(json.dumps(book, ensure_ascii=False), encoding="utf-8")
     tmp.replace(book_path(book["id"]))
@@ -326,8 +326,18 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
 
-def main():
+def start(host="127.0.0.1", port=8000, speed=1.0, cpu=False, lightning=False):
+    """Load the model and return a server that is ready for serve_forever()."""
     global tts, default_speed
+    from ema import load_model
+
+    default_speed = speed
+    tts = load_model(cpu, lightning)
+    tts.say("Merhaba.")  # warm-up: moves the first request's delay to startup
+    return ThreadingHTTPServer((host, port), Handler)
+
+
+def main():
     p = argparse.ArgumentParser(description="EMA Reader: a book and article reader for EMA Lightning")
     p.add_argument("--host", default="127.0.0.1", help="0.0.0.0 to expose it to the network")
     p.add_argument("--port", type=int, default=8000)
@@ -339,14 +349,8 @@ def main():
     args = p.parse_args()
     if not 0.25 <= args.speed <= 4:
         p.error("--speed must be from 0.25 to 4")
-    default_speed = args.speed
 
-    from ema import load_model
-
-    tts = load_model(args.cpu, args.lightning)
-    tts.say("Merhaba.")  # warm-up: moves the first request's delay to startup
-
-    server = ThreadingHTTPServer((args.host, args.port), Handler)
+    server = start(args.host, args.port, args.speed, args.cpu, args.lightning)
     url = f"http://{args.host}:{args.port}"
     print(f"ready: {url}", flush=True)
     if not args.no_browser:

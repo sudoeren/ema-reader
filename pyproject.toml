@@ -10,3 +10,10 @@ dependencies = [
     "sounddevice>=0.5.6",
     "trafilatura>=2.3.1",
 ]
+
+[project.optional-dependencies]
+# the native window of the desktop app; Linux needs the Qt backend, Windows and macOS use the system web view
+desktop = [
+    "pywebview>=5",
+    "pywebview[qt]>=5; sys_platform == 'linux'",
+]
