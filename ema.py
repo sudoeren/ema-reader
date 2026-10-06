@@ -6,7 +6,7 @@
     echo "Merhaba" | uv run ema.py           # read from stdin
     uv run ema.py                            # interactive mode
 
-    uv run ema.py "Merhaba" --api http://127.0.0.1:8000   # use a running api.py (fast)
+    uv run ema.py "Merhaba" --api http://127.0.0.1:8000   # use a running app.py (fast)
 """
 
 import argparse
@@ -88,7 +88,7 @@ class Local:
 
 
 class Remote:
-    """Talks to a running api.py, so there is no model load to wait for."""
+    """Talks to a running app.py, so there is no model load to wait for."""
 
     def __init__(self, url):
         self.url = url.rstrip("/") + "/tts"
@@ -134,7 +134,7 @@ def main():
     p.add_argument("--seed", type=int, help="the same seed gives the same audio")
     p.add_argument("--rate", type=int, default=48000, choices=[48000, 24000, 16000, 8000], help="sample rate")
     p.add_argument("--api", default=os.environ.get("EMA_API"), metavar="URL",
-                   help="use a running api.py instead of loading the model (or set EMA_API)")
+                   help="use a running app.py instead of loading the model (or set EMA_API)")
     p.add_argument("--cpu", action="store_true", help="use the CPU instead of the GPU")
     p.add_argument("--lightning", action="store_true", help="NVIDIA fast path (startup takes minutes)")
     args = p.parse_args()

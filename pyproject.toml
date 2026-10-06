@@ -1,7 +1,7 @@
 [project]
-name = "ema-cli"
+name = "ema-reader"
 version = "0.1.0"
-description = "Minimal CLI and HTTP API for the EMA Lightning Turkish TTS model"
+description = "A book and article reader that speaks Turkish text with the EMA Lightning model"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

@@ -372,7 +372,22 @@ wheels = [
 ]
 
 [[package]]
-name = "ema-cli"
+name = "ema-lightning"
+version = "1.0.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "huggingface-hub" },
+    { name = "normalizer-tr" },
+    { name = "numpy" },
+    { name = "torch" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a8/8b/5412fd7369db0d46b763eed7ddc0c92256b21dd8b7b03b94df5aed9f52b5/ema_lightning-1.0.1.tar.gz", hash = "sha256:3e6a02da4eb95348341ac01cf903d52a395a136edd81bb926b4109dbba28c856", size = 44620, upload-time = "2026-10-06T03:21:15.437Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/58/55/5732a817d07b60293a7b5b98b43453b93b281a11a0a93892ccbe6a05cb3a/ema_lightning-1.0.1-py3-none-any.whl", hash = "sha256:22b16b997a594b9ffcb0681218dc67f2fb8466af4e4dd3e99b48f20a7523d70e", size = 31000, upload-time = "2026-10-06T03:21:13.984Z" },
+]
+
+[[package]]
+name = "ema-reader"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
@@ -388,21 +403,6 @@ requires-dist = [
     { name = "pypdf", specifier = ">=6.19.0" },
     { name = "sounddevice", specifier = ">=0.5.6" },
     { name = "trafilatura", specifier = ">=2.3.1" },
-]
-
-[[package]]
-name = "ema-lightning"
-version = "1.0.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "huggingface-hub" },
-    { name = "normalizer-tr" },
-    { name = "numpy" },
-    { name = "torch" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/a8/8b/5412fd7369db0d46b763eed7ddc0c92256b21dd8b7b03b94df5aed9f52b5/ema_lightning-1.0.1.tar.gz", hash = "sha256:3e6a02da4eb95348341ac01cf903d52a395a136edd81bb926b4109dbba28c856", size = 44620, upload-time = "2026-10-06T03:21:15.437Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/58/55/5732a817d07b60293a7b5b98b43453b93b281a11a0a93892ccbe6a05cb3a/ema_lightning-1.0.1-py3-none-any.whl", hash = "sha256:22b16b997a594b9ffcb0681218dc67f2fb8466af4e4dd3e99b48f20a7523d70e", size = 31000, upload-time = "2026-10-06T03:21:13.984Z" },
 ]
 
 [[package]]
