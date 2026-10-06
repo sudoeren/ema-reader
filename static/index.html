@@ -140,6 +140,32 @@
   .shell #library { padding-top: 6px; }
   .shell h2.section:first-child, .shell #resume-box h2.section { margin-top: 20px; }
 
+  /* onboarding: a veil with a hole around what is being shown, a hand-written note and a dashed arrow */
+  #tour { position: fixed; inset: 0; z-index: 50; pointer-events: none; }   /* what it points at stays clickable */
+  #tour-note { pointer-events: auto; }
+  #tour svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #tour .veil { fill: rgba(255,255,255,.82); }
+  #tour .arrow { fill: none; stroke: var(--ink); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+  #tour .dashes { stroke-dasharray: 9 10; animation: tour-march 1.1s linear infinite; }
+  #tour .reveal { stroke: #fff; stroke-width: 12; animation: tour-draw .9s cubic-bezier(.6,0,.3,1) both; }
+  #tour .head { opacity: 0; animation: tour-pop .25s ease-out .8s both; }
+  @keyframes tour-march { to { stroke-dashoffset: -19; } }
+  @keyframes tour-draw { from { stroke-dashoffset: var(--length); } to { stroke-dashoffset: 0; } }
+  @keyframes tour-pop { from { opacity: 0; } to { opacity: 1; } }
+  #tour-note { position: absolute; width: 300px; animation: tour-note .45s ease-out both; }
+  @keyframes tour-note { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  #tour-note p { margin: 0 0 12px; font-family: Caveat, "Segoe Print", "Bradley Hand", cursive; font-size: 31px; font-weight: 600; line-height: 1.12; color: var(--ink); }
+  #tour-note .row { display: flex; align-items: center; gap: 14px; }
+  #tour-note .skip { font-size: 13px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+  #tour-note .dots { margin-left: auto; display: flex; gap: 5px; }
+  #tour-note .dots i { width: 6px; height: 6px; border-radius: 50%; background: #d5d5dc; }
+  #tour-note .dots i.on { background: var(--ink); }
+  #tour-note.center { text-align: center; width: min(460px, calc(100vw - 40px)); }
+  #tour-note.center p { font-size: 44px; margin-bottom: 6px; }
+  #tour-note.center span { display: block; font-size: 16px; color: var(--muted); margin-bottom: 22px; line-height: 1.5; }
+  #tour-note.center .row { justify-content: center; }
+  @media (prefers-reduced-motion: reduce) { #tour .dashes, #tour .reveal, #tour .head, #tour-note { animation: none; opacity: 1; } }
+
   @media (max-width: 720px) {
     #library { padding: 16px 18px 60px; }
     .top { flex-wrap: wrap; }
@@ -234,6 +260,18 @@
   </div>
 </dialog>
 
+<div id="tour" hidden>
+  <svg aria-hidden="true">
+    <defs>
+      <mask id="tour-hole"><rect width="100%" height="100%" fill="#fff"/><rect id="tour-cut" rx="14" fill="#000"/></mask>
+      <mask id="tour-reveal" maskUnits="userSpaceOnUse"><path id="tour-mask" class="arrow reveal"/></mask>
+    </defs>
+    <rect class="veil" width="100%" height="100%" mask="url(#tour-hole)"/>
+    <path id="tour-path" class="arrow dashes" mask="url(#tour-reveal)"/>
+    <path id="tour-head" class="arrow head"/>
+  </svg>
+  <div id="tour-note"></div>
+</div>
 <div id="toast" role="alert" hidden></div>
 <audio id="audio" preload="auto"></audio>
 
@@ -268,6 +306,10 @@ const WORDS = {
       "could not read it": "Bu dosya okunamadı; bozuk olabilir.",
     },
     addFailed: "Eklenemedi.",
+    tourWelcome: "Hoş geldin!", tourIntro: "EMA Reader kitapları ve makaleleri sana Türkçe okur. Nasıl çalıştığını yarım dakikada gösterelim.",
+    tourStart: "Göster", tourNext: "İleri", tourDone: "Başlayalım", tourSkip: "Geç",
+    tourPlay: "Dinlemek için buna bas", tourSentence: "Bir cümleye tıkla, oradan okumaya başlasın",
+    tourSpeed: "Hızlı ya da yavaş mı? Buradan ayarla", tourAdd: "Kendi kitabını ya da bir makaleyi buradan ekle",
   },
   en: {
     add: "Add a book or article", search: "Search your library", continue: "Continue where you left off", library: "Your library",
@@ -283,6 +325,10 @@ const WORDS = {
     play: "Play", pause: "Pause", speed: "Reading speed", estimate: "Estimated time",
     slow: "Slow", normal: "Normal", fast: "Fast", audioFailed: "Could not make the audio. Check that the app is still running.",
     preparing: "Preparing the chapter…",
+    tourWelcome: "Welcome!", tourIntro: "EMA Reader reads books and articles to you in Turkish. Here is how it works, in half a minute.",
+    tourStart: "Show me", tourNext: "Next", tourDone: "Let's start", tourSkip: "Skip",
+    tourPlay: "Press this to listen", tourSentence: "Click a sentence to read from there",
+    tourSpeed: "Too fast or too slow? Change it here", tourAdd: "Add your own book or an article here",
   },
 };
 const lang = (navigator.language || "tr").toLowerCase().startsWith("tr") ? "tr" : "en";
@@ -698,7 +744,7 @@ showSpeed();
 
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") { $("speeds").hidden = true; $("chapters").classList.remove("open"); }
-  if (!book || dialog.open || e.target.matches("input")) return;
+  if (!book || dialog.open || tour.step >= 0 || e.target.matches("input")) return;
   if (e.key === " " && e.target.matches("button")) return;   // the focused button handles it
   if (e.key === " ") { e.preventDefault(); toggle(); }
   else if (e.key === "ArrowRight") jump(index + 1);
@@ -712,11 +758,145 @@ if ("mediaSession" in navigator) {
   navigator.mediaSession.setActionHandler("previoustrack", () => jump(index - 1));
 }
 
+/* onboarding: shown once, on a short welcome text that is added to the library */
+
+const WELCOME_NAME = "EMA Reader'a hoş geldin.md";
+const WELCOME_TEXT = `# Hoş geldin
+
+EMA Reader'a hoş geldin. Bu kısa metin, uygulamayı denemen için burada. Alttaki oynat düğmesine bastığında bu satırları sana yüksek sesle okurum.
+
+Okuduğum cümle her zaman işaretlenir, böylece gözünle de takip edebilirsin. Başka bir yerden devam etmek istersen o cümleye tıklaman yeterli.
+
+# Kendi kitapların
+
+Kitaplığına EPUB, PDF ya da düz metin dosyaları ekleyebilirsin. İnternetteki bir yazıyı dinlemek istersen adresini yapıştırman yeter.
+
+Nerede kaldığını ben hatırlarım. Uygulamayı kapatıp yarın açtığında kaldığın cümleden devam ederiz. İyi dinlemeler!`;
+
+const tour = {
+  step: -1,
+  steps: [
+    {center: true},
+    {target: () => $("play"), text: "tourPlay", from: [-250, -190], bend: 70,
+     before: async () => { await openWelcome(); }},
+    // the first line of a sentence, so the hole is one tidy strip
+    {target: () => sentences[2].el.getClientRects()[0], text: "tourSentence", from: [150, 250], bend: -90, pad: 5},
+    {target: () => $("speed"), text: "tourSpeed", from: [170, -200], bend: -70},
+    // inside the desktop window the add button is in the header bar, just above the page
+    {target: () => shell ? {left: 28, top: -44, right: 66, bottom: -6} : $("add").getBoundingClientRect(),
+     text: "tourAdd", from: () => shell ? [200, 190] : [-330, 150], bend: 80, last: true,
+     before: async () => { await showLibrary(); }},
+  ],
+};
+
+async function openWelcome() {
+  let welcome = books.find(b => b.title === WELCOME_NAME.replace(/\.md$/, ""));
+  if (!welcome) welcome = await api(`/api/books?name=${encodeURIComponent(WELCOME_NAME)}`, {method: "POST", body: WELCOME_TEXT});
+  await openBook(welcome.id);
+}
+
+function tourButton(label, primary, action) {
+  const b = document.createElement("button");
+  b.className = primary ? "btn" : "skip"; b.textContent = t(label); b.onclick = action;
+  return b;
+}
+
+async function showStep(number) {
+  const step = tour.steps[number];
+  tour.step = number;
+  if (step.before) await step.before();
+  $("tour").hidden = false;
+  drawStep();
+}
+
+function drawStep() {
+  const step = tour.steps[tour.step];
+  const note = $("tour-note");
+  const text = document.createElement("p");
+  const row = document.createElement("div"); row.className = "row";
+  note.className = step.center ? "center" : "";
+  note.style.animation = "none"; note.offsetWidth; note.style.animation = "";   // replay the entrance
+
+  if (step.center) {
+    text.textContent = t("tourWelcome");
+    const intro = document.createElement("span"); intro.textContent = t("tourIntro");
+    row.append(tourButton("tourStart", true, () => showStep(1)), tourButton("tourSkip", false, endTour));
+    note.replaceChildren(text, intro, row);
+    note.style.left = `${(innerWidth - note.offsetWidth) / 2}px`; note.style.top = `${(innerHeight - note.offsetHeight) / 2}px`;
+    for (const id of ["tour-path", "tour-mask", "tour-head"]) $(id).setAttribute("d", "");
+    $("tour-cut").setAttribute("width", 0);
+    return;
+  }
+
+  text.textContent = t(step.text);
+  const dots = document.createElement("div"); dots.className = "dots";
+  tour.steps.slice(1).forEach((_, i) => { const dot = document.createElement("i"); dot.className = i === tour.step - 1 ? "on" : ""; dots.append(dot); });
+  row.append(tourButton(step.last ? "tourDone" : "tourNext", true, () => step.last ? endTour() : showStep(tour.step + 1)));
+  if (!step.last) row.append(tourButton("tourSkip", false, endTour));
+  row.append(dots);
+  note.replaceChildren(text, row);
+
+  // the thing being pointed at, and the hole in the veil around it
+  const found = step.target();
+  const box = found instanceof Element ? found.getBoundingClientRect() : found;
+  const pad = step.pad ?? 10;
+  const hole = {left: box.left - pad, top: box.top - pad, right: box.right + pad, bottom: box.bottom + pad};
+  const cut = $("tour-cut");
+  cut.setAttribute("x", hole.left); cut.setAttribute("y", hole.top);
+  cut.setAttribute("width", hole.right - hole.left); cut.setAttribute("height", hole.bottom - hole.top);
+  cut.setAttribute("rx", Math.min(28, (hole.bottom - hole.top) / 2));
+
+  // the note sits `from` away from the target, kept on screen
+  const [dx, dy] = typeof step.from === "function" ? step.from() : step.from;
+  const cx = (box.left + box.right) / 2, cy = (box.top + box.bottom) / 2;
+  const w = note.offsetWidth, hgt = note.offsetHeight;
+  const left = Math.max(16, Math.min(innerWidth - w - 16, cx + dx - w / 2));
+  const top = Math.max(16, Math.min(innerHeight - hgt - 16, cy + dy - hgt / 2));
+  note.style.left = `${left}px`; note.style.top = `${top}px`;
+
+  // the arrow: from the edge of the note to the edge of the hole, bowed into an S
+  const edge = (r, tx, ty) => {            // where the line from r's centre towards (tx, ty) leaves r
+    const mx = (r.left + r.right) / 2, my = (r.top + r.bottom) / 2, vx = tx - mx, vy = ty - my;
+    const k = Math.min(Math.abs((r.right - r.left) / 2 / (vx || 1e-6)), Math.abs((r.bottom - r.top) / 2 / (vy || 1e-6)));
+    return [mx + vx * k, my + vy * k];
+  };
+  const noteBox = {left: left - 6, top: top - 6, right: left + w + 6, bottom: top + text.offsetHeight + 6};
+  const [sx, sy] = edge(noteBox, cx, cy);
+  const [ex, ey] = edge({left: hole.left - 8, top: hole.top - 8, right: hole.right + 8, bottom: hole.bottom + 8}, sx, sy);
+  const len = Math.hypot(ex - sx, ey - sy) || 1, nx = -(ey - sy) / len, ny = (ex - sx) / len;   // unit normal
+  const bend = step.bend * Math.min(1, len / 260);
+  const c1 = [sx + (ex - sx) * .3 + nx * bend, sy + (ey - sy) * .3 + ny * bend];
+  const c2 = [sx + (ex - sx) * .75 - nx * bend * .55, sy + (ey - sy) * .75 - ny * bend * .55];
+  const d = `M${sx} ${sy} C${c1[0]} ${c1[1]} ${c2[0]} ${c2[1]} ${ex} ${ey}`;
+  const path = $("tour-path"), mask = $("tour-mask"), head = $("tour-head");
+  path.setAttribute("d", d); mask.setAttribute("d", d);
+  const total = path.getTotalLength();
+  mask.style.setProperty("--length", total); mask.style.strokeDasharray = total;
+  const angle = Math.atan2(ey - c2[1], ex - c2[0]), wing = 15, spread = .5;
+  head.setAttribute("d", `M${ex - wing * Math.cos(angle - spread)} ${ey - wing * Math.sin(angle - spread)} L${ex} ${ey} L${ex - wing * Math.cos(angle + spread)} ${ey - wing * Math.sin(angle + spread)}`);
+  for (const el of [mask, head]) { el.style.animation = "none"; el.getBoundingClientRect(); el.style.animation = ""; }   // replay
+}
+
+function endTour() {
+  tour.step = -1;
+  $("tour").hidden = true;
+  try { localStorage.setItem("onboarded", "1"); } catch {}
+}
+
+window.addEventListener("resize", () => { if (tour.step >= 0) drawStep(); });
+
+function maybeTour() {
+  let seen = false;
+  try { seen = localStorage.getItem("onboarded") === "1"; } catch {}
+  if (!seen || location.search === "?tour") showStep(0);
+}
+
 setPlaying(false);
 // "#book=ID" opens that book straight away; the desktop app uses it for files opened with it
 const wanted = location.hash.match(/^#book=([0-9a-f]{12})$/);
-history.replaceState(null, "", location.pathname);
-showLibrary().then(() => wanted && openBook(wanted[1]));
+const forced = location.search;
+history.replaceState(null, "", location.pathname + forced);
+showLibrary().then(() => wanted ? openBook(wanted[1]) : maybeTour());
 </script>
 </body>
 </html>

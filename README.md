@@ -64,6 +64,8 @@ Choose "Add a book or article", then drop a file, pick one, or paste the address
 
 Scanned PDFs that contain only images have no text to read.
 
+The first start shows a short tour on a welcome text; opening the page with `?tour` at the end of the address shows it again.
+
 In the reader, `Space` plays and pauses, and `←` / `→` move one sentence. Media keys work too.
 
 When run from source, books are stored as JSON in the `library/` folder next to the app.
