@@ -29,14 +29,20 @@ uv run ema.py                              # interactive mode: type, Enter, list
 |---|---|---|
 | `-f FILE` | Text file; each line is spoken separately | |
 | `-o PATH` | Write instead of playing: a `.wav` for one text, a folder for several lines | |
-| `--speed` | Speaking speed, 0.25 to 4 | 1.0 |
+| `--speed` | Speaking speed, 0.25 to 4; below 1 is slower | `$EMA_SPEED`, else 1.0 |
 | `--seed` | The same seed gives the same audio | random |
 | `--rate` | Sample rate: 48000, 24000, 16000, 8000 | 48000 |
 | `--api URL` | Use a running API instead of loading the model | `$EMA_API` |
 | `--cpu` | Use the CPU instead of the GPU | |
 | `--lightning` | NVIDIA fast path; compiles at startup, which takes minutes | |
 
-In interactive mode, `Ctrl+C` stops the audio that is playing and `Ctrl+D` exits.
+In interactive mode, `/speed 0.8` changes the speed for the following texts, `Ctrl+C` stops the audio that is playing and `Ctrl+D` exits.
+
+To make a slower voice the default, set it once in your shell profile:
+
+```bash
+export EMA_SPEED=0.85
+```
 
 ## API
 
@@ -45,7 +51,7 @@ uv run api.py                    # http://127.0.0.1:8000
 uv run api.py --host 0.0.0.0 --port 9000
 ```
 
-The model is loaded once and kept warm. Options: `--host`, `--port`, `--cpu`, `--lightning`.
+The model is loaded once and kept warm. Options: `--host`, `--port`, `--speed`, `--cpu`, `--lightning`. `--speed` (or `EMA_SPEED`) sets the speed for requests that do not send one.
 
 | Endpoint | Description |
 |---|---|
@@ -56,7 +62,7 @@ The model is loaded once and kept warm. Options: `--host`, `--port`, `--cpu`, `-
 | Parameter | Description |
 |---|---|
 | `text` | Text to speak (required) |
-| `speed` | 0.25 to 4 |
+| `speed` | 0.25 to 4; defaults to the server's `--speed` |
 | `seed` | Non-negative integer |
 | `sample_rate` | 48000, 24000, 16000, 8000 |
 | `stream` | If `true`, audio is sent as it is generated |

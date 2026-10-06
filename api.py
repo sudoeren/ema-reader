@@ -17,6 +17,7 @@ The response is a WAV file. With stream=true, raw PCM (16-bit, mono) is sent as 
 import argparse
 import io
 import json
+import os
 import wave
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qsl, urlparse
@@ -24,6 +25,7 @@ from urllib.parse import parse_qsl, urlparse
 import numpy as np
 
 tts = None
+default_speed = 1.0
 
 
 def pcm16(audio):
@@ -35,7 +37,7 @@ def parse(params):
     text = params.get("text")
     if not isinstance(text, str) or not text.strip():
         raise ValueError("text is required")
-    opts = {}
+    opts = {"speed": default_speed}
     if params.get("speed") is not None:
         opts["speed"] = float(params["speed"])
     if params.get("seed") is not None:
@@ -115,13 +117,18 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    global tts
+    global tts, default_speed
     p = argparse.ArgumentParser(description="EMA Lightning HTTP API")
     p.add_argument("--host", default="127.0.0.1", help="0.0.0.0 to expose it to the network")
     p.add_argument("--port", type=int, default=8000)
+    p.add_argument("--speed", type=float, default=os.environ.get("EMA_SPEED", "1.0"),
+                   help="speed for requests that do not set one (default 1.0, or set EMA_SPEED)")
     p.add_argument("--cpu", action="store_true", help="use the CPU instead of the GPU")
     p.add_argument("--lightning", action="store_true", help="NVIDIA fast path (startup takes minutes)")
     args = p.parse_args()
+    if not 0.25 <= args.speed <= 4:
+        p.error("--speed must be from 0.25 to 4")
+    default_speed = args.speed
 
     from ema import load_model
 

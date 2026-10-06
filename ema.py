@@ -129,7 +129,8 @@ def main():
     p.add_argument("text", nargs="*", help="text to speak (stdin or interactive mode if omitted)")
     p.add_argument("-f", "--file", help="text file; each line is spoken separately")
     p.add_argument("-o", "--out", help="write instead of playing: a .wav for one text, a folder for several lines")
-    p.add_argument("--speed", type=float, default=1.0, help="0.25 to 4 (default 1.0)")
+    p.add_argument("--speed", type=float, default=os.environ.get("EMA_SPEED"),
+                   help="0.25 to 4; below 1 is slower (default 1.0, or set EMA_SPEED)")
     p.add_argument("--seed", type=int, help="the same seed gives the same audio")
     p.add_argument("--rate", type=int, default=48000, choices=[48000, 24000, 16000, 8000], help="sample rate")
     p.add_argument("--api", default=os.environ.get("EMA_API"), metavar="URL",
@@ -153,7 +154,9 @@ def main():
     elif args.out:
         p.error("-o needs a text, -f or stdin")
 
-    opts = {"speed": args.speed, "sample_rate": args.rate}
+    opts = {"sample_rate": args.rate}
+    if args.speed is not None:  # left out so that an API started with its own --speed keeps it
+        opts["speed"] = args.speed
     if args.seed is not None:
         opts["seed"] = args.seed
 
@@ -207,7 +210,7 @@ def play(backend, texts, rate, opts):
     if isinstance(backend, Local):
         for _ in backend.stream("Merhaba."):  # warm-up: moves the first sentence's ~500 ms delay to startup
             pass
-    print("Type a text and press Enter (Ctrl+C: stop audio, Ctrl+D: quit)")
+    print("Type a text and press Enter (/speed 0.8: change speed, Ctrl+C: stop audio, Ctrl+D: quit)")
     while True:
         try:
             line = input("> ").strip()
@@ -218,6 +221,17 @@ def play(backend, texts, rate, opts):
             print()
             continue
         if not line:
+            continue
+        if line.startswith("/speed"):
+            try:
+                speed = float(line.split()[1])
+                if not 0.25 <= speed <= 4:
+                    raise ValueError
+                opts["speed"] = speed
+            except (IndexError, ValueError):
+                print("usage: /speed 0.25-4")
+            else:
+                print(f"speed {speed}")
             continue
         try:
             speak(line)
