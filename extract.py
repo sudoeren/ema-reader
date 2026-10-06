@@ -12,7 +12,7 @@ import re
 import zipfile
 from html.parser import HTMLParser
 from pathlib import PurePosixPath
-from urllib.parse import unquote
+from urllib.parse import unquote, urlparse
 from xml.etree import ElementTree
 
 BLOCKS = {"p", "div", "li", "blockquote", "h1", "h2", "h3", "h4", "h5", "h6", "tr", "br", "section", "article", "pre"}
@@ -193,7 +193,7 @@ def extract_html(html):
     title = meta.title if meta else None
     return {
         "title": title,
-        "author": meta.author if meta else None,
+        "author": None,
         "chapters": [chapter(title or "Article", text.split("\n"))],
     }
 
@@ -224,6 +224,7 @@ def extract_url(url):
         raise ValueError("could not download the page")
     book = extract_html(html)
     book["title"] = book["title"] or url
+    book["author"] = urlparse(url).hostname  # page metadata rarely names the author reliably
     return finish(book)
 
 
