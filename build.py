@@ -4,8 +4,8 @@
 
 The result is `dist/EMA Reader/`, a folder that contains everything the app needs, including
 Python, a CPU-only PyTorch and the model weights; nothing has to be installed to run it.
-A build only works on the kind of system it was made on: build on Windows for Windows,
-on macOS for macOS, on Linux for Linux.
+A build only works on the kind of system it was made on: build on Windows for Windows and
+on macOS for macOS. On Linux the app runs from source, with the system's GTK.
 """
 
 import os
@@ -22,11 +22,10 @@ NAME = "EMA Reader"
 REPO = "canberkkkkkk/ema-lightning"
 FILES = ("config.json", "ema.pt", "decoder.pt")
 
-PACKAGES = ["ema-lightning>=1.0.1", "pypdf", "trafilatura", "pywebview>=5", "pyinstaller>=6"]
-if sys.platform == "linux":
-    PACKAGES.append("pywebview[qt]>=5")
+PACKAGES = ["ema-lightning>=1.0.1", "pypdf", "trafilatura", "soundfile", "pywebview>=5", "pyinstaller>=6"]
 # packages whose data files or lazily imported modules PyInstaller does not find by itself
-COLLECT = ["ema_lightning", "normalizer_tr", "trafilatura", "justext", "courlan", "htmldate", "tld", "dateparser", "webview"]
+COLLECT = ["ema_lightning", "normalizer_tr", "trafilatura", "justext", "courlan", "htmldate", "tld", "dateparser", "webview",
+           "soundfile", "_soundfile_data"]
 
 
 def run(*command, **kwargs):
@@ -35,6 +34,9 @@ def run(*command, **kwargs):
 
 
 def main():
+    if sys.platform == "linux":
+        # the Linux window is GTK from the system, which a self-contained folder cannot carry along
+        sys.exit("On Linux, run EMA Reader from source: uv run --extra desktop desktop.py --install")
     python = VENV / ("Scripts/python.exe" if sys.platform == "win32" else "bin/python")
     if not python.exists():
         run("uv", "venv", VENV, "--python", "3.12")
@@ -56,7 +58,9 @@ def main():
         "--paths", ROOT,
         "--add-data", f"{ROOT / 'static'}{sep}static",
         "--add-data", f"{HF}{sep}hf",
-        "--hidden-import", "app", "--hidden-import", "ema", "--hidden-import", "extract",
+        "--hidden-import", "app", "--hidden-import", "ema", "--hidden-import", "extract", "--hidden-import", "export",
+        "--add-data", f"{ROOT / 'LICENSE'}{sep}.",
+        "--add-data", f"{ROOT / 'THIRD_PARTY.md'}{sep}.",
     ]
     if (ROOT / "static" / icon).exists():
         command += ["--icon", ROOT / "static" / icon]

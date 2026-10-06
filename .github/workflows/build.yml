@@ -1,4 +1,4 @@
-# Builds the desktop app for Windows, macOS and Linux.
+# Builds the desktop app for Windows and macOS (on Linux it runs from source with the system's GTK).
 # Runs on every version tag (v1.0.0) and attaches the installers to a release;
 # it can also be started by hand from the Actions tab, which only produces downloadable artifacts.
 name: build
@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-22.04]
+        os: [windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -46,17 +46,12 @@ jobs:
         if: runner.os == 'macOS'
         run: hdiutil create -volname "EMA Reader" -srcfolder "dist/EMA Reader.app" -ov -format UDZO dist/EMA-Reader.dmg
 
-      - name: Linux archive
-        if: runner.os == 'Linux'
-        run: tar -C dist -czf dist/EMA-Reader-linux.tar.gz "EMA Reader"
-
       - uses: actions/upload-artifact@v4
         with:
           name: ema-reader-${{ runner.os }}
           path: |
             dist/EMA-Reader-Setup.exe
             dist/EMA-Reader.dmg
-            dist/EMA-Reader-linux.tar.gz
 
       - name: Attach to the release
         if: github.ref_type == 'tag'
@@ -65,4 +60,3 @@ jobs:
           files: |
             dist/EMA-Reader-Setup.exe
             dist/EMA-Reader.dmg
-            dist/EMA-Reader-linux.tar.gz

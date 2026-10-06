@@ -3,6 +3,8 @@ name = "ema-reader"
 version = "1.0.0"
 description = "A book and article reader that speaks Turkish text with the EMA Lightning model"
 readme = "README.md"
+license = "MIT"
+authors = [{ name = "Eren Çakar" }]
 requires-python = ">=3.12"
 dependencies = [
     "ema-lightning>=1.0.1",
@@ -13,9 +15,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# the native window of the desktop app; Linux needs the Qt backend, Windows and macOS use the system web view
+# the native window of the desktop app: the system web view on Windows and macOS, GTK on Linux
 desktop = [
-    "pygobject>=3.50 ; sys_platform == 'linux'",
-    "pywebview>=5",
-    "pywebview[qt]>=5; sys_platform == 'linux'",
+    "pywebview>=5; sys_platform != 'linux'",
+    "pygobject>=3.50; sys_platform == 'linux'",
 ]
