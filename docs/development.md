@@ -14,7 +14,7 @@ EMA Reader'ın teknik tarafı: nasıl kurulduğu, kaynaktan nasıl çalıştır�
 | `desktop.py` | Sunucunun çevresindeki masaüstü penceresi |
 | `build.py` | Windows ve macOS için uygulamayı üretir |
 | `runtime.py` | İlk açılışta bilgisayara uyan PyTorch'u ve modeli indirir |
-| `packaging/linux.py` | Linux için `.deb`, `.rpm` ve pacman paketlerini üretir |
+| `packaging/linux.py` | Linux için `.deb`, `.rpm` ve pacman paketlerini, öbür dağıtımlar için de `.tar.gz` klasörünü üretir |
 | `static/index.html` | Arayüzün tamamı: tek sayfa, derleme adımı yok |
 | `CHANGELOG.md` | Her sürümün yenilikleri; sürüm sayfasına ve uygulamadaki "Yeni sürüm" penceresine buradan yazılır |
 | `tests/` | Model gerektirmeyen kısımların testleri |
@@ -67,6 +67,8 @@ Linux'ta masaüstü, bir pencerenin simgesini uygulama kimliğiyle aynı adı ta
 
 Kurulum dosyaları PyTorch'u ve modeli içermez. NVIDIA kartları için PyTorch tek başına bir GitHub sürüm dosyasının sınırı olan 2 GB'tan büyüktür, ayrıca her bilgisayar başka bir sürümünü ister. Bunun yerine `runtime.py` ilk açılışta bilgisayara uyanı indirir:
 
+PyTorch kendi dizininden (`download.pytorch.org/whl/cpu`, `cu126`…) alınır, bağımlılıkları PyPI'dan. uv'ye PyTorch'un dizini `--extra-index-url` olarak verilir, çünkü uv önce ona bakar; tersi yapılırsa PyTorch PyPI'dan gelir, o da Linux'ta NVIDIA kartları için olan 5 GB'lık, Windows'ta ise yalnızca işlemciyi kullanan derlemedir.
+
 | Seçenek | Ne zaman sunulur | PyTorch nereden gelir |
 |---|---|---|
 | NVIDIA ekran kartı (`cuda`) | Windows ve Linux'ta NVIDIA sürücüsü kuruluysa (`nvidia-smi`, `nvcuda.dll` ya da `/proc/driver/nvidia`) | `download.pytorch.org/whl/cu126`, olmazsa `cu128`, `cu130` |
@@ -93,13 +95,14 @@ sudo python3 packaging/linux.py      # Linux'ta (Ubuntu 24.04); dist/EMA-Reader.
 - **Windows:** `dist/EMA Reader/python/` Python'dur; içindeki `EMA Reader.exe`, pencereli çalışan `pythonw.exe`'nin uygulamanın adı ve simgesiyle (rcedit varsa) bir kopyasıdır ve kısayollar onu `desktop.py` ile başlatır. `packaging/windows.iss` bunu kullanıcı başına kurulan bir kurulum dosyasına sarar. Kaldırınca indirilen PyTorch ve model de silinir, kitaplık ve ayarlar kalır.
 - **macOS:** Python `.app` paketinin `Contents` klasörüdür; `Contents/MacOS/python` onun bir kopyasıdır ve paketin ana programı olan küçük bir betik onu `desktop.py` ile başlatır. Python paketin içinden çalıştığı için Dock'ta uygulamanın adı ve simgesi görünür.
 - **Linux:** Uygulama `/opt/ema-reader` altına gider. GTK'nın Python bağları (PyGObject) uygulamanın Python'u için derlenir ve sistemin GTK 4, libadwaita, WebKitGTK, GLib ve cairo kitaplıklarını kullanır; bunların arayüzleri sabit olduğu için aynı derleme Ubuntu, Debian, Fedora ve Arch'ta çalışır. Derleme desteklenen en eski sistem olan Ubuntu 24.04'te yapılır, böylece yenilerinde de çalışır; `gcc`, `pkg-config`, `libgirepository-2.0-dev`, `libcairo2-dev`, `rpm` ve `libarchive-tools` gerekir. Aynı uygulama üç pakete sarılır; pacman paketi `makepkg` kullanılmadan, makepkg'nin de yazdığı `.PKGINFO` ve `.MTREE` açıklamalarıyla `bsdtar` ile yazılır. Paketler ayrıca `/usr/bin/ema-reader` komutunu, uygulamalar menüsündeki başlatıcıyı, simgeyi ve yazılım merkezleri için bir AppStream açıklamasını kurar.
+- **Linux, öbür dağıtımlar:** `EMA-Reader.tar.gz` tek bir `ema-reader/` klasörüdür ve Windows ile macOS derlemeleri gibi kurulur: paketler bir sanal ortama değil Python'un kendisine konur, bu yüzden klasör her yerde durabilir ve kök yetkisi istemez. İçindeki `install` pencerenin sistemden istediklerini (GTK 4, libadwaita, WebKitGTK 6.0) yoklar ve uygulamayı menüye ekler; `uninstall` menüden çıkarıp klasörü siler. Yalnızca bunu üretmek için: `python3 packaging/linux.py tar.gz` (kök yetkisi gerekmez).
 
 Her derleme, paketin adını uygulamanın `package` dosyasına yazar; `update.py` güncellemeyi buna bakarak yapar.
 
 `.github/workflows/build.yml` bir sürüm etiketi gönderildiğinde (ya da Actions sekmesinden elle) hepsini üretir ve dener:
 
 - Windows ve macOS derlemesi `desktop.py --check` ile açılır: ilk açılıştaki gibi PyTorch'u ve modeli indirir ve bir cümle seslendirir. Windows'ta NVIDIA'lı PyTorch da ayrıca indirilip yüklenir; makinede kart olmadığı için işlemcide çalışır, ama indirmenin ve paket deposunun doğru olduğu görülür. Pencere açılmaz, ama pencerenin kitaplıkları (pywebview; Windows'ta pythonnet, macOS'te AppKit ve WebKit) yüklenir.
-- Linux paketleri Ubuntu 24.04 ve 26.04, Debian 13, Fedora 44 ve Arch kaplarına okuyucunun kuracağı gibi kurulur ve sıradan bir kullanıcıyla `ema-reader --check` çalıştırılır. Ubuntu 24.04'te NVIDIA'lı PyTorch da denenir.
+- Linux paketleri Ubuntu 24.04 ve 26.04, Debian 13, Fedora 44 ve Arch kaplarına okuyucunun kuracağı gibi kurulur ve sıradan bir kullanıcıyla `ema-reader --check` çalıştırılır. Ubuntu 24.04'te NVIDIA'lı PyTorch da denenir. `.tar.gz` klasörü openSUSE Tumbleweed kabında bir kullanıcının ev klasörüne açılıp aynı biçimde denenir. Denetim, inen PyTorch'un istenen türde olduğuna da bakar (işlemci istenince `+cpu`, NVIDIA istenince `+cu…`).
 
 GitHub'ın makinelerinde ekran kartı olmadığından ekran kartıyla çalışmayı bu denemeler göstermez; onu gerçek bir NVIDIA'lı bilgisayarda ve bir Apple silicon Mac'te denemek gerekir.
 
@@ -128,6 +131,7 @@ Uygulama açılışta `update.py` aracılığıyla GitHub'daki son sürüme baka
 - **Windows:** yeni kurulum dosyasını indirir, sessizce çalıştırır ve kapanır; kurulum bitince uygulamayı yeniden açar.
 - **macOS:** yeni disk görüntüsünü indirir, uygulama kapanınca içindeki uygulamayı eskisinin yerine koyar ve yeniden açar. Eski uygulama, yenisi tümüyle kopyalanana kadar silinmez.
 - **Linux paketi:** aynı sistemin yeni paketini indirir (hangisi olduğunu paketin `/opt/ema-reader/package` dosyasına yazdığı addan bilir), `pkexec` ile `apt-get`, `dnf` ya da `pacman`'a kurdurur, sonra kendini yeniden başlatır. Sistem kullanıcının parolasını kendi penceresinde sorar. O sistem için paket yayınlanmamışsa uygulama güncellemeyi sunar ama kurulum dosyası olmadığını söyler.
+- **Linux klasörü (`.tar.gz`):** yenisini indirir, klasörün yanına açar, eskisiyle yer değiştirir ve kendini yeniden başlatır; parola gerekmez. Eski klasör, yenisi yerine oturana kadar silinmez.
 
 Güncellemeyi yalnızca aynı bilgisayardan gelen ve uygulamanın kendi sayfasının gönderdiği istek başlatabilir (`POST /api/update`, `X-EMA-Reader: update` başlığıyla). Kurulum dosyaları yalnızca `https://github.com/` adresinden indirilir.
 

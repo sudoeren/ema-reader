@@ -121,6 +121,8 @@ def install(found):
             from_source()
         elif name.endswith(".exe"):
             with_installer(found)
+        elif name.endswith(".tar.gz"):
+            with_folder(found)
         elif name.endswith(".dmg"):
             with_disk_image(found)
         else:
@@ -185,6 +187,36 @@ def with_installer(found):
     flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
     subprocess.Popen([str(setup), "/SILENT", "/SUPPRESSMSGBOXES", "/NORESTART"], close_fds=True, creationflags=flags)
     os._exit(0)  # the installer cannot replace a program that is running
+
+
+def with_folder(found):
+    """The Linux folder that stands anywhere (EMA-Reader.tar.gz): unpack the new one beside this one, then swap them.
+    The old folder stays until the new one is in its place."""
+    import tarfile
+
+    if not os.access(ROOT.parent, os.W_OK):
+        raise Failed("Uygulama bulunduğu yerde değiştirilemiyor. Yeni sürümü sürüm sayfasından indirip kurabilirsin.")
+    path = download(found, package())
+    job["step"] = "installing"
+    fresh, old = ROOT.parent / f".{ROOT.name}.new", ROOT.parent / f".{ROOT.name}.old"
+    try:
+        shutil.rmtree(fresh, ignore_errors=True)
+        shutil.rmtree(old, ignore_errors=True)
+        with tarfile.open(path) as archive:
+            archive.extractall(fresh, filter="data")
+        if not (fresh / "ema-reader" / "desktop.py").is_file():
+            raise OSError("beklenen dosyalar yok")
+        ROOT.rename(old)
+        (fresh / "ema-reader").rename(ROOT)
+    except (OSError, tarfile.TarError) as e:
+        if old.exists() and not ROOT.exists():
+            old.rename(ROOT)
+        raise Failed(f"Yeni sürüm kurulamadı: {e}") from None
+    finally:
+        shutil.rmtree(path.parent, ignore_errors=True)
+        shutil.rmtree(fresh, ignore_errors=True)
+    shutil.rmtree(old, ignore_errors=True)
+    restart()
 
 
 def with_package(found):

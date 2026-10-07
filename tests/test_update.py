@@ -72,3 +72,32 @@ def test_the_version_is_the_same_everywhere_and_has_notes():
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
     assert stated == project
     assert update.changelog((ROOT / "CHANGELOG.md").read_text(encoding="utf-8"), stated)
+
+
+def test_the_folder_build_is_swapped_for_the_new_one(monkeypatch, tmp_path):
+    import tarfile
+
+    app = tmp_path / "home" / "ema-reader"
+    app.mkdir(parents=True)
+    (app / "desktop.py").write_text("old")
+    (app / "gone.py").write_text("")
+    new = tmp_path / "new" / "ema-reader"
+    new.mkdir(parents=True)
+    (new / "desktop.py").write_text("new")
+
+    def download(found, name):
+        folder = tmp_path / "download"
+        folder.mkdir()
+        with tarfile.open(folder / name, "w:gz") as archive:
+            archive.add(new, "ema-reader")
+        return folder / name
+
+    restarted = []
+    monkeypatch.setattr(update, "ROOT", app)
+    monkeypatch.setattr(update, "PACKAGE", app / "package")
+    (app / "package").write_text("EMA-Reader.tar.gz\n", encoding="utf-8")
+    monkeypatch.setattr(update, "download", download)
+    monkeypatch.setattr(update, "restart", lambda: restarted.append(True))
+    update.install({})
+    assert restarted and (app / "desktop.py").read_text() == "new" and not (app / "gone.py").exists()
+    assert sorted(p.name for p in app.parent.iterdir()) == ["ema-reader"] and not (tmp_path / "download").exists()
