@@ -20,9 +20,9 @@ Bir kitap ekle, oynat düğmesine bas; EMA Reader onu sana kendi bilgisayarında
 
 ## EMA Reader'ı edin
 
-**Windows:** [Sürümler](../../releases) sayfasından `EMA-Reader-Setup.exe` dosyasını indir ve aç. Yönetici parolası gerekmez.
+**Windows:** [Sürümler](../../releases) sayfasından `EMA-Reader-…-Setup.exe` dosyasını indir ve aç (adındaki sayı sürümdür). Yönetici parolası gerekmez.
 
-**macOS:** [Sürümler](../../releases) sayfasından `EMA-Reader.dmg` dosyasını indir ve aç, sonra EMA Reader'ı yanındaki Uygulamalar klasörüne sürükle.
+**macOS:** [Sürümler](../../releases) sayfasından `EMA-Reader-….dmg` dosyasını indir ve aç, sonra EMA Reader'ı yanındaki Uygulamalar klasörüne sürükle.
 
 Uygulama yeni ve ücretsiz olduğu için Windows ya da macOS ilk açılışta seni uyarabilir. Windows'ta "Ek bilgi"yi, ardından "Yine de çalıştır"ı seç. macOS'te uygulamayı bir kez açmayı dene, sonra Sistem Ayarları'nda "Gizlilik ve Güvenlik"e gidip en alttaki "Yine de Aç"ı seç; macOS 14 ve öncesinde uygulamaya sağ tıklayıp "Aç"ı seçmek de yeter.
 
@@ -32,26 +32,26 @@ Uygulama yeni ve ücretsiz olduğu için Windows ya da macOS ilk açılışta se
 
 | Sistem | Paket |
 |---|---|
-| Ubuntu 24.04 ve sonrası, Debian 13 ve onlara dayananlar (Linux Mint 22, Pop!_OS, Zorin OS…) | `EMA-Reader.deb` |
-| Fedora 41 ve sonrası | `EMA-Reader.rpm` |
-| Arch Linux ve ona dayananlar (Manjaro, EndeavourOS…) | `EMA-Reader.pkg.tar.zst` |
+| Ubuntu 24.04 ve sonrası, Debian 13 ve onlara dayananlar (Linux Mint 22, Pop!_OS, Zorin OS…) | `EMA-Reader-….deb` |
+| Fedora 41 ve sonrası | `EMA-Reader-….rpm` |
+| Arch Linux ve ona dayananlar (Manjaro, EndeavourOS…) | `EMA-Reader-….pkg.tar.zst` |
 
 Sonra dosyayı çift tıklayıp yazılım merkeziyle kur ya da uçbirimden kur:
 
 ```bash
-sudo apt install ./EMA-Reader.deb               # Ubuntu ve Debian
-sudo dnf install ./EMA-Reader.rpm               # Fedora
-sudo pacman -U ./EMA-Reader.pkg.tar.zst         # Arch Linux
+sudo apt install ./EMA-Reader-*.deb               # Ubuntu ve Debian
+sudo dnf install ./EMA-Reader-*.rpm               # Fedora
+sudo pacman -U ./EMA-Reader-*.pkg.tar.zst         # Arch Linux
 ```
 
 Bundan sonra EMA Reader uygulamalar menünde durur. Yeni bir sürüm çıktığında uygulama onu kendisi kurar; yalnızca parolanı sorar.
 
-**Başka bir dağıtım** (openSUSE, Void, Solus…) kullanıyorsan `EMA-Reader.tar.gz` her yerde çalışan tek bir klasördür; yönetici parolası gerekmez. Uçbirime şunu yapıştırman yeter:
+**Başka bir dağıtım** (openSUSE, Void, Solus…) kullanıyorsan `EMA-Reader-….tar.gz` her yerde çalışan tek bir klasördür; yönetici parolası gerekmez. [Sürümler](../../releases) sayfasından indir, sonra indirdiğin klasörde:
 
 ```bash
-mkdir -p ~/.local/share && cd ~/.local/share
-curl -fsSL https://github.com/sudoeren/ema-reader/releases/latest/download/EMA-Reader.tar.gz | tar -xz
-./ema-reader/install
+mkdir -p ~/.local/share
+tar -xzf EMA-Reader-*[0-9].tar.gz -C ~/.local/share
+~/.local/share/ema-reader/install
 ```
 
 Sistemde GTK 4, libadwaita ve WebKitGTK 6.0 kurulu olmalıdır (GNOME kullanan dağıtımlarda çoğu zaman hazırdır); eksikse `install` bunu söyler. Bu kopya da kendini uygulamanın içinden günceller. Kaldırmak için `~/.local/share/ema-reader/uninstall` komutunu çalıştır.
@@ -64,7 +64,7 @@ EMA Reader'ı tümüyle kaldırmak için:
 
 - **Windows:** Ayarlar'daki "Uygulamalar"dan EMA Reader'ı kaldır. İndirilen parçalar da onunla birlikte gider.
 - **macOS:** önce uygulamadaki Ayarlar'dan indirilenleri kaldır, sonra EMA Reader'ı Çöp Sepeti'ne taşı.
-- **Linux:** önce uygulamadaki Ayarlar'dan indirilenleri kaldır, sonra paketi kaldır: `sudo apt remove ema-reader`, `sudo dnf remove ema-reader` ya da `sudo pacman -R ema-reader`. `EMA-Reader.tar.gz` ile kurduysan klasördeki `uninstall` komutunu çalıştır.
+- **Linux:** önce uygulamadaki Ayarlar'dan indirilenleri kaldır, sonra paketi kaldır: `sudo apt remove ema-reader`, `sudo dnf remove ema-reader` ya da `sudo pacman -R ema-reader`. `.tar.gz` ile kurduysan klasördeki `uninstall` komutunu çalıştır.
 
 Kitaplığın hiçbir durumda silinmez; kullanıcı klasöründeki "EMA Reader" veri klasöründe durur.
 

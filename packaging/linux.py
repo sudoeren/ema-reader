@@ -1,7 +1,7 @@
 """Builds the Linux packages: a .deb for Ubuntu and Debian, an .rpm for Fedora and a pacman package
 for Arch Linux, all three holding the same app, and a .tar.gz for every other distribution.
 
-    python3 packaging/linux.py          # as root; writes dist/EMA-Reader.deb, .rpm, .pkg.tar.zst and .tar.gz
+    python3 packaging/linux.py          # as root; writes dist/EMA-Reader-1.2.3.deb, .rpm, .pkg.tar.zst and .tar.gz
     python3 packaging/linux.py tar.gz   # only the kinds named; this one needs no root
 
 The build workflow runs it in an Ubuntu 24.04 container, the oldest system it supports, so that
@@ -217,7 +217,7 @@ def tarball(path):
     standalone_python(app / "python")
     python = app / "python" / "bin" / f"python{PYTHON}"
     add_packages(python, "pygobject")
-    add_sources(app, path.name)
+    add_sources(app, "EMA-Reader-{version}.tar.gz")
     for name, text in (("install", INSTALL), ("uninstall", UNINSTALL)):
         (app / name).write_text(text.replace("@PYTHON@", PYTHON), encoding="utf-8")
         (app / name).chmod(0o755)
@@ -235,15 +235,16 @@ def main():
     if packages:
         put_app()
     for kind, make in packages:
-        name = f"EMA-Reader.{kind}"
-        stage = staged(name)
+        name = f"EMA-Reader-{version()}.{kind}"
+        stage = staged(f"EMA-Reader-{{version}}.{kind}")  # the file's name in every release, for update.py
         make(stage, out / name)
         shutil.rmtree(stage)
         print(f"hazır: {out / name} ({(out / name).stat().st_size / 1e6:.0f} MB)", flush=True)
     shutil.rmtree(PREFIX, ignore_errors=True)
     if "tar.gz" in kinds:
-        tarball(out / "EMA-Reader.tar.gz")
-        print(f"hazır: {out / 'EMA-Reader.tar.gz'} ({(out / 'EMA-Reader.tar.gz').stat().st_size / 1e6:.0f} MB)", flush=True)
+        name = f"EMA-Reader-{version()}.tar.gz"
+        tarball(out / name)
+        print(f"hazır: {out / name} ({(out / name).stat().st_size / 1e6:.0f} MB)", flush=True)
 
 
 if __name__ == "__main__":

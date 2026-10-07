@@ -89,13 +89,13 @@ Model hangi cihazda çalışacağını `ema.best_device()` ile seçer: NVIDIA ka
 
 ```bash
 uv run --no-project build.py         # Windows'ta dist/EMA Reader/, macOS'te dist/EMA Reader.app
-sudo python3 packaging/linux.py      # Linux'ta (Ubuntu 24.04); dist/EMA-Reader.deb, .rpm ve .pkg.tar.zst
+sudo python3 packaging/linux.py      # Linux'ta (Ubuntu 24.04); dist/EMA-Reader-1.2.3.deb, .rpm, .pkg.tar.zst ve .tar.gz
 ```
 
 - **Windows:** `dist/EMA Reader/python/` Python'dur; içindeki `EMA Reader.exe`, pencereli çalışan `pythonw.exe`'nin uygulamanın adı ve simgesiyle (rcedit varsa) bir kopyasıdır ve kısayollar onu `desktop.py` ile başlatır. `packaging/windows.iss` bunu kullanıcı başına kurulan bir kurulum dosyasına sarar. Kaldırınca indirilen PyTorch ve model de silinir, kitaplık ve ayarlar kalır.
 - **macOS:** Python `.app` paketinin `Contents` klasörüdür; `Contents/MacOS/python` onun bir kopyasıdır ve paketin ana programı olan küçük bir betik onu `desktop.py` ile başlatır. Python paketin içinden çalıştığı için Dock'ta uygulamanın adı ve simgesi görünür.
 - **Linux:** Uygulama `/opt/ema-reader` altına gider. GTK'nın Python bağları (PyGObject) uygulamanın Python'u için derlenir ve sistemin GTK 4, libadwaita, WebKitGTK, GLib ve cairo kitaplıklarını kullanır; bunların arayüzleri sabit olduğu için aynı derleme Ubuntu, Debian, Fedora ve Arch'ta çalışır. Derleme desteklenen en eski sistem olan Ubuntu 24.04'te yapılır, böylece yenilerinde de çalışır; `gcc`, `pkg-config`, `libgirepository-2.0-dev`, `libcairo2-dev`, `rpm` ve `libarchive-tools` gerekir. Aynı uygulama üç pakete sarılır; pacman paketi `makepkg` kullanılmadan, makepkg'nin de yazdığı `.PKGINFO` ve `.MTREE` açıklamalarıyla `bsdtar` ile yazılır. Paketler ayrıca `/usr/bin/ema-reader` komutunu, uygulamalar menüsündeki başlatıcıyı, simgeyi ve yazılım merkezleri için bir AppStream açıklamasını kurar.
-- **Linux, öbür dağıtımlar:** `EMA-Reader.tar.gz` tek bir `ema-reader/` klasörüdür ve Windows ile macOS derlemeleri gibi kurulur: paketler bir sanal ortama değil Python'un kendisine konur, bu yüzden klasör her yerde durabilir ve kök yetkisi istemez. İçindeki `install` pencerenin sistemden istediklerini (GTK 4, libadwaita, WebKitGTK 6.0) yoklar ve uygulamayı menüye ekler; `uninstall` menüden çıkarıp klasörü siler. Yalnızca bunu üretmek için: `python3 packaging/linux.py tar.gz` (kök yetkisi gerekmez).
+- **Linux, öbür dağıtımlar:** `EMA-Reader-1.2.3.tar.gz` tek bir `ema-reader/` klasörüdür ve Windows ile macOS derlemeleri gibi kurulur: paketler bir sanal ortama değil Python'un kendisine konur, bu yüzden klasör her yerde durabilir ve kök yetkisi istemez. İçindeki `install` pencerenin sistemden istediklerini (GTK 4, libadwaita, WebKitGTK 6.0) yoklar ve uygulamayı menüye ekler; `uninstall` menüden çıkarıp klasörü siler. Yalnızca bunu üretmek için: `python3 packaging/linux.py tar.gz` (kök yetkisi gerekmez).
 
 Her derleme, paketin adını uygulamanın `package` dosyasına yazar; `update.py` güncellemeyi buna bakarak yapar.
 
@@ -105,6 +105,8 @@ Her derleme, paketin adını uygulamanın `package` dosyasına yazar; `update.py
 - Linux paketleri Ubuntu 24.04 ve 26.04, Debian 13, Fedora 44 ve Arch kaplarına okuyucunun kuracağı gibi kurulur ve sıradan bir kullanıcıyla `ema-reader --check` çalıştırılır. Ubuntu 24.04'te NVIDIA'lı PyTorch da denenir. `.tar.gz` klasörü openSUSE Tumbleweed kabında bir kullanıcının ev klasörüne açılıp aynı biçimde denenir. Denetim, inen PyTorch'un istenen türde olduğuna da bakar (işlemci istenince `+cpu`, NVIDIA istenince `+cu…`).
 
 GitHub'ın makinelerinde ekran kartı olmadığından ekran kartıyla çalışmayı bu denemeler göstermez; onu gerçek bir NVIDIA'lı bilgisayarda ve bir Apple silicon Mac'te denemek gerekir.
+
+Kurulum dosyalarının adında sürüm yazar: `EMA-Reader-1.2.3-Setup.exe`, `EMA-Reader-1.2.3.dmg`, `.deb`, `.rpm`, `.pkg.tar.zst`, `.tar.gz`. Her kopya hangi dosyayla geldiğini `package` dosyasında, sürümün yerinde `{version}` ile tutar (`EMA-Reader-{version}.deb`); güncellerken yeni sürümün aynı adlı dosyasını arar.
 
 Kurulum dosyaları kod imzalı değildir; bu yüzden Windows SmartScreen ve macOS Gatekeeper ilk açılıştan önce uyarır.
 
@@ -123,7 +125,7 @@ git push origin v1.1.0
 
 Etiket gelince `build.yml` kurulum dosyalarını üretir ve `CHANGELOG.md` içindeki o bölümü not olarak koyduğu bir GitHub sürümü açar. Etiket, `VERSION` ve `CHANGELOG.md` birbirini tutmuyorsa derleme durur; aynı şeyi testler de denetler.
 
-Uygulama açılışta `update.py` aracılığıyla GitHub'daki son sürüme bakar (yanıt altı saat saklanır; Ayarlar'daki "Denetle" hemen yeniden sorar). Kendi sürümünden yenisini bulursa kitaplığın üstünde "EMA Reader 1.1.0 yayınlandı" çubuğunu gösterir; aynı bilgi Ayarlar'daki sürüm satırında da durur. Açılıştaki denetim Ayarlar'dan kapatılabilir. Ön sürümler ve taslaklar haber verilmez.
+Uygulama açılışta `update.py` aracılığıyla GitHub'daki son sürüme bakar (yanıt altı saat saklanır; Ayarlar'daki "Denetle" hemen yeniden sorar). GitHub'ın API'si bir adresten saatte altmış soruya yanıt verir; yanıt vermezse sürümler sayfasının son sürüme yaptığı yönlendirmeden sürüm numarası okunur ve kurulum dosyasının adresi addan kurulur (o zaman sürüm notları gösterilemez). Depo gizliyken ikisi de yanıt vermez. Kendi sürümünden yenisini bulursa kitaplığın üstünde "EMA Reader 1.1.0 yayınlandı" çubuğunu gösterir; aynı bilgi Ayarlar'daki sürüm satırında da durur. Açılıştaki denetim Ayarlar'dan kapatılabilir. Ön sürümler ve taslaklar haber verilmez.
 
 "Güncelle" o sürümün notlarını gösterir ve kurulumu uygulamanın içinden yapar; kullanıcının bir şey indirmesi ya da komut yazması gerekmez:
 

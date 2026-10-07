@@ -82,7 +82,8 @@ def add_sources(into, package):
     into.mkdir(parents=True, exist_ok=True)
     for source in SOURCES:
         (shutil.copytree if (ROOT / source).is_dir() else shutil.copy2)(ROOT / source, into / source)
-    (into / "package").write_text(package + "\n", encoding="utf-8")  # tells update.py how this copy is updated
+    # tells update.py how this copy is updated: the release file it comes in, "{version}" standing for the version
+    (into / "package").write_text(package + "\n", encoding="utf-8")
     (into / "bin").mkdir()
     shutil.copy2(shutil.which("uv"), into / "bin" / Path(shutil.which("uv")).name)  # for the first start's download
 
@@ -92,7 +93,7 @@ def windows(out):
     standalone_python(app / "python")
     python = app / "python" / "python.exe"
     add_packages(python, "pywebview>=5")
-    add_sources(app, "EMA-Reader-Setup.exe")
+    add_sources(app, "EMA-Reader-{version}-Setup.exe")
     # the window's program: pythonw.exe under the app's name, and with its icon in the taskbar if rcedit is at hand
     program = app / "python" / f"{NAME}.exe"
     shutil.copy2(app / "python" / "pythonw.exe", program)
@@ -112,7 +113,7 @@ def macos(out):
     standalone_python(contents)
     python = contents / "bin" / f"python{PYTHON}"
     add_packages(python, "pywebview>=5")
-    add_sources(contents / "Resources" / "app", "EMA-Reader.dmg")
+    add_sources(contents / "Resources" / "app", "EMA-Reader-{version}.dmg")
     (contents / "MacOS").mkdir()
     shutil.copy2(python, contents / "MacOS" / "python")
     (contents / "MacOS" / NAME).write_text(LAUNCH, encoding="utf-8")

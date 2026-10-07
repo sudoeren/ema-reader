@@ -14,7 +14,7 @@ DisableProgramGroupPage=yes
 ; installs for the current user, so no administrator password is asked for
 PrivilegesRequired=lowest
 OutputDir=..\dist
-OutputBaseFilename=EMA-Reader-Setup
+OutputBaseFilename=EMA-Reader-{#Version}-Setup
 SetupIconFile=..\static\logo.ico
 UninstallDisplayIcon={app}\static\logo.ico
 Compression=lzma2
