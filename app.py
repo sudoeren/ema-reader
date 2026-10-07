@@ -79,6 +79,7 @@ PARAGRAPH_PAUSE = 0.5
 tts = None
 loading = threading.Event()  # set when the model starts loading
 loaded = threading.Event()  # set when it is loaded, or could not be
+load_lock = threading.Lock()
 load_error = None
 options = {"cpu": False, "lightning": False}
 default_speed = 1.0
@@ -103,9 +104,10 @@ def model():
 def load():
     """Load the model; the first request then waits for it instead of failing."""
     global tts, load_error
-    if loading.is_set():
-        return
-    loading.set()
+    with load_lock:
+        if loading.is_set():
+            return
+        loading.set()
     try:
         from ema import load_model
 

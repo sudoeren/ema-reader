@@ -10,15 +10,20 @@ Windows and macOS it is the system's web view.
 On Linux, `--install` adds EMA Reader to the applications menu with its icon and offers it
 for opening EPUB and PDF files; `--uninstall` removes that again. A copy installed from a .deb or
 .rpm package (packaging/linux.py) needs neither: the package brings the launcher and the icon.
-Books are kept in the user's data folder. `--check` starts everything without a window, makes
-one sentence of audio and exits, which is how a packaged build is tested.
+Books are kept in the user's data folder. On the first start the page asks what to download for
+speech (see runtime.py). `--check` starts everything without a window, downloads what the first
+start would (the processor's PyTorch, or the kind EMA_READER_CHECK names), makes one sentence of
+audio and exits, which is how a packaged build is tested.
 """
 
 import os
 import socket
 import sys
 import threading
+import time
 from pathlib import Path
+
+import runtime
 
 ROOT = Path(__file__).parent
 NAME = "EMA Reader"
@@ -30,18 +35,6 @@ html,body{height:100%;margin:0}body{display:grid;place-items:center;font-family:
 @media(prefers-color-scheme:dark){body{background:#131316;color:#a0a0ab}}
 div{text-align:center}img{width:72px;height:72px;display:block;margin:0 auto 18px;animation:p 1.6s ease-in-out infinite}
 @keyframes p{50%{opacity:.45}}</style><div><img src="data:image/svg+xml;base64,LOGO" alt="">EMA Reader açılıyor…</div>"""
-
-
-def data_dir():
-    """The per-user folder for the library and settings."""
-    home = Path.home()
-    if sys.platform == "win32":
-        base = Path(os.environ.get("APPDATA") or home / "AppData" / "Roaming")
-    elif sys.platform == "darwin":
-        base = home / "Library" / "Application Support"
-    else:
-        base = Path(os.environ.get("XDG_DATA_HOME") or home / ".local" / "share")
-    return base / NAME
 
 
 def free_port():
@@ -60,12 +53,9 @@ def free_port():
 
 
 def prepare():
-    data = data_dir()
+    data = runtime.data_dir()
     os.environ.setdefault("EMA_READER_LIBRARY", str(data / "library"))
-    # a packaged build ships the model weights, so the first start needs no download
-    if (ROOT / "hf").is_dir():
-        os.environ["HF_HOME"] = str(ROOT / "hf")
-        os.environ["HF_HUB_OFFLINE"] = "1"
+    runtime.activate()
     return data
 
 
@@ -75,6 +65,15 @@ def check():
 
     server = app.start(port=0)
     threading.Thread(target=server.serve_forever, daemon=True).start()
+    if not runtime.ready():
+        choice = os.environ.get("EMA_READER_CHECK") or ("mps" if runtime.apple_silicon() else "cpu")
+        print(f"indiriliyor: {choice}", flush=True)
+        runtime.start(choice)
+        while runtime.job["state"] == "working":
+            time.sleep(1)
+        if runtime.job["state"] == "failed":
+            sys.exit(runtime.job["error"])
+    app.load()
     from urllib.request import urlopen
 
     port = server.server_address[1]
@@ -89,7 +88,7 @@ def check():
         gi.require_version("Adw", "1")
         gi.require_version("WebKit", "6.0")
         from gi.repository import Adw, Gtk, WebKit  # noqa: F401
-    print(f"tamam: sayfa {len(page)} bayt, ses {len(wav)} bayt")
+    print(f"tamam: sayfa {len(page)} bayt, ses {len(wav)} bayt, {app.tts.device.type} ile")
 
 
 WORDS = {"back": "Kitaplığa dön", "add": "Kitap ya da makale ekle", "search": "Kitaplığında ara", "settings": "Ayarlar",
