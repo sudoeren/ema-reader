@@ -990,33 +990,47 @@ function openChapter(number, sentence, keepPlaying) {
   if (keepPlaying) play();
 }
 
-// when each sentence starts and how long it lasts, in seconds; laid out once for a chapter and a speed,
-// so the clock does not shift while the pace is still being measured
-function layTimeline() {
+// The clock. Every sentence has a start and a length in seconds: an estimate from the measured pace until its
+// audio arrives, then the audio's real length. So the time shown is real seconds: it ticks once a second while
+// the voice speaks, runs on through the pauses, and passes from one sentence to the next without a jump.
+const pauseAfter = i => i < sentences.length - 1 ? (sentences[i].endsParagraph ? PARAGRAPH_PAUSE : SENTENCE_PAUSE) / 1000 : 0;
+function layTimeline(from = 0, guess = true) {
   const rate = charsPerSecond() * speed;
-  let at = 0;
-  sentences.forEach((s, i) => {
-    s.at = at; s.lasts = s.text.length / rate;
-    at += s.lasts + (i < sentences.length - 1 ? (s.endsParagraph ? PARAGRAPH_PAUSE : SENTENCE_PAUSE) / 1000 : 0);
-  });
+  let at = from ? sentences[from].at : 0;
+  for (let i = from; i < sentences.length; i++) {
+    const s = sentences[i];
+    if (guess) { s.lasts = s.text.length / rate; s.real = false; }
+    s.at = at;
+    at += s.lasts + pauseAfter(i);
+  }
   sentences.seconds = at;
 }
+function settle(i, seconds) {   // the audio of sentence i turned out to be this long
+  const s = sentences[i];
+  if (!s || s.real || !(seconds > 0)) return;
+  s.lasts = seconds; s.real = true;
+  layTimeline(i, false);
+}
 
-let heard = 0;   // how much of the current sentence has been spoken, from 0 to 1
+let heard = 0;        // seconds of the current sentence that have been spoken
+let restSince = 0;    // when the pause after it began, or 0
 function showTime() {
   const current = sentences[index];
-  $("time").textContent = `${clock(current.at + heard * current.lasts)} / ${clock(sentences.seconds)}`;
+  const rest = restSince ? Math.min((performance.now() - restSince) / 1000, pauseAfter(index)) : 0;
+  $("time").textContent = `${clock(current.at + Math.min(heard, current.lasts) + rest)} / ${clock(sentences.seconds)}`;
 }
-audio.addEventListener("timeupdate", () => {   // the clock runs with the voice instead of jumping from sentence to sentence
-  if (!book || loaded !== clipKey(index) || !(audio.duration > 0)) return;
-  heard = Math.min(1, audio.currentTime / audio.duration);
+function tick() {
+  if (!book || !sentences.length) return;
+  if (loaded === clipKey(index)) heard = audio.currentTime;
   showTime();
-});
+}
+audio.addEventListener("timeupdate", tick);
+setInterval(() => { if (playing) tick(); }, 200);   // "timeupdate" alone is too sparse in some engines, and silent in the pauses
 
 function select(i, finished = false) {
   sentences[index]?.el.classList.remove("current");
   index = i;
-  heard = finished ? 1 : 0;
+  heard = finished ? sentences[i].lasts : 0; restSince = 0;
   const current = sentences[index];
   current.el.classList.add("current");
   const box = current.el.getBoundingClientRect(), page = $("page").getBoundingClientRect();
@@ -1039,26 +1053,32 @@ function saveProgress(finished = false) {
 
 /* playback: one request per sentence, the next few fetched ahead */
 
-function speech(text, rate) {
-  return fetch("/tts", {method: "POST", body: JSON.stringify({text, speed: rate})})
-    .then(r => { if (!r.ok) throw new Error("no audio"); return r.blob(); })
-    .then(blob => URL.createObjectURL(blob));
+// a sentence as audio: {src, seconds}. The length is read from the WAV header, since not every engine
+// knows an audio element's duration before it has played
+async function speech(text, rate) {
+  const response = await fetch("/tts", {method: "POST", body: JSON.stringify({text, speed: rate})});
+  if (!response.ok) throw new Error("no audio");
+  const blob = await response.blob();
+  const bytesPerSecond = new DataView(await blob.slice(0, 44).arrayBuffer()).getUint32(28, true);
+  return {src: URL.createObjectURL(blob), seconds: (blob.size - 44) / bytesPerSecond};
 }
 
 const clipKey = i => `${book.id}:${chapter}:${i}:${speed}`;
 function clip(i) {
   const key = clipKey(i);
   if (!cache.has(key)) {
-    const url = speech(sentences[i].text, speed);
-    url.catch(() => cache.delete(key));
-    cache.set(key, url);
+    const made = speech(sentences[i].text, speed);
+    made.catch(() => cache.delete(key));
+    cache.set(key, made);
     if (cache.size > CACHE_LIMIT) {
       const [oldest, stale] = cache.entries().next().value;
       cache.delete(oldest);
-      if (oldest !== loaded) stale.then(URL.revokeObjectURL, () => {});
+      if (oldest !== loaded) stale.then(c => URL.revokeObjectURL(c.src), () => {});
     }
   }
-  return {key, url: cache.get(key)};
+  const made = cache.get(key);
+  made.then(c => { if (book && key === clipKey(i)) settle(i, c.seconds); }, () => {});   // still the same chapter and speed
+  return {key, made};
 }
 
 const ended = () => new Promise(resolve => audio.addEventListener("ended", resolve, {once: true}));
@@ -1068,21 +1088,23 @@ async function play() {
   if (!book) return;
   hush();   // the spoken tour gives way to the book
   const mine = ++run;
+  restSince = 0;
   setPlaying(true);
   try {
     while (mine === run) {
       for (let i = 1; i <= PREFETCH && index + i < sentences.length; i++) clip(index + i);
-      const {key, url} = clip(index);
-      const src = await url;
+      const {key, made} = clip(index);
+      const {src, seconds} = await made;
       if (mine !== run) return;
       if (loaded !== key) { audio.src = src; loaded = key; }   // otherwise resume where it was paused
       const done = ended();
       await audio.play();
       await done;
       if (mine !== run) return;
-      learnPace(sentences[index].text.length, audio.duration);
+      learnPace(sentences[index].text.length, seconds);
       loaded = null;
-      await wait(sentences[index].endsParagraph ? PARAGRAPH_PAUSE : SENTENCE_PAUSE);
+      heard = sentences[index].lasts; restSince = performance.now();
+      await wait(pauseAfter(index) * 1000 || SENTENCE_PAUSE);
       if (mine !== run) return;
       if (index + 1 < sentences.length) select(index + 1);
       else if (chapter + 1 < book.chapters.length) return openChapter(chapter + 1, 0, true);
@@ -1211,7 +1233,7 @@ async function say(key) {
   const mine = guideTurn;
   if (!guideOn || playing) return;
   try {
-    const src = await speech(SPOKEN[key], 1);
+    const {src} = await speech(SPOKEN[key], 1);
     if (mine !== guideTurn) return;
     guide.src = src;
     await guide.play();   // a browser may refuse sound before the first click; the notes still show
