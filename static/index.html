@@ -125,22 +125,33 @@
   .sheet { padding: 26px; }
   .sheet > header { display: flex; align-items: center; margin-bottom: 18px; }
   .sheet h3 { flex: 1; margin: 0; font-size: 18px; font-weight: 700; }
-  .dropzone { border: 2px dashed var(--strong-line); border-radius: 14px; padding: 30px 20px; text-align: center; transition: border-color .15s, background .15s; }
-  body.dragging .dropzone { border-color: var(--accent); background: var(--accent-soft); }
-  .dropzone p { margin: 0 0 4px; font-weight: 600; }
-  .dropzone small { display: block; color: var(--faint); margin-bottom: 16px; }
+  .dropzone { border: 1.5px dashed var(--strong-line); border-radius: 16px; padding: 30px 20px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s, box-shadow .2s; }
+  .dropzone:hover { border-color: var(--accent); }
+  body.dragging .dropzone { border-style: solid; border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 4px var(--accent-soft); }
+  .dropzone p { margin: 0 0 4px; font-weight: 600; font-size: 15px; }
+  .dropzone small { display: block; color: var(--faint); font-size: 13px; margin-bottom: 18px; }
   .or { display: flex; align-items: center; gap: 12px; color: var(--faint); font-size: 13px; margin: 18px 0; }
   .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
   .urlrow { display: flex; gap: 8px; }
   .urlrow input { flex: 1; min-width: 0; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--strong-line); background: var(--bg); outline: 0; font-size: 14px; }
   .urlrow input:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
   .panel .dropzone { background: var(--surface); padding: 26px 16px; }
-  /* the little book bobs while a file is held over the window, or when the pointer is on it: not all the time,
-     an animation that never rests keeps the whole window redrawing */
-  .dropart { width: 84px; height: 84px; margin: 0 auto 10px; transition: transform .3s cubic-bezier(.2, 1.4, .4, 1); }
-  .dropzone:hover .dropart { transform: translateY(-4px) rotate(-3deg); }
-  body.dragging .dropart { animation: float .9s ease-in-out infinite; }
-  @keyframes float { 50% { transform: translateY(-7px) rotate(-4deg); } }
+  /* three pages in a hand: they fan out under the pointer and wider still while a file is held over the window,
+     when the front page's voice also starts to move. At rest nothing moves, so the window is not kept redrawing */
+  .dropart { position: relative; width: 132px; height: 88px; margin: 0 auto 16px; }
+  .dropart i { position: absolute; left: 41px; top: 10px; width: 50px; height: 66px; border-radius: 9px; background: linear-gradient(var(--line) 0 0) 9px 12px / 20px 3px no-repeat, linear-gradient(var(--line) 0 0) 9px 20px / 30px 3px no-repeat, linear-gradient(var(--line) 0 0) 9px 28px / 25px 3px no-repeat, var(--surface); box-shadow: 0 0 0 1px var(--strong-line), 0 8px 16px -10px var(--shade); transform-origin: 50% 130%; transition: transform .45s cubic-bezier(.2, 1.3, .35, 1), box-shadow .2s; }
+  .dropart i:nth-child(1) { transform: rotate(-10deg); }
+  .dropart i:nth-child(2) { transform: rotate(10deg); }
+  .dropart i:nth-child(3) { background: var(--surface); display: grid; place-items: center; }
+  .dropart rect { fill: var(--accent); transform-box: fill-box; transform-origin: center; }
+  .dropzone:hover .dropart i:nth-child(1) { transform: rotate(-18deg); }
+  .dropzone:hover .dropart i:nth-child(2) { transform: rotate(18deg); }
+  .dropzone:hover .dropart i:nth-child(3) { transform: translateY(-5px); }
+  body.dragging .dropzone .dropart i:nth-child(1) { transform: rotate(-25deg); }
+  body.dragging .dropzone .dropart i:nth-child(2) { transform: rotate(25deg); }
+  body.dragging .dropzone .dropart i:nth-child(3) { transform: translateY(-9px) scale(1.06); box-shadow: 0 0 0 1.5px var(--accent), 0 12px 20px -10px var(--shade); }
+  body.dragging .dropzone .dropart rect { animation: hum .9s ease-in-out infinite; }
+  .dropart rect:nth-child(2) { animation-delay: .12s; } .dropart rect:nth-child(3) { animation-delay: .24s; } .dropart rect:nth-child(4) { animation-delay: .36s; }
   .panel .urlrow { flex-direction: column; }
   .panel .urlrow input { background: var(--surface); padding: 11px 14px; }
   .addstate { text-align: center; padding: 70px 10px 0; color: var(--muted); font-size: 15px; }
@@ -150,6 +161,7 @@
   .wave i:nth-child(2) { animation-delay: .12s; } .wave i:nth-child(3) { animation-delay: .24s; }
   .wave i:nth-child(4) { animation-delay: .36s; } .wave i:nth-child(5) { animation-delay: .48s; }
   @keyframes wave { 50% { transform: scaleY(1); } }
+  @keyframes hum { 50% { transform: scaleY(.4); } }
   #add-preview .bookhead { flex-direction: column; align-items: center; text-align: center; gap: 14px; margin-bottom: 16px; }
   #add-preview .bookhead .cover { width: 124px; text-align: left; animation: pop .55s cubic-bezier(.2, 1.3, .4, 1) both; }
   #add-preview .bookhead .cover strong { font-size: 13px; }
@@ -163,7 +175,7 @@
   .tick { width: 76px; height: 76px; fill: none; stroke: var(--accent); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; animation: pop .5s cubic-bezier(.2, 1.4, .4, 1) both; }
   .tick path { stroke-dasharray: 40; stroke-dashoffset: 40; animation: draw .35s ease-out .25s forwards; }
   @keyframes draw { to { stroke-dashoffset: 0; } }
-  @media (prefers-reduced-motion: reduce) { .dropart, .wave i, #add-preview .bookhead .cover, .tick { animation: none; } .wave i { transform: scaleY(.7); } .tick path { animation: none; stroke-dashoffset: 0; } }
+  @media (prefers-reduced-motion: reduce) { .dropart i { transition: none; } .dropart rect, .wave i, #add-preview .bookhead .cover, .tick { animation: none; } .wave i { transform: scaleY(.7); } .tick path { animation: none; stroke-dashoffset: 0; } }
   .status { min-height: 20px; margin: 14px 0 0; font-size: 14px; color: var(--muted); }
   .status.error { color: var(--danger); }
 
@@ -496,7 +508,7 @@
     <div class="scroll">
       <div id="add-choose">
         <div class="dropzone">
-          <svg class="dropart" viewBox="0 0 96 96" aria-hidden="true"><rect x="24" y="16" width="48" height="64" rx="6" fill="var(--surface)" stroke="var(--strong-line)" stroke-width="2"/><path d="M33 16v64" stroke="var(--strong-line)" stroke-width="2"/><g stroke="var(--accent)" stroke-width="3.4" stroke-linecap="round"><path d="M43 44v8M49.5 38v20M56 33v30M62.5 40v16"/></g></svg>
+          <div class="dropart" aria-hidden="true"><i></i><i></i><i><svg width="26" height="26" viewBox="0 0 26 26"><rect x="2" y="9" width="3.4" height="8" rx="1.7"/><rect x="8.2" y="4" width="3.4" height="18" rx="1.7"/><rect x="14.4" y="1" width="3.4" height="24" rx="1.7"/><rect x="20.6" y="7" width="3.4" height="12" rx="1.7"/></svg></i></div>
           <p data-t="dropHere"></p><small data-t="formats"></small>
           <button class="btn" id="choose" data-t="chooseFile"></button>
           <input type="file" id="file" accept=".epub,.pdf,.txt,.md,.html,.htm" hidden>
@@ -1036,7 +1048,7 @@ $("add-confirm").onclick = async () => {
 const addFile = file => look(() => api(`/api/books?preview=1&name=${encodeURIComponent(file.name)}`, {method: "POST", body: file}), file.name);
 const addUrl = url => look(() => api("/api/books", {method: "POST", body: JSON.stringify({url, preview: true})}), t("theArticle"));
 
-$("choose").onclick = () => $("file").click();
+document.querySelector(".dropzone").onclick = e => { if (e.target !== $("file")) $("file").click(); };   // the whole zone, not only its button
 $("file").onchange = () => { if ($("file").files[0]) addFile($("file").files[0]); $("file").value = ""; };
 $("add-url").onclick = () => { const url = $("url").value.trim(); if (url) { addUrl(url); $("url").value = ""; } };
 $("url").onkeydown = e => { if (e.key === "Enter") $("add-url").click(); };

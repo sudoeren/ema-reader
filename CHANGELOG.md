@@ -2,6 +2,13 @@
 
 Her sürümün yenilikleri burada durur. Bir sürüm yayınlandığında o sürümün bölümü hem GitHub'daki sürüm sayfasına hem de uygulamadaki "Yeni sürüm" penceresine yazılır.
 
+## Sıradaki sürüm
+
+- Normal okuma hızı yavaşladı, cümleler arasındaki duraklamalar biraz uzadı.
+- Tanıtımda okuma adımlara bağlı: oynata basınca tek bir kısa cümle okunur, adım değişince durur.
+- Tanıtımın hız adımında hız listesi artık perdenin arkasında kalmıyor.
+- Dosya ekleme alanı yeniden çizildi; alanın tamamına tıklanabiliyor.
+
 ## 1.0.0
 
 İlk sürüm.
