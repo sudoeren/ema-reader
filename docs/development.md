@@ -12,7 +12,8 @@ EMA Reader'ın teknik tarafı: nasıl kurulduğu, kaynaktan nasıl çalıştır�
 | `ema.py` | Modeli yükler; ayrıca metni seslendiren bir komut satırı aracıdır |
 | `update.py` | GitHub'daki son sürüme bakar; yeni sürüm varsa uygulama bunu haber verir |
 | `desktop.py` | Sunucunun çevresindeki masaüstü penceresi |
-| `build.py` | Windows ve macOS için kendi kendine yeten uygulamayı üretir |
+| `build.py` | Windows ve macOS için uygulamayı üretir |
+| `runtime.py` | İlk açılışta bilgisayara uyan PyTorch'u ve modeli indirir |
 | `packaging/linux.py` | Linux için `.deb`, `.rpm` ve pacman paketlerini üretir |
 | `static/index.html` | Arayüzün tamamı: tek sayfa, derleme adımı yok |
 | `CHANGELOG.md` | Her sürümün yenilikleri; sürüm sayfasına ve uygulamadaki "Yeni sürüm" penceresine buradan yazılır |
@@ -57,40 +58,50 @@ Sayfayı adresin sonuna `?tour` ekleyerek açmak, ilk açılıştaki tanıtımı
 ```bash
 uv run --extra desktop desktop.py kitap.epub     # bir dosya ekle ve aç
 uv run --extra desktop desktop.py --install      # Linux: uygulamalar menüsüne ekle; --uninstall kaldırır
-uv run --extra desktop desktop.py --check        # penceresiz başlat, bir cümle üret, çık
+uv run --extra desktop desktop.py --check        # penceresiz başlat, gerekeni indir, bir cümle üret, çık
 ```
 
 Linux'ta masaüstü, bir pencerenin simgesini uygulama kimliğiyle aynı adı taşıyan başlatıcı dosyasından bulur. `--install` yapılmamışsa uygulama ilk açılışta menüde görünmeyen bir başlatıcı (`NoDisplay=true`) ve simgeyi kendisi yazar; yoksa pencere masaüstünün yer tutucu simgesiyle görünürdü. Paketten kurulan kopya bunu yapmaz: başlatıcıyı paket getirir ve kullanıcının klasöründeki aynı adlı bir başlatıcı onu menüden gizlerdi.
 
+## İlk açılıştaki indirme
+
+Kurulum dosyaları PyTorch'u ve modeli içermez. NVIDIA kartları için PyTorch tek başına bir GitHub sürüm dosyasının sınırı olan 2 GB'tan büyüktür, ayrıca her bilgisayar başka bir sürümünü ister. Bunun yerine `runtime.py` ilk açılışta bilgisayara uyanı indirir:
+
+| Seçenek | Ne zaman sunulur | PyTorch nereden gelir |
+|---|---|---|
+| NVIDIA ekran kartı (`cuda`) | Windows ve Linux'ta NVIDIA sürücüsü kuruluysa (`nvidia-smi`, `nvcuda.dll` ya da `/proc/driver/nvidia`) | `download.pytorch.org/whl/cu126`, olmazsa `cu128`, `cu130` |
+| Apple silicon (`mps`) | Apple silicon'lu Mac'te, tek seçenek olarak | PyPI; macOS sürümü ekran kartını da kullanır |
+| İşlemci (`cpu`) | Windows ve Linux'ta her zaman | `download.pytorch.org/whl/cpu` |
+
+Sayfa sunucu açılır açılmaz gelir; model yoksa `/api/setup` hazır olmadığını söyler ve sayfa kütüphane yerine indirme ekranını gösterir. Seçilen PyTorch, uygulamayla gelen `uv` ile kullanıcının veri klasörüne (`.../EMA Reader/runtime/site`) kurulur ve `desktop.py` onu `sys.path`'in başına ekler. Model de masaüstü uygulamasında aynı klasöre (`runtime/hf`) iner. Bitince model yüklenir ve sayfa kütüphaneye geçer.
+
+Ayarlar'daki "Seslendirme" başka bir seçeneği indirir. Çalışan uygulama yüklediği PyTorch'u bırakamayacağı için yenisi `runtime/site.new`'e iner ve uygulama yeniden başlayınca eskisinin yerini alır.
+
+Model hangi cihazda çalışacağını `ema.best_device()` ile seçer: NVIDIA kartı, yoksa Apple silicon'un ekran kartı (MPS), yoksa işlemci. EMA Lightning'in kendi "auto" seçimi yalnızca NVIDIA'yı tanıdığı için uygulama cihazı kendisi verir. MPS'te olmayan işlemler işlemciye düşer (`PYTORCH_ENABLE_MPS_FALLBACK`); model MPS'te hiç çalışmazsa işlemciyle yüklenir.
+
 ## Kurulum dosyalarını üretme
 
+Üç sistemde de uygulama kendi Python'unu taşır: `uv` ile indirilen python-build-standalone, içine uygulamanın açılmak için gerektirdiği paketler (PyTorch'suz) ve ilk açılıştaki indirme için `uv`'nin kendisi. Uygulamanın Python'u sistemdekinden bağımsızdır.
+
 ```bash
-uv run build.py        # Windows ya da macOS'te; dist/EMA Reader/ klasörünü yazar
+uv run --no-project build.py         # Windows'ta dist/EMA Reader/, macOS'te dist/EMA Reader.app
+sudo python3 packaging/linux.py      # Linux'ta (Ubuntu 24.04); dist/EMA-Reader.deb, .rpm ve .pkg.tar.zst
 ```
 
-Çıktı; içinde Python, yalnızca CPU'lu bir PyTorch ve model ağırlıkları bulunan bir PyInstaller klasörüdür, bu yüzden uygulama indirme yapmadan açılır. PyTorch'un GPU'lu sürümü birkaç gigabayt eklerdi; model CPU'da da yeterince hızlıdır.
+- **Windows:** `dist/EMA Reader/python/` Python'dur; içindeki `EMA Reader.exe`, pencereli çalışan `pythonw.exe`'nin uygulamanın adı ve simgesiyle (rcedit varsa) bir kopyasıdır ve kısayollar onu `desktop.py` ile başlatır. `packaging/windows.iss` bunu kullanıcı başına kurulan bir kurulum dosyasına sarar. Kaldırınca indirilen PyTorch ve model de silinir, kitaplık ve ayarlar kalır.
+- **macOS:** Python `.app` paketinin `Contents` klasörüdür; `Contents/MacOS/python` onun bir kopyasıdır ve paketin ana programı olan küçük bir betik onu `desktop.py` ile başlatır. Python paketin içinden çalıştığı için Dock'ta uygulamanın adı ve simgesi görünür.
+- **Linux:** Uygulama `/opt/ema-reader` altına gider. GTK'nın Python bağları (PyGObject) uygulamanın Python'u için derlenir ve sistemin GTK 4, libadwaita, WebKitGTK, GLib ve cairo kitaplıklarını kullanır; bunların arayüzleri sabit olduğu için aynı derleme Ubuntu, Debian, Fedora ve Arch'ta çalışır. Derleme desteklenen en eski sistem olan Ubuntu 24.04'te yapılır, böylece yenilerinde de çalışır; `gcc`, `pkg-config`, `libgirepository-2.0-dev`, `libcairo2-dev`, `rpm` ve `libarchive-tools` gerekir. Aynı uygulama üç pakete sarılır; pacman paketi `makepkg` kullanılmadan, makepkg'nin de yazdığı `.PKGINFO` ve `.MTREE` açıklamalarıyla `bsdtar` ile yazılır. Paketler ayrıca `/usr/bin/ema-reader` komutunu, uygulamalar menüsündeki başlatıcıyı, simgeyi ve yazılım merkezleri için bir AppStream açıklamasını kurar.
 
-`.github/workflows/build.yml`, `v1.0.0` gibi bir sürüm etiketi gönderildiğinde derlemeyi Windows ve macOS'te çalıştırır (Linux paketleri için aşağıya bak), bir kurulum dosyasına (`EMA-Reader-Setup.exe`, `packaging/windows.iss` ile üretilir) ve bir disk görüntüsüne (`EMA-Reader.dmg`) sarar, ikisini de sürüme ekler. Actions sekmesinden elle de başlatılabilir.
+Her derleme, paketin adını uygulamanın `package` dosyasına yazar; `update.py` güncellemeyi buna bakarak yapar.
+
+`.github/workflows/build.yml` bir sürüm etiketi gönderildiğinde (ya da Actions sekmesinden elle) hepsini üretir ve dener:
+
+- Windows ve macOS derlemesi `desktop.py --check` ile açılır: ilk açılıştaki gibi PyTorch'u ve modeli indirir ve bir cümle seslendirir. Windows'ta NVIDIA'lı PyTorch da ayrıca indirilip yüklenir; makinede kart olmadığı için işlemcide çalışır, ama indirmenin ve paket deposunun doğru olduğu görülür.
+- Linux paketleri Ubuntu 24.04 ve 26.04, Debian 13, Fedora 44 ve Arch kaplarına okuyucunun kuracağı gibi kurulur ve sıradan bir kullanıcıyla `ema-reader --check` çalıştırılır. Ubuntu 24.04'te NVIDIA'lı PyTorch da denenir.
+
+GitHub'ın makinelerinde ekran kartı olmadığından ekran kartıyla çalışmayı bu denemeler göstermez; onu gerçek bir NVIDIA'lı bilgisayarda ve bir Apple silicon Mac'te denemek gerekir.
 
 Kurulum dosyaları kod imzalı değildir; bu yüzden Windows SmartScreen ve macOS Gatekeeper ilk açılıştan önce uyarır.
-
-### Linux paketleri
-
-```bash
-sudo python3 packaging/linux.py ubuntu-24.04     # o sistemin kendisinde; dist/EMA-Reader-ubuntu-24.04.deb yazar
-```
-
-Linux penceresi GTK 4, libadwaita ve WebKitGTK'yı sistemden aldığı için, Windows ve macOS'teki gibi her şeyi içeren tek bir klasör olamaz. Paket bunun yerine uygulamayı `/opt/ema-reader` altına, sistemin kendi Python'uyla kurulmuş bir ortamla birlikte koyar. Bu ortamda yalnızca CPU'lu bir PyTorch, model ağırlıkları ve öbür paketler bulunur; GTK'nın Python bağları (`python3-gi` ya da `python3-gobject`) sistemden gelir. Ortam yalnızca kurulduğu Python sürümüyle çalıştığı için her sistemin kendi paketi vardır ve paket tam o Python sürümünü ister. Betik `dpkg-deb` bulursa `.deb`, `rpmbuild` bulursa `.rpm` üretir. Root olarak çalışır, çünkü ortamı kurulacağı yerde, `/opt/ema-reader` içinde hazırlar.
-
-Paket ayrıca `/usr/bin/ema-reader` komutunu, uygulamalar menüsündeki başlatıcıyı, simgeyi ve yazılım merkezleri için bir AppStream açıklamasını kurar.
-
-`build.yml` her sürümde Ubuntu 24.04, Ubuntu 26.04, Debian 13, Fedora 44 ve Arch Linux için birer paket üretir. Her biri o sistemin kabında derlenir, sonra kurulup sıradan bir kullanıcıyla `ema-reader --check` ile denenir. Yeni bir sistem eklemek için iş akışındaki listeye bir satır eklemek yeterlidir; adı `EMA-Reader-<sistem>.deb` ya da `.rpm` olur.
-
-### Arch Linux
-
-Arch yeni bir Python sürümüne hemen geçer; sistemin Python'uyla kurulmuş bir ortam o gün bozulurdu. Bu yüzden Arch paketi (`EMA-Reader-arch.pkg.tar.zst`) kendi Python'unu taşır: `uv` ile indirilen bağımsız bir Python 3.13, `/opt/ema-reader/python` içinde. GTK'nın Python bağları (PyGObject) sistemden alınamaz, çünkü sistemin Python'u için derlenmişlerdir; paket derlenirken bu Python için yeniden derlenir ve sistemin GLib, cairo, GTK 4, libadwaita ve WebKitGTK kitaplıklarını kullanır. Bunların sürümleri değişse de arayüzleri sabit kaldığı için paket Arch güncellendikçe çalışmaya devam eder.
-
-Paketi `packaging/linux.py arch` bir Arch kabında üretir. `makepkg` kullanılmaz: paket, makepkg'nin de yazdığı `.PKGINFO` ve `.MTREE` açıklamalarıyla doğrudan `bsdtar` ile paketlenir. Derlemek için `base-devel`, `gobject-introspection` ve `cairo` gerekir.
 
 ## Sürüm yayınlama
 
