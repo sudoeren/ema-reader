@@ -10,7 +10,7 @@
   :root {
     --bg: #ffffff; --surface: #ffffff; --ink: #16161a; --on-ink: #ffffff; --text: #2a2a31; --muted: #6b6b75; --faint: #8a8a93;
     --line: #ececef; --strong-line: #d5d5dc; --soft: #f3f3f5; --danger: #c62828;
-    --accent: #2b50ff; --accent-soft: #e4eaff; --on-accent: #ffffff;
+    --accent: #3a3a44; --accent-soft: #e9e9ee; --on-accent: #ffffff;
     --veil: rgba(255,255,255,.86); --shade: rgba(20,20,60,.3); --backdrop: rgba(22,22,26,.35);
     --reading-size: 22px;
     --sans: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -478,16 +478,16 @@ const audio = $("audio");
 
 /* settings: kept in the browser, applied before anything is drawn */
 
-const ACCENTS = {   // name: [light, light soft, dark, dark soft]
+const ACCENTS = {   // name: [light, light soft, dark, dark soft]; the first is the one the app starts with
+  graphite: ["#3a3a44", "#e9e9ee", "#c9c9d2", "#34343c"],
   blue: ["#2b50ff", "#e4eaff", "#8ea2ff", "#262d5c"],
   violet: ["#6d3df5", "#ece6ff", "#b39dff", "#33285f"],
   green: ["#0f8f6a", "#d9f3ea", "#4fd1a5", "#173d33"],
   orange: ["#d9600a", "#ffe9d6", "#ffa55c", "#4a2c12"],
   rose: ["#d6336c", "#ffe1ec", "#ff8fb3", "#4d1f30"],
-  graphite: ["#3a3a44", "#e9e9ee", "#c9c9d2", "#34343c"],
 };
 const SIZES = {small: 19, medium: 22, large: 25, huge: 29};
-const settings = {theme: "light", accent: "blue", size: "medium", updates: true};
+const settings = {theme: "light", accent: "graphite", size: "medium", updates: true};
 try { Object.assign(settings, JSON.parse(localStorage.getItem("settings") || "{}")); } catch {}
 const darkQuery = matchMedia("(prefers-color-scheme: dark)");
 const shell = window.emaShell ? window.webkit?.messageHandlers?.shell : null;   // the desktop window, if the page is inside it
@@ -497,7 +497,7 @@ function applySettings() {
   const dark = settings.theme === "dark" || (settings.theme === "system" && darkQuery.matches);
   const root = document.documentElement;
   root.dataset.theme = dark ? "dark" : "light";
-  const [light, lightSoft, night, nightSoft] = ACCENTS[settings.accent] || ACCENTS.blue;
+  const [light, lightSoft, night, nightSoft] = ACCENTS[settings.accent] || ACCENTS.graphite;
   root.style.setProperty("--accent", dark ? night : light);
   root.style.setProperty("--accent-soft", dark ? nightSoft : lightSoft);
   root.style.setProperty("--on-accent", dark ? "#131316" : "#ffffff");   // the night accents are light, the day ones dark

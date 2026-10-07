@@ -217,6 +217,16 @@ def run_gtk(data, splash):
         header = Adw.HeaderBar()
         title = Adw.WindowTitle(title=NAME)
         header.set_title_widget(title)
+        # the logo in the top left corner, as on the page; inside a book the back button takes its place
+        logo = Gtk.Image(pixel_size=26, margin_start=8, margin_end=4)
+        try:
+            logo.set_from_paintable(Gdk.Texture.new_from_filename(str(ROOT / "static" / "logo.png")))
+        except GLib.Error:
+            logo.set_visible(False)
+        header.pack_start(logo)
+        # some desktops put a small window icon among the title buttons; the logo above already is that
+        layout = Gtk.Settings.get_default().get_property("gtk-decoration-layout") or ""
+        header.set_decoration_layout(":".join(",".join(b for b in side.split(",") if b != "icon") for side in layout.split(":")))
         buttons = {
             "back": button("go-previous-symbolic", "back", "start"),
             "add": button("list-add-symbolic", "add", "start"),
@@ -237,6 +247,7 @@ def run_gtk(data, splash):
                          "add": not reader and not empty, "search": not reader and not empty, "settings": True}
                 for name, visible in shown.items():
                     buttons[name].set_visible(visible)
+                logo.set_visible(not reader and logo.get_paintable() is not None)
             if "theme" in message:
                 set_theme(message["theme"] == "dark", message.get("accent"))
             if "open" in message and str(message["open"]).startswith(("http://", "https://")):
