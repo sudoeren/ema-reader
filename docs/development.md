@@ -77,6 +77,8 @@ Sayfa sunucu açılır açılmaz gelir; model yoksa `/api/setup` hazır olmadı�
 
 Ayarlar'daki "Seslendirme" başka bir seçeneği indirir. Çalışan uygulama yüklediği PyTorch'u bırakamayacağı için yenisi `runtime/site.new`'e iner ve uygulama yeniden başlayınca eskisinin yerini alır.
 
+Ayarlar'daki "İndirilenler" bunların hepsini kaldırır (`runtime/site`, `site.new`, `cache`, `hf`; kaynaktan çalışan kopyada modelin ortak Hugging Face önbelleğindeki klasörü). Dosyalar uygulama çalışırken kullanımda olduğu için o anda silinmez: `runtime/remove` adında bir işaret yazılır, uygulama yeniden başlar ve yeni açılan uygulama her şeyden önce onları siler. Bu, paket kaldırıldığında kullanıcının klasöründe kalan gigabaytları geri almanın yoludur; Windows kaldırıcısı aynı klasörü kendisi de siler.
+
 Model hangi cihazda çalışacağını `ema.best_device()` ile seçer: NVIDIA kartı, yoksa Apple silicon'un ekran kartı (MPS), yoksa işlemci. EMA Lightning'in kendi "auto" seçimi yalnızca NVIDIA'yı tanıdığı için uygulama cihazı kendisi verir. MPS'te olmayan işlemler işlemciye düşer (`PYTORCH_ENABLE_MPS_FALLBACK`); model MPS'te hiç çalışmazsa işlemciyle yüklenir.
 
 ## Kurulum dosyalarını üretme
@@ -96,12 +98,14 @@ Her derleme, paketin adını uygulamanın `package` dosyasına yazar; `update.py
 
 `.github/workflows/build.yml` bir sürüm etiketi gönderildiğinde (ya da Actions sekmesinden elle) hepsini üretir ve dener:
 
-- Windows ve macOS derlemesi `desktop.py --check` ile açılır: ilk açılıştaki gibi PyTorch'u ve modeli indirir ve bir cümle seslendirir. Windows'ta NVIDIA'lı PyTorch da ayrıca indirilip yüklenir; makinede kart olmadığı için işlemcide çalışır, ama indirmenin ve paket deposunun doğru olduğu görülür.
+- Windows ve macOS derlemesi `desktop.py --check` ile açılır: ilk açılıştaki gibi PyTorch'u ve modeli indirir ve bir cümle seslendirir. Windows'ta NVIDIA'lı PyTorch da ayrıca indirilip yüklenir; makinede kart olmadığı için işlemcide çalışır, ama indirmenin ve paket deposunun doğru olduğu görülür. Pencere açılmaz, ama pencerenin kitaplıkları (pywebview; Windows'ta pythonnet, macOS'te AppKit ve WebKit) yüklenir.
 - Linux paketleri Ubuntu 24.04 ve 26.04, Debian 13, Fedora 44 ve Arch kaplarına okuyucunun kuracağı gibi kurulur ve sıradan bir kullanıcıyla `ema-reader --check` çalıştırılır. Ubuntu 24.04'te NVIDIA'lı PyTorch da denenir.
 
 GitHub'ın makinelerinde ekran kartı olmadığından ekran kartıyla çalışmayı bu denemeler göstermez; onu gerçek bir NVIDIA'lı bilgisayarda ve bir Apple silicon Mac'te denemek gerekir.
 
 Kurulum dosyaları kod imzalı değildir; bu yüzden Windows SmartScreen ve macOS Gatekeeper ilk açılıştan önce uyarır.
+
+Windows kurulum dosyası, pencereyi çizen WebView2 bilgisayarda yoksa (bazı Windows 10'larda) Microsoft'un küçük kurucusunu çalıştırır; `build.yml` onu derleme sırasında indirir. macOS disk görüntüsünde uygulamanın yanında Uygulamalar klasörüne bir bağlantı durur.
 
 ## Sürüm yayınlama
 
@@ -164,6 +168,8 @@ Testler metin çıkarmayı, dışa aktarım adlandırmasını ve güncelleme den
 | `GET /api/update` | `{"current": "1.0.0", "latest": "1.1.0", "newer": true, "notes": "...", "page": "...", "download": "...", "job": {...}}`; `?fresh=1` yeniden sorar |
 | `POST /api/update` | Yeni sürümü kurar ve uygulamayı yeniden başlatır; yalnızca bu bilgisayardan |
 | `GET /tts`, `POST /tts` | Düz metinden sese |
+| `GET /api/downloads` | `{"bytes": 123}`: ilk açılışta indirilen PyTorch ve modelin diskte tuttuğu yer |
+| `DELETE /api/downloads` | Onları kaldırır ve uygulamayı yeniden başlatır; yalnızca bu bilgisayardan |
 | `GET /health` | `{"status": "ok", "version": "..."}` |
 
 Dışa aktarım şunları alır: `scope` (`chapter` ya da `book`), `chapter` (bölümün sırası), `format` (`mp3`, `ogg`, `opus`, `flac`, `wav` ya da `txt`), `split` (her bölüm için ayrı dosya içeren bir ZIP) ve `speed`. Kayıplı biçimler 24 kHz, kayıpsız olanlar 48 kHz olarak yazılır.

@@ -92,6 +92,15 @@ def check():
         gi.require_version("Adw", "1")
         gi.require_version("WebKit", "6.0")
         from gi.repository import Adw, Gtk, WebKit  # noqa: F401
+    else:
+        # the same for the window everywhere else: pywebview and what it draws with
+        import webview  # noqa: F401
+
+        if sys.platform == "win32":
+            import clr  # noqa: F401
+        else:
+            import AppKit  # noqa: F401
+            import WebKit  # noqa: F401
     print(f"tamam: sayfa {len(page)} bayt, ses {len(wav)} bayt, {app.tts.device.type} ile")
 
 

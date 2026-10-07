@@ -64,17 +64,25 @@ jobs:
             EMA_READER_RUNTIME="$RUNNER_TEMP/cuda" EMA_READER_CHECK=cuda "$python" "$app/desktop.py" --check
           fi
 
+      # the window is drawn by Microsoft's WebView2, which Windows 11 has and a Windows 10 may lack:
+      # the installer carries Microsoft's small setup for it and runs it where it is missing (see windows.iss)
       - name: Windows installer
         if: runner.os == 'Windows'
         shell: bash
         run: |
+          curl -fsSL -o packaging/MicrosoftEdgeWebview2Setup.exe "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
           version="${GITHUB_REF_NAME#v}"
           [[ "$GITHUB_REF_TYPE" == "tag" ]] || version="0.0.0"
           iscc "//DVersion=$version" packaging/windows.iss
 
       - name: macOS disk image
         if: runner.os == 'macOS'
-        run: hdiutil create -volname "EMA Reader" -srcfolder "dist/EMA Reader.app" -ov -format UDZO dist/EMA-Reader.dmg
+        # the app next to a link to the Applications folder, so that installing is dragging one onto the other
+        run: |
+          mkdir dist/dmg
+          ditto "dist/EMA Reader.app" "dist/dmg/EMA Reader.app"
+          ln -s /Applications dist/dmg/Applications
+          hdiutil create -volname "EMA Reader" -srcfolder dist/dmg -ov -format UDZO dist/EMA-Reader.dmg
 
       - uses: actions/upload-artifact@v4
         with:

@@ -20,9 +20,11 @@ Bir kitap ekle, oynat düğmesine bas; EMA Reader onu sana kendi bilgisayarında
 
 ## EMA Reader'ı edin
 
-**Windows ve macOS:** kurulum dosyasını [Sürümler](../../releases) sayfasından indir ve aç.
+**Windows:** [Sürümler](../../releases) sayfasından `EMA-Reader-Setup.exe` dosyasını indir ve aç. Yönetici parolası gerekmez.
 
-Uygulama yeni ve ücretsiz olduğu için Windows ya da macOS ilk açılışta seni uyarabilir. Windows'ta "Ek bilgi"yi, ardından "Yine de çalıştır"ı seç; macOS'te uygulamaya sağ tıklayıp "Aç"ı seç.
+**macOS:** [Sürümler](../../releases) sayfasından `EMA-Reader.dmg` dosyasını indir ve aç, sonra EMA Reader'ı yanındaki Uygulamalar klasörüne sürükle.
+
+Uygulama yeni ve ücretsiz olduğu için Windows ya da macOS ilk açılışta seni uyarabilir. Windows'ta "Ek bilgi"yi, ardından "Yine de çalıştır"ı seç. macOS'te uygulamayı bir kez açmayı dene, sonra Sistem Ayarları'nda "Gizlilik ve Güvenlik"e gidip en alttaki "Yine de Aç"ı seç; macOS 14 ve öncesinde uygulamaya sağ tıklayıp "Aç"ı seçmek de yeter.
 
 İlk açılışta EMA Reader, sesi üretecek parçaları bilgisayarına göre bir kez indirir: NVIDIA ekran kartın varsa onu, Mac'te Apple silicon'un ekran kartını, ikisi de yoksa işlemciyi kullanan sürümü. Hangisinin ineceğini ve ne kadar yer tutacağını indirmeden önce gösterir; sonradan Ayarlar'daki "Seslendirme"den değiştirebilirsin.
 
@@ -51,6 +53,18 @@ git clone https://github.com/sudoeren/ema-reader
 cd ema-reader
 uv run --extra desktop desktop.py --install
 ```
+
+### Kaldırma
+
+İlk açılışta indirilen parçalar birkaç gigabayt tutabilir. Onları Ayarlar'daki "İndirilenler" satırından kaldırabilirsin; kitaplığın yerinde kalır, uygulama yeniden açıldığında bunları yeniden indirmeyi önerir.
+
+EMA Reader'ı tümüyle kaldırmak için:
+
+- **Windows:** Ayarlar'daki "Uygulamalar"dan EMA Reader'ı kaldır. İndirilen parçalar da onunla birlikte gider.
+- **macOS:** önce uygulamadaki Ayarlar'dan indirilenleri kaldır, sonra EMA Reader'ı Çöp Sepeti'ne taşı.
+- **Linux:** önce uygulamadaki Ayarlar'dan indirilenleri kaldır, sonra paketi kaldır: `sudo apt remove ema-reader`, `sudo dnf remove ema-reader` ya da `sudo pacman -R ema-reader`.
+
+Kitaplığın hiçbir durumda silinmez; kullanıcı klasöründeki "EMA Reader" veri klasöründe durur.
 
 ### En düşük sistem gereksinimleri
 
