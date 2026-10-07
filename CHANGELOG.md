@@ -2,7 +2,7 @@
 
 Her sürümün yenilikleri burada durur. Bir sürüm yayınlandığında o sürümün bölümü hem GitHub'daki sürüm sayfasına hem de uygulamadaki "Yeni sürüm" penceresine yazılır.
 
-## 1.0.0
+## 0.0.1
 
 İlk sürüm.
 

@@ -413,7 +413,7 @@ wheels = [
 
 [[package]]
 name = "ema-reader"
-version = "1.0.0"
+version = "0.0.1"
 source = { virtual = "." }
 dependencies = [
     { name = "ema-lightning" },

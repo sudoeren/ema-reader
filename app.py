@@ -63,7 +63,7 @@ import runtime
 import update
 from extract import extract_file, extract_url
 
-VERSION = "1.0.0"
+VERSION = "0.0.1"
 ROOT = Path(__file__).parent
 STATIC = ROOT / "static"
 LIBRARY = Path(os.environ.get("EMA_READER_LIBRARY") or ROOT / "library")
