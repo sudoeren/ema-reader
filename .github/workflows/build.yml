@@ -157,7 +157,7 @@ jobs:
         run: |
           case ${{ matrix.package }} in
             deb) apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ./EMA-Reader.deb ;;
-            rpm) dnf install -y ./EMA-Reader.rpm ;;
+            rpm) dnf install -y util-linux ./EMA-Reader.rpm ;;   # util-linux: runuser, for the check below
             # nothing to install but what the window needs from the system; the folder is unpacked by the user below
             tar.gz) zypper --non-interactive install tar gzip shadow util-linux typelib-1_0-Gtk-4_0 typelib-1_0-Adw-1 typelib-1_0-WebKit-6_0 libgirepository-2_0-0 ;;
             *) pacman -Syu --noconfirm && pacman -U --noconfirm ./EMA-Reader.pkg.tar.zst ;;
