@@ -34,6 +34,20 @@ uv run --extra desktop desktop.py --install
 
 Bundan sonra EMA Reader uygulamalar menünde durur.
 
+### En düşük sistem gereksinimleri
+
+| | Windows | macOS | Linux |
+|---|---|---|---|
+| **Sistem** | Windows 10 ya da 11, 64 bit | Apple silicon'lu (M1 ve sonrası) bir Mac | 64 bit; GTK 4, libadwaita ve WebKitGTK 6.0 kurulu bir masaüstü |
+| **Bellek** | 4 GB | 4 GB | 4 GB |
+| **Boş disk alanı** | yaklaşık 2 GB | yaklaşık 2 GB | yaklaşık 6 GB |
+| **Ekran kartı** | gerekmez | gerekmez | gerekmez; NVIDIA kart varsa kullanılır |
+
+- Uygulama çalışırken yaklaşık 1 GB bellek kullanır.
+- Ekran kartı olmadan da akıcı okur: bir cümlenin sesi, sıradan bir işlemcide cümlenin kendisinden çok daha kısa sürede hazırlanır.
+- Dinlemek için internet gerekmez. İnternet yalnızca web'den makale eklerken, yeni sürüm denetiminde ve Linux'ta ilk kurulumda (ses modeli ve gerekli paketler indirilirken) kullanılır.
+- Linux'taki disk ihtiyacının çoğu, ekran kartı desteğiyle birlikte gelen PyTorch paketleridir.
+
 ## İlk dakikan
 
 EMA Reader'ı ilk açtığında sana etrafı gezdirir. Kısa bir karşılama metni hazır bekler; oynat düğmesine basıp hemen dinleyebilirsin. Tanıtım da sesli anlatılır; sonradan Ayarlar'dan yeniden izleyebilirsin.
