@@ -5,6 +5,8 @@
 <p align="center"><b>Kitaplarını ve makalelerini Türkçe dinle.</b><br>
 Bir kitap ekle, oynat düğmesine bas; EMA Reader onu sana kendi bilgisayarında okusun.</p>
 
+<p align="center"><a href="https://emareader.erencakar.com"><b>emareader.erencakar.com</b></a></p>
+
 ![Kitaplık](docs/screenshots/kitaplik.png)
 
 ## Neler yapar
