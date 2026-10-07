@@ -270,7 +270,9 @@ def install_torch(choice, target):
         shutil.rmtree(target, ignore_errors=True)
         command = [uv(), "pip", "install", "--target", str(target), "--python", python(), "--no-progress", TORCH]
         if index:
-            command += ["--index-url", index, "--extra-index-url", PYPI]
+            # PyTorch's own index goes in as the extra one, which uv asks first: the other way round PyTorch
+            # would come from PyPI, whose build is the one for NVIDIA cards on Linux and the processor's on Windows
+            command += ["--index-url", PYPI, "--extra-index-url", index]
         env = {**os.environ, "UV_CACHE_DIR": str(cache), "UV_PYTHON_DOWNLOADS": "never"}
         process = subprocess.Popen(command, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
                                    **({"creationflags": subprocess.CREATE_NO_WINDOW} if sys.platform == "win32" else {}))

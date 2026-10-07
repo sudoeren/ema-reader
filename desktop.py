@@ -77,6 +77,13 @@ def check():
         runtime.install(choice, None)
         if runtime.job["state"] == "failed":
             sys.exit(runtime.job["error"])
+        import torch
+
+        # that the kind asked for is the kind that came: a PyTorch for cards where the processor's was chosen
+        # is gigabytes too many, and the processor's where a card's was chosen never uses the card
+        build = torch.__version__.partition("+")[2]
+        if choice in ("cuda", "cpu") and not build.startswith("cu" if choice == "cuda" else "cpu"):
+            sys.exit(f"{choice} istendi ama inen PyTorch {torch.__version__}")
     app.load()
     from urllib.request import urlopen
 

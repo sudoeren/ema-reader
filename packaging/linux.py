@@ -1,7 +1,8 @@
 """Builds the Linux packages: a .deb for Ubuntu and Debian, an .rpm for Fedora and a pacman package
-for Arch Linux, all three holding the same app.
+for Arch Linux, all three holding the same app, and a .tar.gz for every other distribution.
 
-    python3 packaging/linux.py          # as root; writes dist/EMA-Reader.deb, .rpm and .pkg.tar.zst
+    python3 packaging/linux.py          # as root; writes dist/EMA-Reader.deb, .rpm, .pkg.tar.zst and .tar.gz
+    python3 packaging/linux.py tar.gz   # only the kinds named; this one needs no root
 
 The build workflow runs it in an Ubuntu 24.04 container, the oldest system it supports, so that
 what it compiles runs on the newer ones too. The app goes to /opt/ema-reader with a Python of its
@@ -10,6 +11,12 @@ start downloads those for the computer's hardware (see runtime.py), with the uv 
 GTK 4, libadwaita and WebKitGTK come from the system. PyGObject, which connects Python to them, is
 built here for the app's own Python, so the package does not depend on the system's Python and
 keeps working when the system moves to a newer one.
+
+The .tar.gz is for the distributions without a package of their own (openSUSE, Void, Solus…). It
+holds one folder, built like the Windows and macOS apps: the packages are put into the Python
+itself instead of an environment, so the folder can stand anywhere, in the reader's home too, and
+needs no root. Its `install` adds the app to the applications menu. What it takes from the system
+is the same, but nothing checks that for the reader: `install` says what is missing.
 """
 
 import os
@@ -23,7 +30,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from build import BASE, EMA, PYTHON, SOURCES  # noqa: E402  the same app as the Windows and macOS builds
+from build import BASE, EMA, PYTHON, SOURCES, add_packages, add_sources, standalone_python  # noqa: E402  the same app as the Windows and macOS builds
 from desktop import APP_ID, LAUNCHER  # noqa: E402
 
 PREFIX = Path("/opt/ema-reader")
@@ -177,17 +184,66 @@ def pacman(stage, path):
     run("bsdtar", "--zstd", "--options=zstd:compression-level=19", "-cf", path, ".MTREE", ".PKGINFO", *entries, cwd=stage, env=env)
 
 
+INSTALL = """#!/bin/sh
+# Adds EMA Reader to the applications menu, for this user, from where this folder stands.
+# Move the folder first if it should live somewhere else; run this again after moving it.
+here="$(cd "$(dirname "$0")" && pwd)"
+python="$here/python/bin/python@PYTHON@"
+if ! "$python" -c 'import gi
+gi.require_version("Gtk", "4.0"); gi.require_version("Adw", "1"); gi.require_version("WebKit", "6.0")
+from gi.repository import Adw, Gtk, WebKit'; then
+  echo
+  echo "EMA Reader'ın penceresi için sistemde GTK 4, libadwaita ve WebKitGTK 6.0 kurulu olmalı,"
+  echo "GObject introspection (typelib) dosyalarıyla birlikte. Dağıtımının paket yöneticisiyle kurup"
+  echo "bu komutu yeniden çalıştır."
+  exit 1
+fi
+exec "$python" "$here/desktop.py" --install
+"""
+
+UNINSTALL = """#!/bin/sh
+# Takes EMA Reader out of the applications menu and deletes this folder. The library stays, and so does
+# what the app downloaded, unless it was removed in the app's settings first.
+here="$(cd "$(dirname "$0")" && pwd)"
+"$here/python/bin/python@PYTHON@" "$here/desktop.py" --uninstall
+cd / && rm -rf "$here"
+"""
+
+
+def tarball(path):
+    """One folder, ema-reader/, that runs from wherever it is unpacked."""
+    stage = Path(tempfile.mkdtemp(prefix="ema-reader-"))
+    app = stage / "ema-reader"
+    standalone_python(app / "python")
+    python = app / "python" / "bin" / f"python{PYTHON}"
+    add_packages(python, "pygobject")
+    add_sources(app, path.name)
+    for name, text in (("install", INSTALL), ("uninstall", UNINSTALL)):
+        (app / name).write_text(text.replace("@PYTHON@", PYTHON), encoding="utf-8")
+        (app / name).chmod(0o755)
+    run(python, "-m", "compileall", "-q", *(app / f for f in SOURCES if f.endswith(".py")))
+    run(python, "-c", "import gi, numpy, pypdf, trafilatura, soundfile, huggingface_hub, normalizer_tr")
+    run("tar", "-czf", path, "-C", stage, "ema-reader")
+    shutil.rmtree(stage)
+
+
 def main():
+    kinds = sys.argv[1:] or ["deb", "rpm", "pkg.tar.zst", "tar.gz"]
     out = ROOT / "dist"
     out.mkdir(exist_ok=True)
-    put_app()
-    for kind, make in (("deb", deb), ("rpm", rpm), ("pkg.tar.zst", pacman)):
+    packages = [(kind, make) for kind, make in (("deb", deb), ("rpm", rpm), ("pkg.tar.zst", pacman)) if kind in kinds]
+    if packages:
+        put_app()
+    for kind, make in packages:
         name = f"EMA-Reader.{kind}"
         stage = staged(name)
         make(stage, out / name)
         shutil.rmtree(stage)
         print(f"hazır: {out / name} ({(out / name).stat().st_size / 1e6:.0f} MB)", flush=True)
-    shutil.rmtree(PREFIX)
+    shutil.rmtree(PREFIX, ignore_errors=True)
+    if "tar.gz" in kinds:
+        tarball(out / "EMA-Reader.tar.gz")
+        print(f"hazır: {out / 'EMA-Reader.tar.gz'} ({(out / 'EMA-Reader.tar.gz').stat().st_size / 1e6:.0f} MB)", flush=True)
 
 
 if __name__ == "__main__":
