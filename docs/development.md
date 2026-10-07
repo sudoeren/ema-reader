@@ -86,7 +86,15 @@ git push origin v1.1.0
 
 Etiket gelince `build.yml` kurulum dosyalarını üretir ve `CHANGELOG.md` içindeki o bölümü not olarak koyduğu bir GitHub sürümü açar. Etiket, `VERSION` ve `CHANGELOG.md` birbirini tutmuyorsa derleme durur; aynı şeyi testler de denetler.
 
-Uygulama açılışta `update.py` aracılığıyla GitHub'daki son sürüme bakar (yanıt altı saat saklanır). Kendi sürümünden yenisini bulursa kitaplığın üstünde "EMA Reader 1.1.0 yayınlandı" çubuğunu gösterir; "Güncelle" o sürümün notlarını açar. Windows ve macOS'te kurulum dosyasının bağlantısını, kaynaktan çalışan kopyada (Linux) `git pull` komutunu verir. Denetim Ayarlar'dan kapatılabilir. Ön sürümler ve taslaklar haber verilmez.
+Uygulama açılışta `update.py` aracılığıyla GitHub'daki son sürüme bakar (yanıt altı saat saklanır; Ayarlar'daki "Denetle" hemen yeniden sorar). Kendi sürümünden yenisini bulursa kitaplığın üstünde "EMA Reader 1.1.0 yayınlandı" çubuğunu gösterir; aynı bilgi Ayarlar'daki sürüm satırında da durur. Açılıştaki denetim Ayarlar'dan kapatılabilir. Ön sürümler ve taslaklar haber verilmez.
+
+"Güncelle" o sürümün notlarını gösterir ve kurulumu uygulamanın içinden yapar; kullanıcının bir şey indirmesi ya da komut yazması gerekmez:
+
+- **Kaynaktan çalışan kopya (Linux):** `git pull --ff-only` ile yeni kodu alır, Python ortamı projenin kendi `.venv` klasörüyse `uv sync` ile paketleri eşitler, sonra kendini yeniden başlatır.
+- **Windows:** yeni kurulum dosyasını indirir, sessizce çalıştırır ve kapanır; kurulum bitince uygulamayı yeniden açar.
+- **macOS:** yeni disk görüntüsünü indirir, uygulama kapanınca içindeki uygulamayı eskisinin yerine koyar ve yeniden açar. Eski uygulama, yenisi tümüyle kopyalanana kadar silinmez.
+
+Güncellemeyi yalnızca aynı bilgisayardan gelen ve uygulamanın kendi sayfasının gönderdiği istek başlatabilir (`POST /api/update`, `X-EMA-Reader: update` başlığıyla). Kurulum dosyaları yalnızca `https://github.com/` adresinden indirilir.
 
 Yayınlamadan denemek için `EMA_READER_UPDATE_URL` ile GitHub'ın sürüm yanıtı biçiminde bir dosya gösterilebilir:
 
@@ -118,7 +126,8 @@ Testler metin çıkarmayı, dışa aktarım adlandırmasını ve güncelleme den
 | `GET /api/exports/JOB` | `{"state": "working", "progress": 0.4, "name": "..."}` |
 | `GET /api/exports/JOB/file` | Hazır dosya |
 | `DELETE /api/exports/JOB` | Dışa aktarımı iptal et |
-| `GET /api/update` | `{"current": "1.0.0", "latest": "1.1.0", "newer": true, "notes": "...", "page": "...", "download": "..."}` |
+| `GET /api/update` | `{"current": "1.0.0", "latest": "1.1.0", "newer": true, "notes": "...", "page": "...", "download": "...", "job": {...}}`; `?fresh=1` yeniden sorar |
+| `POST /api/update` | Yeni sürümü kurar ve uygulamayı yeniden başlatır; yalnızca bu bilgisayardan |
 | `GET /tts`, `POST /tts` | Düz metinden sese |
 | `GET /health` | `{"status": "ok", "version": "..."}` |
 
