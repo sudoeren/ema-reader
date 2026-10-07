@@ -61,6 +61,9 @@ def prepare():
 
 
 def check():
+    for stream in (sys.stdout, sys.stderr):
+        if stream:
+            stream.reconfigure(encoding="utf-8")  # a Windows console is not UTF-8, and the messages are Turkish
     prepare()
     import app
 

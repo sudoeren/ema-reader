@@ -131,6 +131,7 @@ def macos(out):
 
 
 def main():
+    sys.stdout.reconfigure(encoding="utf-8")  # a Windows console is not UTF-8, and the messages are Turkish
     if sys.platform not in ("win32", "darwin"):
         sys.exit("Linux paketleri packaging/linux.py ile üretilir; kaynaktan çalıştırmak için: uv run --extra desktop desktop.py --install")
     out = ROOT / "dist"
