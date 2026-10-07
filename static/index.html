@@ -10,7 +10,7 @@
   :root {
     --bg: #ffffff; --surface: #ffffff; --ink: #16161a; --on-ink: #ffffff; --text: #2a2a31; --muted: #6b6b75; --faint: #8a8a93;
     --line: #ececef; --strong-line: #d5d5dc; --soft: #f3f3f5; --danger: #c62828;
-    --accent: #2b50ff; --accent-soft: #e4eaff;
+    --accent: #2b50ff; --accent-soft: #e4eaff; --on-accent: #ffffff;
     --veil: rgba(255,255,255,.86); --shade: rgba(20,20,60,.3); --backdrop: rgba(22,22,26,.35);
     --reading-size: 22px;
     --sans: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -33,14 +33,14 @@
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   [hidden] { display: none !important; }
 
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 18px; border-radius: 10px; background: var(--ink); color: var(--on-ink); font-weight: 600; font-size: 14px; white-space: nowrap; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 18px; border-radius: 10px; background: var(--accent); color: var(--on-accent); font-weight: 600; font-size: 14px; white-space: nowrap; }
   .btn:hover { opacity: .88; }
   .btn.big { padding: 14px 24px; font-size: 15px; border-radius: 999px; }
-  .btn.quiet { background: var(--soft); color: var(--ink); }
-  .btn.quiet:hover { background: var(--line); opacity: 1; }
+  .btn.quiet { background: var(--accent-soft); color: var(--ink); }
+  .btn.quiet:hover { opacity: .8; }
   .btn.danger { background: none; color: var(--danger); padding-left: 8px; padding-right: 8px; }
   .icon { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; color: var(--muted); }
-  .icon:hover { background: var(--soft); color: var(--ink); }
+  .icon:hover { background: var(--accent-soft); color: var(--accent); }
 
   /* library */
   #library { max-width: 1180px; margin: 0 auto; padding: 22px 44px 70px; }
@@ -53,17 +53,17 @@
   h2.section { font-size: 13px; font-weight: 600; color: var(--faint); margin: 34px 0 14px; letter-spacing: .2px; }
 
   .resume { display: flex; align-items: center; gap: 22px; padding: 18px 26px 18px 18px; border: 1px solid var(--line); border-radius: 16px; cursor: pointer; transition: border-color .15s, background .15s; }
-  .resume:hover { border-color: var(--strong-line); background: var(--soft); }
+  .resume:hover { border-color: var(--accent); background: var(--soft); }
   .resume .cover { width: 84px; padding: 10px 8px; flex: none; }
   .resume .cover strong { font-size: 11px; }
   .resume .cover small { display: none; }
   .resume .info { flex: 1; min-width: 0; }
   .resume h3 { font-family: var(--serif); font-size: 27px; font-weight: 500; margin: 0 0 4px; letter-spacing: -.3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .resume p { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
-  .resume .go { width: 58px; height: 58px; border-radius: 50%; background: var(--ink); color: var(--on-ink); display: grid; place-items: center; flex: none; transition: transform .15s; }
+  .resume .go { width: 58px; height: 58px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; flex: none; transition: transform .15s; }
   .resume:hover .go { transform: scale(1.06); }
   .track { height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
-  .track i { display: block; height: 100%; background: var(--ink); border-radius: 2px; }
+  .track i { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
 
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 28px 22px; }
   .item { position: relative; cursor: pointer; min-width: 0; }
@@ -86,7 +86,6 @@
 
   /* dialogs */
   dialog { border: 0; border-radius: 20px; padding: 0; width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 48px); background: var(--surface); color: var(--ink); box-shadow: 0 30px 80px -20px var(--shade); }
-  dialog.wide { width: min(680px, calc(100vw - 32px)); }
   dialog::backdrop { background: var(--backdrop); }
   .sheet { padding: 26px; }
   .sheet > header { display: flex; align-items: center; margin-bottom: 18px; }
@@ -105,17 +104,17 @@
 
   .tabs { display: flex; gap: 4px; flex: 1; }
   .tabs button { padding: 7px 14px; border-radius: 8px; font-size: 15px; font-weight: 600; color: var(--muted); }
-  .tabs button.on { background: var(--soft); color: var(--ink); }
+  .tabs button.on { background: var(--accent-soft); color: var(--ink); }
   .field { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); }
   .field:first-of-type { border-top: 0; }
   .field > span { flex: 1; font-size: 15px; font-weight: 500; }
   .field > span small { display: block; font-weight: 400; color: var(--muted); font-size: 13px; margin-top: 2px; }
   .choice { display: flex; gap: 4px; padding: 3px; border-radius: 10px; background: var(--soft); flex-wrap: wrap; }
   .choice button { padding: 6px 12px; border-radius: 8px; font-size: 13.5px; font-weight: 600; color: var(--muted); }
-  .choice button.on { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.18); }
+  .choice button.on { background: var(--surface); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.18); }
   .swatches { display: flex; gap: 8px; }
   .swatches button { width: 26px; height: 26px; border-radius: 50%; }
-  .swatches button.on { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
+  .swatches button.on { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent); }
   .about { text-align: center; padding: 6px 0 4px; }
   .about img { width: 84px; height: 84px; }
   .about h4 { margin: 10px 0 2px; font-size: 22px; font-weight: 700; }
@@ -138,22 +137,32 @@
   h5 { font-size: 13px; font-weight: 600; color: var(--faint); margin: 0 0 6px; letter-spacing: .2px; }
   .contents { max-height: 230px; overflow-y: auto; margin: 0 -8px; }
   .contents button { display: flex; gap: 12px; width: 100%; text-align: left; padding: 9px 8px; border-radius: 8px; font-size: 14px; }
-  .contents button:hover { background: var(--soft); }
+  .contents button:hover { background: var(--accent-soft); }
   .contents i { font-style: normal; color: var(--faint); font-variant-numeric: tabular-nums; min-width: 24px; }
   .contents span { flex: 1; overflow-wrap: anywhere; }
   .contents small { color: var(--faint); font-size: 13px; white-space: nowrap; }
   .contents button.current span { font-weight: 600; color: var(--accent); }
 
+  /* about a book: not a window in the middle but a panel that floats in from the left */
+  #info-dialog { inset: 16px auto 16px 16px; margin: 0; width: min(460px, calc(100vw - 32px)); height: calc(100vh - 32px); max-height: none; animation: panel-in .22s ease-out; }
+  #info-dialog .sheet { display: flex; flex-direction: column; min-height: 100%; }
+  #info-dialog .bookhead .cover { width: 108px; }
+  #info-dialog .bookhead h3 { font-size: 24px; }
+  #info-dialog .describe { flex: none; }
+  #info-dialog .contents { flex: 1 1 0; min-height: 150px; max-height: none; }
+  @keyframes panel-in { from { opacity: 0; transform: translateX(-28px); } }
+  @media (prefers-reduced-motion: reduce) { #info-dialog { animation: none; } }
+
   .options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .options button { text-align: left; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--line); min-width: 0; }
   .options button:hover { border-color: var(--strong-line); }
-  .options button.on { border-color: var(--ink); background: var(--soft); }
+  .options button.on { border-color: var(--accent); background: var(--accent-soft); }
   .options b { display: block; font-size: 14.5px; }
   .options small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; }
   .options.two { grid-template-columns: repeat(2, 1fr); }
   .options.two small { white-space: nowrap; }
   .check { display: flex; align-items: center; gap: 10px; font-size: 14px; margin-top: 12px; cursor: pointer; }
-  .check input { width: 17px; height: 17px; accent-color: var(--ink); }
+  .check input { width: 17px; height: 17px; accent-color: var(--accent); }
   .group { margin-bottom: 20px; }
   .progress { margin-top: 4px; }
   .progress .track { height: 6px; border-radius: 3px; }
@@ -178,17 +187,17 @@
   #text span.current { background: var(--accent-soft); color: var(--ink); }
 
   #player { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; padding: 10px 14px 10px 12px; border-radius: 999px; background: var(--surface); box-shadow: 0 14px 40px -10px var(--shade), 0 0 0 1px var(--line); }
-  #play { width: 48px; height: 48px; border-radius: 50%; background: var(--ink); color: var(--on-ink); display: grid; place-items: center; }
+  #play { width: 48px; height: 48px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
   #play:hover { opacity: .88; }
   #player .mini { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); }
-  #player .mini:hover { background: var(--soft); color: var(--ink); }
+  #player .mini:hover { background: var(--accent-soft); color: var(--accent); }
   #player .sep { width: 1px; height: 24px; background: var(--line); }
   #time { font-size: 13px; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  #speed { font-size: 14px; font-weight: 600; padding: 7px 12px; border-radius: 8px; background: var(--soft); font-variant-numeric: tabular-nums; }
-  #speed:hover { background: var(--line); }
+  #speed { font-size: 14px; font-weight: 600; padding: 7px 12px; border-radius: 8px; background: var(--accent-soft); font-variant-numeric: tabular-nums; }
+  #speed:hover { opacity: .8; }
   #speeds { position: fixed; bottom: 96px; left: 50%; background: var(--surface); border-radius: 14px; padding: 6px; box-shadow: 0 14px 40px -10px var(--shade), 0 0 0 1px var(--line); display: flex; flex-direction: column; min-width: 150px; }
   #speeds button { display: flex; justify-content: space-between; gap: 18px; padding: 9px 12px; border-radius: 8px; font-size: 14px; text-align: left; }
-  #speeds button:hover { background: var(--soft); }
+  #speeds button:hover { background: var(--accent-soft); }
   #speeds button.on { font-weight: 700; color: var(--accent); }
   #speeds small { color: var(--faint); font-weight: 400; }
 
@@ -198,7 +207,7 @@
   #chapters h3 { flex: 1; margin: 0; font-size: 16px; font-weight: 700; }
   #chapter-list { overflow-y: auto; padding: 0 10px 20px; }
   #chapter-list button { display: flex; gap: 12px; width: 100%; text-align: left; padding: 10px 12px; border-radius: 10px; font-size: 14px; color: var(--muted); }
-  #chapter-list button:hover { background: var(--soft); }
+  #chapter-list button:hover { background: var(--accent-soft); }
   #chapter-list button.current { color: var(--ink); font-weight: 600; background: var(--accent-soft); }
   #chapter-list i { font-style: normal; color: var(--faint); font-variant-numeric: tabular-nums; min-width: 22px; }
   #chapter-list span { overflow-wrap: anywhere; }
@@ -224,10 +233,10 @@
   #tour-note .row { display: flex; align-items: center; gap: 14px; }
   #tour-note .skip { font-size: 13px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
   #tour-note .sound { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); }
-  #tour-note .sound:hover { background: var(--soft); color: var(--ink); }
+  #tour-note .sound:hover { background: var(--accent-soft); color: var(--accent); }
   #tour-note .dots { margin-left: auto; display: flex; gap: 5px; }
   #tour-note .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--strong-line); }
-  #tour-note .dots i.on { background: var(--ink); }
+  #tour-note .dots i.on { background: var(--accent); }
   #tour-note.center { text-align: center; width: min(460px, calc(100vw - 40px)); }
   #tour-note.center p { font-size: 44px; margin-bottom: 6px; }
   #tour-note.center span { display: block; font-size: 16px; color: var(--muted); margin-bottom: 22px; line-height: 1.5; }
@@ -353,7 +362,6 @@
       <div class="field"><span data-t="theme"></span><div class="choice" id="set-theme"></div></div>
       <div class="field"><span data-t="accent"></span><div class="swatches" id="set-accent"></div></div>
       <div class="field"><span data-t="textSize"></span><div class="choice" id="set-size"></div></div>
-      <div class="field"><span data-t="language"></span><div class="choice" id="set-language"></div></div>
       <div class="field"><span><span data-t="tourAgain"></span><small data-t="tourAgainHint"></small></span><button class="btn quiet" id="replay-tour" data-t="show"></button></div>
     </div>
     <div id="tab-about" class="about" hidden>
@@ -371,7 +379,7 @@
   </div>
 </dialog>
 
-<dialog id="info-dialog" class="wide">
+<dialog id="info-dialog">
   <div class="sheet">
     <header><h3 data-t="aboutBook"></h3><button class="icon" data-close data-label="close"><svg width="20" height="20"><use href="#i-close"/></svg></button></header>
     <div class="bookhead">
@@ -441,7 +449,7 @@ const ACCENTS = {   // name: [light, light soft, dark, dark soft]
   graphite: ["#3a3a44", "#e9e9ee", "#c9c9d2", "#34343c"],
 };
 const SIZES = {small: 19, medium: 22, large: 25, huge: 29};
-const settings = {theme: "light", accent: "blue", size: "medium", language: "auto"};
+const settings = {theme: "light", accent: "blue", size: "medium"};
 try { Object.assign(settings, JSON.parse(localStorage.getItem("settings") || "{}")); } catch {}
 const darkQuery = matchMedia("(prefers-color-scheme: dark)");
 const shell = window.emaShell ? window.webkit?.messageHandlers?.shell : null;   // the desktop window, if the page is inside it
@@ -454,8 +462,9 @@ function applySettings() {
   const [light, lightSoft, night, nightSoft] = ACCENTS[settings.accent] || ACCENTS.blue;
   root.style.setProperty("--accent", dark ? night : light);
   root.style.setProperty("--accent-soft", dark ? nightSoft : lightSoft);
+  root.style.setProperty("--on-accent", dark ? "#131316" : "#ffffff");   // the night accents are light, the day ones dark
   root.style.setProperty("--reading-size", `${SIZES[settings.size] || SIZES.medium}px`);
-  tell({theme: dark ? "dark" : "light"});
+  tell({theme: dark ? "dark" : "light", accent: dark ? night : light});
 }
 function saveSettings() {
   try { localStorage.setItem("settings", JSON.stringify(settings)); } catch {}
@@ -465,82 +474,41 @@ darkQuery.addEventListener("change", applySettings);
 if (shell) document.documentElement.classList.add("shell");
 applySettings();
 
-/* words */
+/* words: the voice speaks Turkish only, and so does the app */
 
+const lang = "tr";
 const WORDS = {
-  tr: {
-    add: "Kitap ya da makale ekle", search: "Kitaplığında ara", continue: "Kaldığın yerden devam et", library: "Kitaplığın",
-    resume: "Dinlemeye devam et", listen: "Dinle", noMatch: "Aramana uyan bir şey yok.",
-    welcomeTitle: "Kitaplarını dinlemeye başla", welcomeText: "Bir kitap ya da makale ekle, EMA Reader sana Türkçe okusun.",
-    dropHere: "Dosyayı buraya bırak", formats: "EPUB, PDF, metin ya da Markdown", chooseFile: "Dosya seç", or: "ya da",
-    addArticle: "Makaleyi ekle", articleAddress: "Makale adresi", adding: n => `${n} ekleniyor…`, theArticle: "Makale",
-    chapters: "Bölümler", chapterOf: (n, total) => `Bölüm ${n} / ${total}`, chapterN: n => `${n}. bölüm`, chapterCount: n => `${n} bölüm`,
-    fresh: "Yeni", finished: "Bitti", article: "Makale", percent: n => `%${n}`,
-    minutes: n => `${n} dk`, hours: (h, m) => m ? `${h} sa ${m} dk` : `${h} sa`, left: s => `${s} kaldı`, listening: s => `yaklaşık ${s} dinleme`,
-    remove: "Kitaplıktan kaldır", confirmRemove: "Emin misin? Kaldır", close: "Kapat", backToLibrary: "Kitaplığa dön",
-    previous: "Önceki cümle", next: "Sonraki cümle", play: "Oynat", pause: "Duraklat", speed: "Okuma hızı", estimate: "Yaklaşık süre",
-    slow: "Yavaş", normal: "Normal", fast: "Hızlı", audioFailed: "Ses üretilemedi. Uygulamanın açık olduğundan emin ol.",
-    aboutBook: "Kitap hakkında", contents: "İçindekiler", added: d => `${d} tarihinde eklendi`,
-    download: "İndir", downloadShort: "İndir", downloadTitle: "Dinlemek için indir", what: "Ne indirilsin?", format: "Dosya türü",
-    thisChapter: "Bu bölüm", wholeBook: "Tüm kitap", split: "Her bölüm ayrı dosya olsun (ZIP)", cancel: "İptal",
-    preparing: "Hazırlanıyor…", downloadFailed: "İndirme hazırlanamadı.", downloaded: "İndirme başladı.",
-    fmt: {mp3: ["MP3", "Her cihazda çalışır"], ogg: ["OGG", "Küçük dosya, iyi kalite"], opus: ["Opus", "En küçük dosya"],
-          flac: ["FLAC", "Kayıpsız, büyük dosya"], wav: ["WAV", "Ham ses, en büyük dosya"], txt: ["Metin", "Ses yok, sadece yazı"]},
-    settings: "Ayarlar", about: "Hakkında", theme: "Tema", light: "Açık", dark: "Koyu", system: "Sistem", accent: "Vurgu rengi",
-    textSize: "Yazı boyutu", sizes: {small: "Küçük", medium: "Orta", large: "Büyük", huge: "Çok büyük"},
-    language: "Dil", auto: "Otomatik", tourAgain: "Tanıtım", tourAgainHint: "Uygulamanın nasıl kullanıldığını yeniden göster", show: "Göster",
-    aboutText: "EMA Reader, kitapları ve makaleleri sana Türkçe sesli okuyan açık kaynaklı bir uygulamadır. Her şey kendi bilgisayarında çalışır; okudukların hiçbir yere gönderilmez.",
-    madeBy: "Geliştiren", voice: "Ses modeli", source: "Kaynak kod", notice: "Not", noticeText: "Duyduğun ses yapay zekâ ile üretilmiştir.",
-    version: v => `Sürüm ${v}`,
-    errors: {   // the server explains failures in English; these are the ones a reader can run into
-      "unsupported file type": "Bu dosya türü desteklenmiyor. EPUB, PDF, metin ya da Markdown ekleyebilirsin.",
-      "no readable text found": "Burada okunacak metin bulunamadı. Taranmış (resim) PDF'ler okunamaz.",
-      "the address must start": "Adres http:// ya da https:// ile başlamalı.",
-      "could not download the page": "Sayfa indirilemedi. Adresi ve internet bağlantını kontrol et.",
-      "the file is too large": "Dosya çok büyük.",
-      "could not read it": "Bu dosya okunamadı; bozuk olabilir.",
-    },
-    addFailed: "Eklenemedi.",
-    tourWelcome: "Hoş geldin!", tourIntro: "EMA Reader kitapları ve makaleleri sana Türkçe okur. Nasıl çalıştığını yarım dakikada gösterelim.",
-    tourStart: "Göster", tourNext: "İleri", tourDone: "Başlayalım", tourSkip: "Geç", tourMute: "Sesli anlatımı kapat", tourUnmute: "Sesli anlatımı aç",
-    tourPlay: "Dinlemek için buna bas", tourSentence: "Bir cümleye tıkla, oradan okumaya başlasın",
-    tourSpeed: "Hızlı ya da yavaş mı? Buradan ayarla", tourAdd: "Kendi kitabını ya da bir makaleyi buradan ekle",
-  },
-  en: {
-    add: "Add a book or article", search: "Search your library", continue: "Continue where you left off", library: "Your library",
-    resume: "Continue listening", listen: "Listen", noMatch: "Nothing matches your search.",
-    welcomeTitle: "Start listening to your books", welcomeText: "Add a book or an article and EMA Reader reads it to you in Turkish.",
-    dropHere: "Drop a file here", formats: "EPUB, PDF, text or Markdown", chooseFile: "Choose a file", or: "or",
-    addArticle: "Add article", articleAddress: "Article address", adding: n => `Adding ${n}…`, theArticle: "the article",
-    chapters: "Chapters", chapterOf: (n, total) => `Chapter ${n} of ${total}`, chapterN: n => `Chapter ${n}`, chapterCount: n => n === 1 ? "1 chapter" : `${n} chapters`,
-    fresh: "New", finished: "Finished", article: "Article", percent: n => `${n}%`,
-    minutes: n => `${n} min`, hours: (h, m) => m ? `${h} h ${m} min` : `${h} h`, left: s => `${s} left`, listening: s => `about ${s} of listening`,
-    remove: "Remove from library", confirmRemove: "Sure? Remove", close: "Close", backToLibrary: "Back to library",
-    previous: "Previous sentence", next: "Next sentence", play: "Play", pause: "Pause", speed: "Reading speed", estimate: "Estimated time",
-    slow: "Slow", normal: "Normal", fast: "Fast", audioFailed: "Could not make the audio. Check that the app is still running.",
-    aboutBook: "About this book", contents: "Contents", added: d => `Added on ${d}`,
-    download: "Download", downloadShort: "Download", downloadTitle: "Download to listen", what: "What to download", format: "File type",
-    thisChapter: "This chapter", wholeBook: "The whole book", split: "A separate file for each chapter (ZIP)", cancel: "Cancel",
-    preparing: "Preparing…", downloadFailed: "Could not prepare the download.", downloaded: "The download has started.",
-    fmt: {mp3: ["MP3", "Plays everywhere"], ogg: ["OGG", "Small file, good quality"], opus: ["Opus", "Smallest file"],
-          flac: ["FLAC", "Lossless, large file"], wav: ["WAV", "Raw audio, largest file"], txt: ["Text", "No audio, only the words"]},
-    settings: "Settings", about: "About", theme: "Theme", light: "Light", dark: "Dark", system: "System", accent: "Accent colour",
-    textSize: "Text size", sizes: {small: "Small", medium: "Medium", large: "Large", huge: "Very large"},
-    language: "Language", auto: "Automatic", tourAgain: "Tour", tourAgainHint: "Show how the app works again", show: "Show",
-    aboutText: "EMA Reader is an open-source app that reads books and articles to you in Turkish. Everything runs on your own computer; nothing you read is sent anywhere.",
-    madeBy: "Made by", voice: "Voice model", source: "Source code", notice: "Note", noticeText: "The voice you hear is generated by AI.",
-    version: v => `Version ${v}`,
-    addFailed: "Could not add it.",
-    tourWelcome: "Welcome!", tourIntro: "EMA Reader reads books and articles to you in Turkish. Here is how it works, in half a minute.",
-    tourStart: "Show me", tourNext: "Next", tourDone: "Let's start", tourSkip: "Skip", tourMute: "Turn the spoken guide off", tourUnmute: "Turn the spoken guide on",
-    tourPlay: "Press this to listen", tourSentence: "Click a sentence to read from there",
-    tourSpeed: "Too fast or too slow? Change it here", tourAdd: "Add your own book or an article here",
-  },
+  add: "Kitap ya da makale ekle", search: "Kitaplığında ara", continue: "Kaldığın yerden devam et", library: "Kitaplığın",
+  resume: "Dinlemeye devam et", listen: "Dinle", noMatch: "Aramana uyan bir şey yok.",
+  welcomeTitle: "Kitaplarını dinlemeye başla", welcomeText: "Bir kitap ya da makale ekle, EMA Reader sana Türkçe okusun.",
+  dropHere: "Dosyayı buraya bırak", formats: "EPUB, PDF, metin ya da Markdown", chooseFile: "Dosya seç", or: "ya da",
+  addArticle: "Makaleyi ekle", articleAddress: "Makale adresi", adding: n => `${n} ekleniyor…`, theArticle: "Makale",
+  chapters: "Bölümler", chapterOf: (n, total) => `Bölüm ${n} / ${total}`, chapterN: n => `${n}. bölüm`, chapterCount: n => `${n} bölüm`,
+  fresh: "Yeni", finished: "Bitti", article: "Makale", percent: n => `%${n}`,
+  minutes: n => `${n} dk`, hours: (h, m) => m ? `${h} sa ${m} dk` : `${h} sa`, left: s => `${s} kaldı`, listening: s => `yaklaşık ${s} dinleme`,
+  remove: "Kitaplıktan kaldır", confirmRemove: "Emin misin? Kaldır", close: "Kapat", backToLibrary: "Kitaplığa dön",
+  previous: "Önceki cümle", next: "Sonraki cümle", play: "Oynat", pause: "Duraklat", speed: "Okuma hızı", estimate: "Yaklaşık süre",
+  slow: "Yavaş", normal: "Normal", fast: "Hızlı", audioFailed: "Ses üretilemedi. Uygulamanın açık olduğundan emin ol.",
+  aboutBook: "Kitap hakkında", contents: "İçindekiler", added: d => `${d} tarihinde eklendi`,
+  download: "İndir", downloadShort: "İndir", downloadTitle: "Dinlemek için indir", what: "Ne indirilsin?", format: "Dosya türü",
+  thisChapter: "Bu bölüm", wholeBook: "Tüm kitap", split: "Her bölüm ayrı dosya olsun (ZIP)", cancel: "İptal",
+  preparing: "Hazırlanıyor…", downloadFailed: "İndirme hazırlanamadı.", downloaded: "İndirme başladı.",
+  fmt: {mp3: ["MP3", "Her cihazda çalışır"], ogg: ["OGG", "Küçük dosya, iyi kalite"], opus: ["Opus", "En küçük dosya"],
+        flac: ["FLAC", "Kayıpsız, büyük dosya"], wav: ["WAV", "Ham ses, en büyük dosya"], txt: ["Metin", "Ses yok, sadece yazı"]},
+  settings: "Ayarlar", about: "Hakkında", theme: "Tema", light: "Açık", dark: "Koyu", system: "Sistem", accent: "Vurgu rengi",
+  accents: {blue: "Mavi", violet: "Mor", green: "Yeşil", orange: "Turuncu", rose: "Pembe", graphite: "Grafit"},
+  textSize: "Yazı boyutu", sizes: {small: "Küçük", medium: "Orta", large: "Büyük", huge: "Çok büyük"},
+  tourAgain: "Tanıtım", tourAgainHint: "Uygulamanın nasıl kullanıldığını yeniden göster", show: "Göster",
+  aboutText: "EMA Reader, kitapları ve makaleleri sana Türkçe sesli okuyan açık kaynaklı bir uygulamadır. Her şey kendi bilgisayarında çalışır; okudukların hiçbir yere gönderilmez.",
+  madeBy: "Geliştiren", voice: "Ses modeli", source: "Kaynak kod", notice: "Not", noticeText: "Duyduğun ses yapay zekâ ile üretilmiştir.",
+  version: v => `Sürüm ${v}`,
+  addFailed: "Eklenemedi.",
+  tourWelcome: "Hoş geldin!", tourIntro: "EMA Reader kitapları ve makaleleri sana Türkçe okur. Nasıl çalıştığını yarım dakikada gösterelim.",
+  tourStart: "Göster", tourNext: "İleri", tourDone: "Başlayalım", tourSkip: "Geç", tourMute: "Sesli anlatımı kapat", tourUnmute: "Sesli anlatımı aç",
+  tourPlay: "Dinlemek için buna bas", tourSentence: "Bir cümleye tıkla, oradan okumaya başlasın",
+  tourSpeed: "Hızlı ya da yavaş mı? Buradan ayarla", tourAdd: "Kendi kitabını ya da bir makaleyi buradan ekle",
 };
-const lang = settings.language === "tr" || settings.language === "en" ? settings.language
-  : (navigator.language || "tr").toLowerCase().startsWith("tr") ? "tr" : "en";
-const t = (key, ...args) => typeof WORDS[lang][key] === "function" ? WORDS[lang][key](...args) : WORDS[lang][key];
-document.documentElement.lang = lang;
+const t = (key, ...args) => typeof WORDS[key] === "function" ? WORDS[key](...args) : WORDS[key];
 document.querySelectorAll("[data-t]").forEach(node => node.textContent = t(node.dataset.t));
 document.querySelectorAll("[data-label]").forEach(node => { node.setAttribute("aria-label", t(node.dataset.label)); node.title = t(node.dataset.label); });
 document.querySelectorAll("[data-placeholder]").forEach(node => { node.placeholder = t(node.dataset.placeholder); node.setAttribute("aria-label", node.placeholder); });
@@ -602,7 +570,7 @@ try { speed = Number(localStorage.getItem("speed")) || 1; } catch {}
 async function api(path, options) {
   const response = await fetch(path, options);
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "request failed");
+  if (!response.ok) throw Object.assign(new Error(data.error || "request failed"), {told: Boolean(data.error)});   // told: the server explained it
   return data;
 }
 
@@ -739,9 +707,7 @@ async function add(request, label) {
     addDialog.close();
     openBook(added.id);
   } catch (e) {
-    const known = WORDS[lang].errors;
-    const match = known && Object.keys(known).find(start => e.message.startsWith(start));
-    status(known ? (match ? known[match] : t("addFailed")) : e.message, true);
+    status(e.told ? e.message : t("addFailed"), true);
   }
 }
 
@@ -878,12 +844,10 @@ $("download-dialog").addEventListener("close", () => {
 function drawSettings() {
   pick("set-theme", ["light", "dark", "system"], settings.theme, v => t(v), v => { settings.theme = v; saveSettings(); drawSettings(); });
   pick("set-size", Object.keys(SIZES), settings.size, v => t("sizes")[v], v => { settings.size = v; saveSettings(); drawSettings(); });
-  pick("set-language", ["auto", "tr", "en"], settings.language, v => ({auto: t("auto"), tr: "Türkçe", en: "English"})[v],
-       v => { settings.language = v; saveSettings(); location.reload(); });   // every text on the page changes
   const dark = document.documentElement.dataset.theme === "dark";
   $("set-accent").replaceChildren(...Object.entries(ACCENTS).map(([name, colours]) => {
     const b = el("button", name === settings.accent ? "on" : "");
-    b.style.background = colours[dark ? 2 : 0]; b.title = name; b.setAttribute("aria-label", name);
+    b.style.background = colours[dark ? 2 : 0]; b.title = t("accents")[name]; b.setAttribute("aria-label", b.title);
     b.onclick = () => { settings.accent = name; saveSettings(); drawSettings(); };
     return b;
   }));
@@ -1126,7 +1090,7 @@ Kitaplığına EPUB, PDF ya da düz metin dosyaları ekleyebilirsin. İnternette
 
 Nerede kaldığını ben hatırlarım. Uygulamayı kapatıp yarın açtığında kaldığın cümleden devam ederiz. İyi dinlemeler!`;
 
-// the voice only speaks Turkish, so the guide is spoken in Turkish whatever the language of the page
+// what the guide says aloud at each step; a little fuller than the note on screen
 const SPOKEN = {
   welcome: "Hoş geldin! Ben EMA. Kitapları ve makaleleri sana sesli okurum. Nasıl çalıştığımı yarım dakikada göstereyim.",
   tourPlay: "Dinlemek için bu düğmeye bas. Durdurmak için bir daha basman yeterli.",

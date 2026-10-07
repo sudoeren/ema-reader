@@ -69,7 +69,7 @@ def update_model(cached):
     except Exception:
         return  # no network: try again on the next start
     if [os.path.realpath(p) for p in latest] != [os.path.realpath(p) for p in cached]:
-        print("model updated; the new version is used from the next start", file=sys.stderr)
+        print("model güncellendi; yeni sürüm bir sonraki açılışta kullanılacak", file=sys.stderr)
 
 
 class Local:
@@ -101,7 +101,7 @@ class Remote:
         except urllib.error.HTTPError as e:
             raise ValueError(json.loads(e.read())["error"]) from None
         except urllib.error.URLError as e:
-            sys.exit(f"could not reach the API ({self.url}): {e.reason}")
+            sys.exit(f"API'ye ulaşılamadı ({self.url}): {e.reason}")
 
     def stream(self, text, **opts):
         with self.post(text, stream=True, **opts) as resp:
@@ -125,18 +125,18 @@ def write_wav(path, audio, sample_rate):
 
 
 def main():
-    p = argparse.ArgumentParser(description="EMA Lightning Turkish text to speech")
-    p.add_argument("text", nargs="*", help="text to speak (stdin or interactive mode if omitted)")
-    p.add_argument("-f", "--file", help="text file; each line is spoken separately")
-    p.add_argument("-o", "--out", help="write instead of playing: a .wav for one text, a folder for several lines")
+    p = argparse.ArgumentParser(description="EMA Lightning ile Türkçe metni seslendirir")
+    p.add_argument("text", nargs="*", help="seslendirilecek metin (verilmezse stdin ya da etkileşimli kip)")
+    p.add_argument("-f", "--file", help="metin dosyası; her satır ayrı seslendirilir")
+    p.add_argument("-o", "--out", help="çalmak yerine yaz: tek metin için bir .wav, birden çok satır için bir klasör")
     p.add_argument("--speed", type=float, default=os.environ.get("EMA_SPEED"),
-                   help="0.25 to 4; below 1 is slower (default 1.0, or set EMA_SPEED)")
-    p.add_argument("--seed", type=int, help="the same seed gives the same audio")
-    p.add_argument("--rate", type=int, default=48000, choices=[48000, 24000, 16000, 8000], help="sample rate")
+                   help="0.25 ile 4 arası; 1'in altı daha yavaş (varsayılan 1.0, ya da EMA_SPEED)")
+    p.add_argument("--seed", type=int, help="aynı seed aynı sesi verir")
+    p.add_argument("--rate", type=int, default=48000, choices=[48000, 24000, 16000, 8000], help="örnekleme hızı")
     p.add_argument("--api", default=os.environ.get("EMA_API"), metavar="URL",
-                   help="use a running app.py instead of loading the model (or set EMA_API)")
-    p.add_argument("--cpu", action="store_true", help="use the CPU instead of the GPU")
-    p.add_argument("--lightning", action="store_true", help="NVIDIA fast path (startup takes minutes)")
+                   help="modeli yüklemek yerine çalışan bir app.py kullan (ya da EMA_API)")
+    p.add_argument("--cpu", action="store_true", help="GPU yerine CPU kullan")
+    p.add_argument("--lightning", action="store_true", help="NVIDIA hızlı yolu (açılış dakikalar sürer)")
     args = p.parse_args()
 
     if args.text:
@@ -150,9 +150,9 @@ def main():
     if texts is not None:
         texts = [t.strip() for t in texts if t.strip()]
         if not texts:
-            p.error("no text to speak")
+            p.error("seslendirilecek metin yok")
     elif args.out:
-        p.error("-o needs a text, -f or stdin")
+        p.error("-o için bir metin, -f ya da stdin gerekir")
 
     opts = {"sample_rate": args.rate}
     if args.speed is not None:  # left out so that an API started with its own --speed keeps it
@@ -168,7 +168,7 @@ def main():
         else:
             play(backend, texts, args.rate, opts)
     except ValueError as e:
-        sys.exit(f"error: {e}")
+        sys.exit(f"hata: {e}")
 
 
 def save(backend, texts, out, opts):
@@ -180,7 +180,7 @@ def save(backend, texts, out, opts):
     start = time.perf_counter()
     backend.save(texts, paths, **opts)
     took = time.perf_counter() - start
-    where = out if len(texts) == 1 else f"{out}/ ({len(texts)} clips)"
+    where = out if len(texts) == 1 else f"{out}/ ({len(texts)} ses)"
     print(f"{where}: {took * 1000:.0f} ms")
 
 
@@ -199,7 +199,7 @@ def play(backend, texts, rate, opts):
                 first = time.perf_counter() - start
             speaker.write(chunk)
         if first is not None:
-            print(f"first audio in {first * 1000:.0f} ms")
+            print(f"ilk ses {first * 1000:.0f} ms içinde")
 
     if texts is not None:
         for text in texts:
@@ -210,7 +210,7 @@ def play(backend, texts, rate, opts):
     if isinstance(backend, Local):
         for _ in backend.stream("Merhaba."):  # warm-up: moves the first sentence's ~500 ms delay to startup
             pass
-    print("Type a text and press Enter (/speed 0.8: change speed, Ctrl+C: stop audio, Ctrl+D: quit)")
+    print("Bir metin yazıp Enter'a bas (/speed 0.8: hızı değiştir, Ctrl+C: sesi durdur, Ctrl+D: çık)")
     while True:
         try:
             line = input("> ").strip()
@@ -229,9 +229,9 @@ def play(backend, texts, rate, opts):
                     raise ValueError
                 opts["speed"] = speed
             except (IndexError, ValueError):
-                print("usage: /speed 0.25-4")
+                print("kullanım: /speed 0.25-4")
             else:
-                print(f"speed {speed}")
+                print(f"hız {speed}")
             continue
         try:
             speak(line)
@@ -240,7 +240,7 @@ def play(backend, texts, rate, opts):
             speaker.start()
             print()
         except ValueError as e:
-            print(f"error: {e}")
+            print(f"hata: {e}")
 
 
 if __name__ == "__main__":

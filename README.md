@@ -2,29 +2,29 @@
 
 <h1 align="center">EMA Reader</h1>
 
-<p align="center"><b>Listen to your books and articles in Turkish.</b><br>
-Add a book, press play, and EMA Reader reads it to you, on your own computer.</p>
+<p align="center"><b>Kitaplarını ve makalelerini Türkçe dinle.</b><br>
+Bir kitap ekle, oynat düğmesine bas; EMA Reader onu sana kendi bilgisayarında okusun.</p>
 
-![The library](docs/screenshots/library.png)
+![Kitaplık](docs/screenshots/library.png)
 
-## What it does
+## Neler yapar
 
-- **Reads your books aloud.** Add an EPUB or PDF, or paste the address of an article, and listen.
-- **Shows where it is.** The sentence being read is highlighted. Click any other sentence to continue from there.
-- **Remembers your place.** Close the app and come back tomorrow; it picks up at the same sentence.
-- **Goes at your pace.** Slow it down or speed it up whenever you like.
-- **Lets you take it with you.** Save a chapter or a whole book as MP3 for your phone or the car.
-- **Stays private.** Everything happens on your computer. No account, no subscription, and nothing you read is sent anywhere.
+- **Kitaplarını sesli okur.** Bir EPUB ya da PDF ekle veya bir makalenin adresini yapıştır, sonra dinle.
+- **Nerede olduğunu gösterir.** Okunan cümle işaretlenir. Başka bir cümleye tıklarsan oradan devam eder.
+- **Kaldığın yeri hatırlar.** Uygulamayı kapatıp yarın açtığında aynı cümleden devam eder.
+- **Senin hızında okur.** İstediğin zaman yavaşlat ya da hızlandır.
+- **Yanında götürmeni sağlar.** Bir bölümü ya da kitabın tamamını telefonun veya araban için MP3 olarak kaydet.
+- **Gizli kalır.** Her şey kendi bilgisayarında olur. Hesap yok, abonelik yok; okudukların hiçbir yere gönderilmez.
 
-![Listening to a book](docs/screenshots/reader.png)
+![Bir kitabı dinlerken](docs/screenshots/reader.png)
 
-## Get EMA Reader
+## EMA Reader'ı edin
 
-**Windows and macOS:** download the installer from the [Releases](../../releases) page and open it.
+**Windows ve macOS:** kurulum dosyasını [Sürümler](../../releases) sayfasından indir ve aç.
 
-Because the app is new and free, Windows or macOS may warn you the first time you open it. On Windows choose "More info" and then "Run anyway"; on macOS right-click the app and choose "Open".
+Uygulama yeni ve ücretsiz olduğu için Windows ya da macOS ilk açılışta seni uyarabilir. Windows'ta "Ek bilgi"yi, ardından "Yine de çalıştır"ı seç; macOS'te uygulamaya sağ tıklayıp "Aç"ı seç.
 
-**Linux:** install [uv](https://docs.astral.sh/uv/), then:
+**Linux:** [uv](https://docs.astral.sh/uv/) kur, sonra:
 
 ```bash
 git clone https://github.com/sudoeren/ema-reader
@@ -32,47 +32,45 @@ cd ema-reader
 uv run --extra desktop desktop.py --install
 ```
 
-After that, EMA Reader is in your applications menu.
+Bundan sonra EMA Reader uygulamalar menünde durur.
 
-## Your first minute
+## İlk dakikan
 
-The first time you open EMA Reader, it shows you around. A short welcome text is already there, so you can press play and hear it straight away. The tour is spoken as well, and you can replay it later from Settings.
+EMA Reader'ı ilk açtığında sana etrafı gezdirir. Kısa bir karşılama metni hazır bekler; oynat düğmesine basıp hemen dinleyebilirsin. Tanıtım da sesli anlatılır; sonradan Ayarlar'dan yeniden izleyebilirsin.
 
-![The tour on first start](docs/screenshots/tour.png)
+![İlk açılıştaki tanıtım](docs/screenshots/tour.png)
 
-## Using it
+## Nasıl kullanılır
 
-**Add something to listen to.** Choose "Add a book or article", then drop a file onto the window, pick one, or paste a web address.
+**Dinleyecek bir şey ekle.** "Kitap ya da makale ekle"yi seç; sonra pencereye bir dosya bırak, bir dosya seç ya da bir web adresi yapıştır.
 
-**Listen.** Press play. Use the two arrows beside it to move a sentence back or forward, and the number on the right to change the speed.
+**Dinle.** Oynat düğmesine bas. Yanındaki iki okla bir cümle geri ya da ileri git, sağdaki sayıyla hızı değiştir.
 
-**See what a book is about.** Each book has a details page with its cover, description and table of contents.
+**Kitabın ne anlattığına bak.** Her kitabın kapağını, tanıtımını ve içindekileri gösteren bir ayrıntı sayfası vardır.
 
-![Details of a book](docs/screenshots/details.png)
+![Bir kitabın ayrıntıları](docs/screenshots/details.png)
 
-**Save it for later.** Download one chapter or the whole book. MP3 plays everywhere; the other choices are there if you want smaller files or higher quality.
+**Sonrası için kaydet.** Tek bir bölümü ya da kitabın tamamını indir. MP3 her yerde çalar; daha küçük dosya ya da daha yüksek kalite istersen öbür seçenekler de orada.
 
-![Download choices](docs/screenshots/download.png)
+![İndirme seçenekleri](docs/screenshots/download.png)
 
-**Make it yours.** In Settings you can switch to a dark theme, pick a colour, and make the text bigger.
+**Kendine göre ayarla.** Ayarlar'da koyu temaya geçebilir, bir renk seçebilir ve yazıyı büyütebilirsin.
 
-![The dark theme](docs/screenshots/dark.png)
+![Koyu tema](docs/screenshots/dark.png)
 
-## Good to know
+## Bilmekte fayda var
 
-- EMA Reader has one voice and reads **Turkish only**. Foreign words are read as if they were Turkish.
-- A scanned PDF that is only pictures of pages has no text to read.
-- The voice is generated by AI. If you share a recording, say so.
-- Numbers, dates and abbreviations are read automatically and can occasionally come out wrong.
+- EMA Reader'ın tek bir sesi vardır ve **yalnızca Türkçe** okur; uygulamanın kendisi de Türkçedir. Yabancı sözcükler Türkçeymiş gibi okunur.
+- Yalnızca sayfa resimlerinden oluşan taranmış bir PDF'te okunacak metin yoktur.
+- Ses yapay zekâ ile üretilir. Bir kaydı paylaşırsan bunu belirt.
+- Sayılar, tarihler ve kısaltmalar kendiliğinden okunur; ara sıra yanlış çıkabilir.
 
-## For developers
+## Emeği geçenler
 
-How it works, the HTTP API, the command-line tool and how the installers are built are in [docs/development.md](docs/development.md).
+Geliştiren: [Eren Çakar](https://erencakar.com).
 
-## Credits
+Ses, Canberk Aslan'ın [EMA Lightning](https://huggingface.co/canberkkkkkk/ema-lightning) modelidir. EMA Reader bağımsız bir projedir ve modelin yazarıyla bir bağı yoktur.
 
-Made by [Eren Çakar](https://erencakar.com).
+EMA Reader, [MIT Lisansı](LICENSE) altında açık kaynaklıdır. Üzerine kurulduğu çalışmalar [THIRD_PARTY.md](THIRD_PARTY.md) dosyasında listelenir. Ekran görüntülerindeki öyküler Ömer Seyfettin'e aittir ve kamu malıdır.
 
-The voice is [EMA Lightning](https://huggingface.co/canberkkkkkk/ema-lightning) by Canberk Aslan. EMA Reader is an independent project and is not affiliated with the model's author.
-
-EMA Reader is open source under the [MIT License](LICENSE). The work it builds on is listed in [THIRD_PARTY.md](THIRD_PARTY.md). The stories in the screenshots are by Ömer Seyfettin and are in the public domain.
+Geliştiriciysen: [docs/development.md](docs/development.md).
