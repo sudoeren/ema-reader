@@ -1,6 +1,7 @@
 """Builds the Linux package for the system this runs on: a .deb on Ubuntu and Debian, an .rpm on Fedora.
 
     python3 packaging/linux.py ubuntu-24.04      # writes dist/EMA-Reader-ubuntu-24.04.deb
+    python3 packaging/linux.py --layout DIR      # only the app's own files under DIR, for packaging/arch/PKGBUILD
 
 It runs as root on the system the package is for; the build workflow runs it in a container of
 each supported system. The app goes to /opt/ema-reader with a Python environment of its own, made
@@ -86,21 +87,48 @@ def run(*command, **kwargs):
     subprocess.run(command, check=True, **kwargs)
 
 
+def version():
+    return re.search(r'^VERSION = "(.+)"', (ROOT / "app.py").read_text(encoding="utf-8"), re.M).group(1)
+
+
+def put_sources(prefix, name):
+    """The app's code and pages in `prefix`, with the name of the package it came in."""
+    prefix.mkdir(parents=True, exist_ok=True)
+    for source in SOURCES:
+        (shutil.copytree if (ROOT / source).is_dir() else shutil.copy2)(ROOT / source, prefix / source)
+    # tells the app how it is updated (see update.py)
+    (prefix / "package").write_text(name + "\n", encoding="utf-8")
+
+
+def put_launcher(root):
+    """The command, the applications menu entry, the icon and the software centre's description, under `root`."""
+    files = {
+        "usr/bin/ema-reader": f'#!/bin/sh\nexec {PREFIX}/venv/bin/python {PREFIX}/desktop.py "$@"\n',
+        f"usr/share/applications/{APP_ID}.desktop": LAUNCHER.format(exec="ema-reader", id=APP_ID, hidden="false"),
+        f"usr/share/icons/hicolor/scalable/apps/{APP_ID}.svg": (ROOT / "static" / "logo.svg").read_text(encoding="utf-8"),
+        f"usr/share/metainfo/{APP_ID}.metainfo.xml": METAINFO.format(id=APP_ID, summary=SUMMARY, description=DESCRIPTION,
+                                                                     homepage=HOMEPAGE, version=version()),
+    }
+    for path, text in files.items():
+        (root / path).parent.mkdir(parents=True, exist_ok=True)
+        (root / path).write_text(text, encoding="utf-8")
+    (root / "usr/bin/ema-reader").chmod(0o755)
+
+
 def main():
+    if len(sys.argv) == 3 and sys.argv[1] == "--layout":
+        root = Path(sys.argv[2])
+        put_sources(root / PREFIX.relative_to("/"), "aur")
+        return put_launcher(root)
     if len(sys.argv) != 2 or not re.fullmatch(r"[a-z]+-[0-9.]+", sys.argv[1]):
         sys.exit("kullanım: python3 packaging/linux.py ubuntu-24.04")
     kind = "deb" if shutil.which("dpkg-deb") else "rpm" if shutil.which("rpmbuild") else sys.exit("dpkg-deb ya da rpmbuild gerekli")
     name = f"EMA-Reader-{sys.argv[1]}.{kind}"
-    version = re.search(r'^VERSION = "(.+)"', (ROOT / "app.py").read_text(encoding="utf-8"), re.M).group(1)
     python = f"{sys.version_info.major}.{sys.version_info.minor}"
 
     # the app is put together where it will be installed, because a Python environment cannot be moved
     shutil.rmtree(PREFIX, ignore_errors=True)
-    PREFIX.mkdir(parents=True)
-    for source in SOURCES:
-        (shutil.copytree if (ROOT / source).is_dir() else shutil.copy2)(ROOT / source, PREFIX / source)
-    # tells the app which release file updates it (see update.py)
-    (PREFIX / "package").write_text(name + "\n", encoding="utf-8")
+    put_sources(PREFIX, name)
 
     venv = PREFIX / "venv"
     env = {**os.environ, "UV_CACHE_DIR": tempfile.mkdtemp(prefix="uv-"), "UV_COMPILE_BYTECODE": "1"}
@@ -117,17 +145,7 @@ def main():
     stage = Path(tempfile.mkdtemp(prefix="ema-reader-"))
     shutil.copytree(PREFIX, stage / PREFIX.relative_to("/"), symlinks=True)
     shutil.rmtree(PREFIX)
-    files = {
-        "usr/bin/ema-reader": f'#!/bin/sh\nexec {PREFIX}/venv/bin/python {PREFIX}/desktop.py "$@"\n',
-        f"usr/share/applications/{APP_ID}.desktop": LAUNCHER.format(exec="ema-reader", id=APP_ID, hidden="false"),
-        f"usr/share/icons/hicolor/scalable/apps/{APP_ID}.svg": (ROOT / "static" / "logo.svg").read_text(encoding="utf-8"),
-        f"usr/share/metainfo/{APP_ID}.metainfo.xml": METAINFO.format(id=APP_ID, summary=SUMMARY, description=DESCRIPTION,
-                                                                     homepage=HOMEPAGE, version=version),
-    }
-    for path, text in files.items():
-        (stage / path).parent.mkdir(parents=True, exist_ok=True)
-        (stage / path).write_text(text, encoding="utf-8")
-    (stage / "usr/bin/ema-reader").chmod(0o755)
+    put_launcher(stage)
 
     out = ROOT / "dist"
     out.mkdir(exist_ok=True)
@@ -136,7 +154,7 @@ def main():
         major, minor = sys.version_info[:2]
         (stage / "DEBIAN").mkdir()
         (stage / "DEBIAN" / "control").write_text(
-            f"Package: ema-reader\nVersion: {version}\nArchitecture: amd64\nMaintainer: {MAINTAINER}\nInstalled-Size: {size}\n"
+            f"Package: ema-reader\nVersion: {version()}\nArchitecture: amd64\nMaintainer: {MAINTAINER}\nInstalled-Size: {size}\n"
             f"Depends: python3 (>= {major}.{minor}), python3 (<< {major}.{minor + 1}), {', '.join(NEEDS['deb'])}\n"
             "Recommends: pkexec\n"  # the app installs its updates with it
             f"Section: sound\nPriority: optional\nHomepage: {HOMEPAGE}\nDescription: {SUMMARY}\n {DESCRIPTION}\n",
@@ -145,7 +163,7 @@ def main():
     else:
         top = Path(tempfile.mkdtemp(prefix="rpmbuild-"))
         spec = top / "ema-reader.spec"
-        spec.write_text(SPEC.format(version=version, summary=SUMMARY, description=DESCRIPTION, homepage=HOMEPAGE, id=APP_ID,
+        spec.write_text(SPEC.format(version=version(), summary=SUMMARY, description=DESCRIPTION, homepage=HOMEPAGE, id=APP_ID,
                                     python=python, needs=", ".join(NEEDS["rpm"]), stage=stage), encoding="utf-8")
         run("rpmbuild", "-bb", "--define", f"_topdir {top}", spec)
         shutil.copy(next((top / "RPMS").rglob("*.rpm")), out / name)

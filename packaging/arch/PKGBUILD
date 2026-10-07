@@ -1,0 +1,51 @@
+# EMA Reader for Arch Linux, as it is published on the AUR. It is built on the reader's own computer:
+#
+#   makepkg -si
+#
+# The app goes to /opt/ema-reader with a Python environment of its own that also sees the system's
+# packages: PyTorch, GTK 4, libadwaita and WebKitGTK come from Arch (python-pytorch-cuda in place of
+# python-pytorch makes it use an NVIDIA card), the rest of what it needs from PyPI, and the model
+# weights from Hugging Face. The environment belongs to one Python version, so like every AUR package
+# of Python code it is to be built again once Arch moves to a newer Python.
+pkgname=ema-reader
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Kitapları ve makaleleri Türkçe sesli okur"
+arch=('x86_64')
+url="https://github.com/sudoeren/ema-reader"
+license=('MIT')
+depends=('python' 'python-pytorch' 'python-numpy' 'python-gobject' 'gtk4' 'libadwaita' 'webkitgtk-6.0')
+makedepends=('python-pip')
+optdepends=('python-pytorch-cuda: NVIDIA ekran kartıyla daha hızlı seslendirme (python-pytorch yerine)')
+options=('!strip' '!debug')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+# what the app needs that Arch does not package; the same list as packaging/linux.py
+_packages=('ema-lightning>=1.0.1' 'pypdf' 'trafilatura' 'soundfile')
+
+build() {
+  cd "$pkgname-$pkgver"
+  # made here and moved into the package: only the scripts in bin/ and one line of pyvenv.cfg say
+  # where an environment is, and package() leaves those out
+  rm -rf "$srcdir/venv" "$srcdir/hf"
+  python -m venv --system-site-packages --without-pip "$srcdir/venv"
+  python -m pip --python "$srcdir/venv/bin/python" install --no-compile --no-warn-script-location "${_packages[@]}"
+  # PyTorch is Arch's: a second copy from PyPI would be several gigabytes
+  "$srcdir/venv/bin/python" -c 'import torch; assert torch.__file__.startswith("/usr/lib/"), torch.__file__'
+  # the weights ship with the package, so the first start needs no download
+  HF_HOME="$srcdir/hf" HF_HUB_DISABLE_SYMLINKS=1 "$srcdir/venv/bin/python" -c \
+    'from build import FILES, REPO; from huggingface_hub import hf_hub_download; [hf_hub_download(REPO, f) for f in FILES]'
+}
+
+package() {
+  cd "$pkgname-$pkgver"
+  python packaging/linux.py --layout "$pkgdir"
+  cp -a "$srcdir/venv" "$srcdir/hf" "$pkgdir/opt/ema-reader/"
+  find "$pkgdir/opt/ema-reader/venv/bin" -mindepth 1 ! -name 'python*' -delete
+  sed -i '/^command = /d' "$pkgdir/opt/ema-reader/venv/pyvenv.cfg"
+  rm -rf "$pkgdir/opt/ema-reader/hf/xet"
+  # compiled now, since the app cannot write next to itself once installed
+  python -m compileall -q -s "$pkgdir" -p / "$pkgdir/opt/ema-reader"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

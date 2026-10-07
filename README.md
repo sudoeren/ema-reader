@@ -42,6 +42,14 @@ sudo dnf install ./EMA-Reader-fedora-44.rpm        # Fedora
 
 Bundan sonra EMA Reader uygulamalar menünde durur. Yeni bir sürüm çıktığında uygulama onu kendisi kurar; yalnızca parolanı sorar.
 
+**Arch Linux** (ve Manjaro, EndeavourOS gibi ona dayananlar): EMA Reader [AUR](https://aur.archlinux.org/packages/ema-reader)'dadır. Bir AUR yardımcısıyla kur:
+
+```bash
+yay -S ema-reader
+```
+
+Güncellemeleri de aynı yardımcı getirir (`yay -Syu`). NVIDIA kartın varsa, kurmadan önce `python-pytorch-cuda` paketini kurarsan EMA Reader onu kullanır. Arch yeni bir Python sürümüne geçtiğinde paketi yeniden derlemen gerekir (`yay -S --rebuild ema-reader`); bu, Python ile yazılmış bütün AUR paketleri için geçerlidir.
+
 Başka bir dağıtım kullanıyorsan EMA Reader'ı kaynaktan çalıştırabilirsin. [uv](https://docs.astral.sh/uv/) kur, sonra:
 
 ```bash
@@ -54,7 +62,7 @@ uv run --extra desktop desktop.py --install
 
 | | Windows | macOS | Linux |
 |---|---|---|---|
-| **Sistem** | Windows 10 ya da 11, 64 bit | Apple silicon'lu (M1 ve sonrası) bir Mac | 64 bit (x86_64); paketler için yukarıdaki sistemlerden biri, kaynaktan çalıştırmak için GTK 4, libadwaita ve WebKitGTK 6.0 kurulu bir masaüstü |
+| **Sistem** | Windows 10 ya da 11, 64 bit | Apple silicon'lu (M1 ve sonrası) bir Mac | 64 bit (x86_64); paketler için yukarıdaki sistemlerden biri ya da Arch Linux, kaynaktan çalıştırmak için GTK 4, libadwaita ve WebKitGTK 6.0 kurulu bir masaüstü |
 | **Bellek** | 4 GB | 4 GB | 4 GB |
 | **Boş disk alanı** | yaklaşık 2 GB | yaklaşık 2 GB | yaklaşık 2 GB; kaynaktan yaklaşık 6 GB |
 | **Ekran kartı** | gerekmez | gerekmez | gerekmez; kaynaktan çalışırken NVIDIA kart varsa kullanılır |

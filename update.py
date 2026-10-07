@@ -15,7 +15,8 @@ Installing needs nothing from the reader. A copy that runs from source (Linux) p
 with git and syncs its packages with uv. The Windows build downloads the new installer and runs
 it quietly; the macOS build downloads the disk image and swaps the application. A Linux package
 downloads the new package for the same system and installs it with the system's package manager,
-which asks for the password. Each then starts the app again.
+which asks for the password. Each then starts the app again. On Arch Linux the package comes from
+the AUR and is updated the way the reader updates everything else from there.
 """
 
 import json
@@ -37,7 +38,8 @@ RETRY = 600  # how soon to ask again after a failure
 INSTALLERS = {"win32": "EMA-Reader-Setup.exe", "darwin": "EMA-Reader.dmg"}
 
 ROOT = Path(__file__).parent
-# written by packaging/linux.py: the release file this copy was installed from, such as EMA-Reader-ubuntu-24.04.deb
+# written by packaging/linux.py: the release file this copy was installed from, such as EMA-Reader-ubuntu-24.04.deb,
+# or "aur" for Arch Linux, where the reader's AUR helper updates it
 PACKAGE = ROOT / "package"
 
 cache = {"until": 0, "release": None}
@@ -197,6 +199,8 @@ def with_installer(found):
 def with_package(found):
     """A Linux package: install the new one with the system's package manager, which asks for the password."""
     name = package()
+    if name == "aur":
+        raise Failed("Arch Linux'ta EMA Reader AUR'dan güncellenir: AUR yardımcınla (örneğin yay -Syu) güncelle.")
     manager = ["apt-get", "install", "-y"] if name.endswith(".deb") else ["dnf", "install", "-y"]
     if not shutil.which("pkexec") or not shutil.which(manager[0]):
         raise Failed("Bu sistemde uygulama kendini kuramıyor. Yeni sürümü sürüm sayfasından indirip kurabilirsin.")

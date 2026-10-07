@@ -1,4 +1,5 @@
-# Builds the desktop app: for Windows and macOS a self-contained build, for Linux a .deb or .rpm per system.
+# Builds the desktop app: for Windows and macOS a self-contained build, for Linux a .deb or .rpm per system
+# and the Arch Linux PKGBUILD.
 # Runs on every version tag (v1.0.0) and attaches the installers to a release;
 # it can also be started by hand from the Actions tab, which only produces downloadable artifacts.
 name: build
@@ -121,3 +122,49 @@ jobs:
         with:
           body_path: release-notes.md
           files: dist/EMA-Reader-${{ matrix.system }}.*
+
+  # Arch Linux gets no ready-made package: the AUR's PKGBUILD builds it on the reader's computer.
+  # This builds it the same way, installs it and checks it; for a version tag it also attaches the
+  # PKGBUILD with the checksum of that version's source, ready to publish on the AUR
+  arch:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: Build tools
+        run: pacman -Syu --noconfirm --needed base-devel git python
+      - uses: actions/checkout@v4
+
+      - name: Release notes
+        if: github.ref_type == 'tag'
+        run: python update.py "$GITHUB_REF_NAME" > release-notes.md
+
+      - name: Build and install
+        run: |
+          mkdir -p /tmp/build dist
+          cp packaging/arch/PKGBUILD /tmp/build/
+          version=$(sed -n 's/^pkgver=//p' packaging/arch/PKGBUILD)
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            # the source GitHub serves for the tag, as the AUR will fetch it
+            sum=$(curl -fsSL "https://github.com/$GITHUB_REPOSITORY/archive/refs/tags/$GITHUB_REF_NAME.tar.gz" | sha256sum | cut -d' ' -f1)
+            sed -i "s/^sha256sums=.*/sha256sums=('$sum')/" /tmp/build/PKGBUILD
+            cp /tmp/build/PKGBUILD dist/PKGBUILD
+          else
+            # this commit, under the name its release would have
+            git config --global --add safe.directory "$PWD"
+            git archive --prefix="ema-reader-$version/" -o "/tmp/build/ema-reader-$version.tar.gz" HEAD
+          fi
+          # makepkg will not run as root; it installs the dependencies and the package with sudo
+          useradd -m okur
+          echo "okur ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/okur
+          chown -R okur /tmp/build
+          cd /tmp/build && runuser -u okur -- makepkg -si --noconfirm
+
+      - name: Check
+        run: runuser -u okur -- ema-reader --check
+
+      - name: Attach to the release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release-notes.md
+          files: dist/PKGBUILD
