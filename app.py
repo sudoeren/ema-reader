@@ -73,8 +73,8 @@ PENDING = re.compile(r"/api/pending/([0-9a-f]{12})(/cover)?")
 # exported chapters: sentences are generated in batches and joined with short pauses
 EXPORT_RATE = 24000
 EXPORT_BATCH = 32
-SENTENCE_PAUSE = 0.15
-PARAGRAPH_PAUSE = 0.5
+SENTENCE_PAUSE = 0.25
+PARAGRAPH_PAUSE = 0.65
 
 tts = None
 loading = threading.Event()  # set when the model starts loading

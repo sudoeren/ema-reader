@@ -775,8 +775,9 @@ document.addEventListener("click", e => {
 
 /* state */
 
-const FIRST_PACE = 17, PACE_TRUST = 30;   // characters a second at speed 1: a first guess, worth this many seconds of listening
-const SENTENCE_PAUSE = 150, PARAGRAPH_PAUSE = 500;   // milliseconds
+const FIRST_PACE = 14.5, PACE_TRUST = 30;   // characters a second at speed 1: a first guess, worth this many seconds of listening
+const VOICE = 0.85;   // the voice's own pace is a hurried one for a book: "1×" asks it for this much of it
+const SENTENCE_PAUSE = 250, PARAGRAPH_PAUSE = 650;   // milliseconds
 const PREFETCH = 3, CACHE_LIMIT = 40;
 const SPEEDS = [[0.75, "slow"], [0.9], [1, "normal"], [1.1], [1.25, "fast"], [1.5]];
 const COVERS = ["#1f3a5f", "#8c2f39", "#2f5d50", "#b5852f", "#3b3355", "#7a4b2a", "#245a6b", "#5a2d4f"];
@@ -1139,7 +1140,7 @@ $("start-download").onclick = async () => {
   $("download-bar").style.width = "0"; $("download-percent").textContent = ""; $("download-label").textContent = t("preparing");
   try {
     const split = scope === "book" && $("split").checked && b.chapters.length > 1;
-    const {job} = await api(`/api/books/${b.id}/export`, {method: "POST", body: JSON.stringify({scope, chapter: download.chapter, format, split, speed})});
+    const {job} = await api(`/api/books/${b.id}/export`, {method: "POST", body: JSON.stringify({scope, chapter: download.chapter, format, split, speed: speed * VOICE})});
     download.job = job;
     while (download.job === job) {
       const state = await api(`/api/exports/${job}`);
@@ -1493,7 +1494,7 @@ function saveProgress(finished = false) {
 // a sentence as audio: {src, seconds}. The length is read from the WAV header, since not every engine
 // knows an audio element's duration before it has played
 async function speech(text, rate) {
-  const response = await fetch("/tts", {method: "POST", body: JSON.stringify({text, speed: rate})});
+  const response = await fetch("/tts", {method: "POST", body: JSON.stringify({text, speed: rate * VOICE})});
   if (!response.ok) throw new Error("no audio");
   const blob = await response.blob();
   const bytesPerSecond = new DataView(await blob.slice(0, 44).arrayBuffer()).getUint32(28, true);
