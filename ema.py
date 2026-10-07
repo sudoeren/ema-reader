@@ -27,6 +27,18 @@ FILES = ("config.json", "ema.pt", "decoder.pt")
 UPDATE_CHECK_INTERVAL = 24 * 3600
 
 
+def best_device():
+    """An NVIDIA card, else Apple silicon's GPU, else the processor. EMA Lightning's own "auto"
+    knows only NVIDIA cards, so on a Mac it would always use the processor."""
+    import torch
+
+    if torch.cuda.is_available():
+        return "cuda"
+    if torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
+
+
 def load_model(cpu=False, lightning=False):
     import logging
 
@@ -40,9 +52,17 @@ def load_model(cpu=False, lightning=False):
     offline = all(isinstance(path, str) for path in cached)
     constants.HF_HUB_OFFLINE = constants.HF_HUB_OFFLINE or offline
 
+    # on Apple silicon, an operation the GPU lacks runs on the processor instead of failing
+    os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
     from ema_lightning import EMA
 
-    tts = EMA(device="cpu" if cpu else "auto")
+    device = "cpu" if cpu else best_device()
+    tts = EMA(device=device)
+    if device == "mps":
+        try:
+            tts.say("Merhaba.")
+        except Exception:  # the model does not run on this Mac's GPU
+            tts = EMA(device="cpu")
     if lightning:
         tts.lightning()
 

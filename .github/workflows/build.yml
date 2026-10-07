@@ -1,4 +1,5 @@
-# Builds the desktop app for Windows and macOS (on Linux it runs from source with the system's GTK).
+# Builds the desktop app: for Windows and macOS a self-contained build, for Linux a .deb, .rpm or pacman
+# package per system.
 # Runs on every version tag (v1.0.0) and attaches the installers to a release;
 # it can also be started by hand from the Actions tab, which only produces downloadable artifacts.
 name: build
@@ -38,8 +39,30 @@ jobs:
           done
           iconutil -c icns logo.iconset -o static/logo.icns
 
+      # gives the Windows program the app's icon (see build.py)
+      - name: rcedit
+        if: runner.os == 'Windows'
+        shell: bash
+        run: curl -fsSL -o rcedit.exe https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe
+
       - name: Build
-        run: uv run build.py
+        shell: bash
+        run: RCEDIT="$PWD/rcedit.exe" uv run --no-project --python 3.12 build.py
+
+      # the built app started without a window: it downloads PyTorch and the model as a first start does, and speaks
+      - name: Check
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = Windows ]; then
+            app="dist/EMA Reader"; python="$app/python/python.exe"
+          else
+            app="dist/EMA Reader.app/Contents/Resources/app"; python="dist/EMA Reader.app/Contents/MacOS/python"
+          fi
+          "$python" "$app/desktop.py" --check
+          # the NVIDIA download as well, kept apart; with no card here it loads on the processor
+          if [ "$RUNNER_OS" = Windows ]; then
+            EMA_READER_RUNTIME="$RUNNER_TEMP/cuda" EMA_READER_CHECK=cuda "$python" "$app/desktop.py" --check
+          fi
 
       - name: Windows installer
         if: runner.os == 'Windows'
@@ -68,3 +91,67 @@ jobs:
           files: |
             dist/EMA-Reader-Setup.exe
             dist/EMA-Reader.dmg
+
+  # the Linux packages: built once, on the oldest system they support (see packaging/linux.py)
+  linux:
+    runs-on: ubuntu-latest
+    container: ubuntu:24.04
+    steps:
+      - name: Build tools
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y python3 ca-certificates gcc pkg-config \
+            libgirepository-2.0-dev libcairo2-dev rpm libarchive-tools
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Release notes
+        if: github.ref_type == 'tag'
+        run: python3 update.py "$GITHUB_REF_NAME" > release-notes.md
+
+      - name: Build
+        run: python3 packaging/linux.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ema-reader-linux
+          path: dist/EMA-Reader.*
+
+      - name: Attach to the release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release-notes.md
+          files: dist/EMA-Reader.*
+
+  # each package installed the way a reader installs it on each system, then started without a window by an
+  # ordinary user: it downloads PyTorch and the model as a first start does, and speaks a sentence
+  linux-check:
+    needs: linux
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { image: "ubuntu:24.04", package: deb }
+          - { image: "ubuntu:24.04", package: deb, kind: cuda }   # the NVIDIA download, which loads on the processor here
+          - { image: "ubuntu:26.04", package: deb }
+          - { image: "debian:13", package: deb }
+          - { image: "fedora:44", package: rpm }
+          - { image: "archlinux:latest", package: pkg.tar.zst }
+    runs-on: ubuntu-latest
+    container: ${{ matrix.image }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ema-reader-linux
+      - name: Install
+        run: |
+          case ${{ matrix.package }} in
+            deb) apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ./EMA-Reader.deb ;;
+            rpm) dnf install -y ./EMA-Reader.rpm ;;
+            *) pacman -Syu --noconfirm && pacman -U --noconfirm ./EMA-Reader.pkg.tar.zst ;;
+          esac
+      - name: Check
+        run: |
+          useradd -m okur
+          runuser -u okur -- env EMA_READER_CHECK=${{ matrix.kind }} ema-reader --check

@@ -24,7 +24,27 @@ Bir kitap ekle, oynat düğmesine bas; EMA Reader onu sana kendi bilgisayarında
 
 Uygulama yeni ve ücretsiz olduğu için Windows ya da macOS ilk açılışta seni uyarabilir. Windows'ta "Ek bilgi"yi, ardından "Yine de çalıştır"ı seç; macOS'te uygulamaya sağ tıklayıp "Aç"ı seç.
 
-**Linux:** [uv](https://docs.astral.sh/uv/) kur, sonra:
+İlk açılışta EMA Reader, sesi üretecek parçaları bilgisayarına göre bir kez indirir: NVIDIA ekran kartın varsa onu, Mac'te Apple silicon'un ekran kartını, ikisi de yoksa işlemciyi kullanan sürümü. Hangisinin ineceğini ve ne kadar yer tutacağını indirmeden önce gösterir; sonradan Ayarlar'daki "Seslendirme"den değiştirebilirsin.
+
+**Linux:** [Sürümler](../../releases) sayfasından sistemine uyan paketi indir:
+
+| Sistem | Paket |
+|---|---|
+| Ubuntu 24.04 ve sonrası, Debian 13 ve onlara dayananlar (Linux Mint 22, Pop!_OS, Zorin OS…) | `EMA-Reader.deb` |
+| Fedora 41 ve sonrası | `EMA-Reader.rpm` |
+| Arch Linux ve ona dayananlar (Manjaro, EndeavourOS…) | `EMA-Reader.pkg.tar.zst` |
+
+Sonra dosyayı çift tıklayıp yazılım merkeziyle kur ya da uçbirimden kur:
+
+```bash
+sudo apt install ./EMA-Reader.deb               # Ubuntu ve Debian
+sudo dnf install ./EMA-Reader.rpm               # Fedora
+sudo pacman -U ./EMA-Reader.pkg.tar.zst         # Arch Linux
+```
+
+Bundan sonra EMA Reader uygulamalar menünde durur. Yeni bir sürüm çıktığında uygulama onu kendisi kurar; yalnızca parolanı sorar.
+
+Başka bir dağıtım kullanıyorsan EMA Reader'ı kaynaktan çalıştırabilirsin. [uv](https://docs.astral.sh/uv/) kur, sonra:
 
 ```bash
 git clone https://github.com/sudoeren/ema-reader
@@ -32,21 +52,19 @@ cd ema-reader
 uv run --extra desktop desktop.py --install
 ```
 
-Bundan sonra EMA Reader uygulamalar menünde durur.
-
 ### En düşük sistem gereksinimleri
 
 | | Windows | macOS | Linux |
 |---|---|---|---|
-| **Sistem** | Windows 10 ya da 11, 64 bit | Apple silicon'lu (M1 ve sonrası) bir Mac | 64 bit; GTK 4, libadwaita ve WebKitGTK 6.0 kurulu bir masaüstü |
+| **Sistem** | Windows 10 ya da 11, 64 bit | Apple silicon'lu (M1 ve sonrası) bir Mac | 64 bit (x86_64); paketler için yukarıdaki sistemlerden biri, kaynaktan çalıştırmak için GTK 4, libadwaita ve WebKitGTK 6.0 kurulu bir masaüstü |
 | **Bellek** | 4 GB | 4 GB | 4 GB |
-| **Boş disk alanı** | yaklaşık 2 GB | yaklaşık 2 GB | yaklaşık 6 GB |
-| **Ekran kartı** | gerekmez | gerekmez | gerekmez; NVIDIA kart varsa kullanılır |
+| **Boş disk alanı** | işlemciyle yaklaşık 1 GB, NVIDIA kartıyla yaklaşık 5 GB | yaklaşık 1 GB | işlemciyle yaklaşık 1 GB, NVIDIA kartıyla yaklaşık 6 GB |
+| **Ekran kartı** | gerekmez; NVIDIA kart varsa kullanılır | gerekmez; Apple silicon'un ekran kartı kullanılır | gerekmez; NVIDIA kart varsa kullanılır |
 
 - Uygulama çalışırken yaklaşık 1 GB bellek kullanır.
-- Ekran kartı olmadan da akıcı okur: bir cümlenin sesi, sıradan bir işlemcide cümlenin kendisinden çok daha kısa sürede hazırlanır.
-- Dinlemek için internet gerekmez. İnternet yalnızca web'den makale eklerken, yeni sürüm denetiminde ve Linux'ta ilk kurulumda (ses modeli ve gerekli paketler indirilirken) kullanılır.
-- Linux'taki disk ihtiyacının çoğu, ekran kartı desteğiyle birlikte gelen PyTorch paketleridir.
+- Ekran kartı olmadan da akıcı okur: bir cümlenin sesi, sıradan bir işlemcide cümlenin kendisinden çok daha kısa sürede hazırlanır. Ekran kartı en çok bir kitabı ses dosyası olarak indirirken fark yaratır.
+- NVIDIA kartı kullanmak için güncel bir NVIDIA sürücüsü kurulu olmalıdır. AMD ve Intel ekran kartları şimdilik desteklenmez; onlarda EMA Reader işlemciyi kullanır.
+- İnternet ilk açılışta (sesi üretecek parçalar ve ses modeli indirilirken), web'den makale eklerken ve yeni sürüm denetiminde kullanılır. Dinlemek için internet gerekmez.
 
 ## İlk dakikan
 

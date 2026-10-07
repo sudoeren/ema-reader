@@ -13,8 +13,9 @@ or a release, `latest` is None and `newer` is False.
 
 Installing needs nothing from the reader. A copy that runs from source (Linux) pulls the new code
 with git and syncs its packages with uv. The Windows build downloads the new installer and runs
-it quietly; the macOS build downloads the disk image and swaps the application. Each then starts
-the app again.
+it quietly; the macOS build downloads the disk image and swaps the application. A Linux package
+downloads the new package for the same system and installs it with the system's package manager,
+which asks for the password. Each then starts the app again.
 """
 
 import json
@@ -33,9 +34,10 @@ REPO = "sudoeren/ema-reader"
 URL = os.environ.get("EMA_READER_UPDATE_URL") or f"https://api.github.com/repos/{REPO}/releases/latest"
 FRESH = 6 * 3600  # how long an answer is kept
 RETRY = 600  # how soon to ask again after a failure
-INSTALLERS = {"win32": ".exe", "darwin": ".dmg"}  # on Linux the app runs from source and is updated with git
-
 ROOT = Path(__file__).parent
+# written by build.py and packaging/linux.py: the release file this copy was installed from, such as
+# EMA-Reader-Setup.exe or EMA-Reader.deb; a copy run from source has none
+PACKAGE = ROOT / "package"
 
 cache = {"until": 0, "release": None}
 job = {"state": "idle", "step": None, "progress": 0, "error": None}
@@ -56,13 +58,21 @@ def tidy(notes):
     return "\n".join(lines)
 
 
-def release(data, platform=sys.platform):
+def package():
+    """The release file this copy was installed from; None for a copy that runs from source."""
+    try:
+        return PACKAGE.read_text(encoding="utf-8").strip() or None
+    except OSError:
+        return None
+
+
+def release(data):
     """What the reader needs from GitHub's description of a release."""
     def link(url):
         return url if isinstance(url, str) and url.startswith("https://github.com/") else None
 
-    suffix = INSTALLERS.get(platform)
-    installers = (a.get("browser_download_url") for a in data.get("assets") or [] if suffix and str(a.get("name", "")).endswith(suffix))
+    wanted = package()  # the same kind of file this copy came in; None when it is updated with git
+    installers = (a.get("browser_download_url") for a in data.get("assets") or [] if wanted and a.get("name") == wanted)
     return {"latest": ".".join(map(str, number(data["tag_name"]))), "notes": tidy(data.get("body")),
             "page": link(data.get("html_url")), "download": link(next(installers, None))}
 
@@ -85,7 +95,7 @@ def check(current, fresh=False):
             cache["until"] = now + RETRY
     found = cache["release"] or {"latest": None, "notes": "", "page": None, "download": None}
     return {"current": current, **found, "newer": bool(found["latest"]) and number(found["latest"]) > number(current),
-            "packaged": bool(getattr(sys, "frozen", False)), "job": dict(job)}
+            "packaged": bool(package()), "job": dict(job)}
 
 
 class Failed(Exception):
@@ -106,14 +116,15 @@ def start(current):
 
 def install(found):
     try:
-        if not getattr(sys, "frozen", False):
+        name = package()
+        if not name:
             from_source()
-        elif sys.platform == "win32":
+        elif name.endswith(".exe"):
             with_installer(found)
-        elif sys.platform == "darwin":
+        elif name.endswith(".dmg"):
             with_disk_image(found)
         else:
-            raise Failed("Bu kopya kendini güncelleyemiyor.")
+            with_package(found)
     except Failed as e:
         job.update(state="failed", error=str(e))
     except Exception as e:
@@ -139,6 +150,10 @@ def from_source():
         synced = subprocess.run(["uv", "sync", *(["--extra", "desktop"] if desktop else [])], cwd=ROOT, capture_output=True, text=True)
         if synced.returncode:
             raise Failed(f"Kod güncellendi ama gerekli paketler kurulamadı: {last_line(synced.stderr)}")
+    restart()
+
+
+def restart():
     job["step"] = "restarting"
     time.sleep(1.5)  # long enough for the page to hear that the app is about to start again
     os.execv(sys.executable, [sys.executable, *sys.argv])
@@ -172,6 +187,26 @@ def with_installer(found):
     os._exit(0)  # the installer cannot replace a program that is running
 
 
+def with_package(found):
+    """A Linux package: install the new one with the system's package manager, which asks for the password."""
+    name = package()
+    manager = (["apt-get", "install", "-y"] if name.endswith(".deb") else ["dnf", "install", "-y"] if name.endswith(".rpm")
+               else ["pacman", "-U", "--noconfirm"])
+    if not shutil.which("pkexec") or not shutil.which(manager[0]):
+        raise Failed("Bu sistemde uygulama kendini kuramıyor. Yeni sürümü sürüm sayfasından indirip kurabilirsin.")
+    path = download(found, name)
+    job["step"] = "installing"
+    try:
+        done = subprocess.run(["pkexec", *manager, str(path)], capture_output=True, text=True)
+    finally:
+        shutil.rmtree(path.parent, ignore_errors=True)
+    if done.returncode in (126, 127):  # pkexec: the password was not given, or nothing could ask for it
+        raise Failed("Yönetici izni alınamadı, yeni sürüm kurulmadı. Yeniden dene ya da sürüm sayfasından indirip kur.")
+    if done.returncode:
+        raise Failed(f"Yeni sürüm kurulamadı: {last_line(done.stderr) or last_line(done.stdout)}")
+    restart()
+
+
 SWAP = """#!/bin/sh
 # waits for the app to quit, puts the new one from the disk image in its place and opens it;
 # the old application stays until the new one is fully copied
@@ -194,7 +229,7 @@ open "$app"
 
 def with_disk_image(found):
     """macOS: swap the application for the one in the new disk image, once this one has quit."""
-    app = Path(sys.executable).resolve().parents[2]  # EMA Reader.app/Contents/MacOS/EMA Reader
+    app = Path(sys.executable).resolve().parents[2]  # EMA Reader.app/Contents/MacOS/python
     if app.suffix != ".app" or not os.access(app.parent, os.W_OK):
         raise Failed("Uygulama bulunduğu yerde değiştirilemiyor. Onu Uygulamalar klasörüne taşıyıp yeniden dene.")
     image = download(found, "EMA-Reader.dmg")

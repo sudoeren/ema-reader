@@ -30,6 +30,11 @@ Endpoints:
     GET    /api/books/ID/chapters/N/audio      a chapter as one WAV file
     GET    /api/update                         {"current", "latest", "newer", "notes", "page", "download", "packaged", "job"}; ?fresh=1 asks again
     POST   /api/update                         install the newer version and start again (from this computer only)
+    GET    /api/setup                          what the first start downloads: {"ready", "choices", "using", "device", "job", ...}
+    POST   /api/setup                          {"choice": "cuda" | "mps" | "cpu"}: download it (from this computer only)
+    POST   /api/restart                        start again, to use what was downloaded (from this computer only)
+
+Until the model is there, speech answers 503 with {"setup": true}; while it loads, requests wait for it.
     GET    /tts, POST /tts                     text, speed, seed, sample_rate, stream
 """
 
@@ -52,6 +57,7 @@ from urllib.parse import parse_qsl, urlparse
 import numpy as np
 
 import export
+import runtime
 import update
 from extract import extract_file, extract_url
 
@@ -71,9 +77,45 @@ SENTENCE_PAUSE = 0.15
 PARAGRAPH_PAUSE = 0.5
 
 tts = None
+loading = threading.Event()  # set when the model starts loading
+loaded = threading.Event()  # set when it is loaded, or could not be
+load_lock = threading.Lock()
+load_error = None
+options = {"cpu": False, "lightning": False}
 default_speed = 1.0
 library_lock = threading.Lock()
 pending = {}  # what has been read and shown to the reader, but not added yet: token -> (book, source)
+
+
+class NotReady(Exception):
+    """The model is not there yet: it is downloaded on the first start."""
+
+
+def model():
+    """The loaded model; waits while it loads."""
+    if not loading.is_set():
+        raise NotReady("EMA Reader henüz hazır değil: ses modeli indirilmedi.")
+    loaded.wait()
+    if load_error:
+        raise NotReady(load_error)
+    return tts
+
+
+def load():
+    """Load the model; the first request then waits for it instead of failing."""
+    global tts, load_error
+    with load_lock:
+        if loading.is_set():
+            return
+        loading.set()
+    try:
+        from ema import load_model
+
+        tts = load_model(options["cpu"], options["lightning"])
+        tts.say("Merhaba.")  # warm-up: moves the first request's delay to startup
+    except Exception as e:
+        load_error = f"Ses modeli yüklenemedi: {e}"
+    loaded.set()
 
 
 def pcm16(audio):
@@ -183,7 +225,7 @@ def chapter_wav(chapter, speed):
     w.setframerate(EXPORT_RATE)
     for start in range(0, len(sentences), EXPORT_BATCH):
         batch = sentences[start : start + EXPORT_BATCH]
-        speeches = tts.say([s for s, _ in batch], speed=speed, sample_rate=EXPORT_RATE)
+        speeches = model().say([s for s, _ in batch], speed=speed, sample_rate=EXPORT_RATE)
         for speech, (_, ends_paragraph) in zip(speeches, batch):
             w.writeframes(pcm16(speech.audio))
             pause = PARAGRAPH_PAUSE if ends_paragraph else SENTENCE_PAUSE
@@ -211,6 +253,10 @@ class Handler(BaseHTTPRequestHandler):
             self.tts(query)
         elif url.path == "/api/update":
             self.send_json(200, update.check(VERSION, fresh=query.get("fresh") == "1"))
+        elif url.path == "/api/setup":
+            device = str(tts.device.type) if tts is not None else None
+            self.send_json(200, {**runtime.status(), "device": device, "loading": loading.is_set() and not loaded.is_set(),
+                                 "error": load_error})
         elif url.path == "/api/books":
             self.list_books()
         elif book and not book.group(2):
@@ -237,6 +283,10 @@ class Handler(BaseHTTPRequestHandler):
                 self.tts(params)
         elif url.path == "/api/update":
             self.update()
+        elif url.path == "/api/setup":
+            self.start_setup()
+        elif url.path == "/api/restart":
+            self.restart_app()
         elif url.path == "/api/books":
             self.add_book(dict(parse_qsl(url.query)))
         elif PENDING.fullmatch(url.path) and not PENDING.fullmatch(url.path).group(2):
@@ -341,11 +391,31 @@ class Handler(BaseHTTPRequestHandler):
         except FileNotFoundError:
             self.send_json(404, {"error": "Bu kitabın kapağı yok."})
 
+    def from_app(self):
+        """Whether the request comes from the app's own page on this computer: installing and restarting are for the
+        reader at this computer only, not for others on the network, and not for a web page open in the browser,
+        which cannot send this header to another site."""
+        if self.client_address[0] in ("127.0.0.1", "::1") and self.headers.get("X-EMA-Reader") == "update":
+            return True
+        self.send_json(403, {"error": "Bu yalnızca uygulamanın içinden yapılabilir."})
+
+    def start_setup(self):
+        params = self.read_json()
+        if params is None or not self.from_app():
+            return
+        try:
+            self.send_json(202, runtime.start(str(params.get("choice")), done=load))
+        except ValueError as e:
+            self.send_json(400, {"error": str(e)})
+
+    def restart_app(self):
+        if self.from_app():
+            self.send_json(202, {})
+            threading.Thread(target=update.restart, daemon=True).start()
+
     def update(self):
-        # replacing the program is for the reader at this computer only: not for others on the network, and not for
-        # a web page open in the browser, which cannot send this header to another site
-        if self.client_address[0] not in ("127.0.0.1", "::1") or self.headers.get("X-EMA-Reader") != "update":
-            return self.send_json(403, {"error": "Güncelleme yalnızca uygulamanın içinden başlatılabilir."})
+        if not self.from_app():
+            return
         try:
             self.send_json(202, update.start(VERSION))
         except ValueError as e:
@@ -355,11 +425,13 @@ class Handler(BaseHTTPRequestHandler):
 
     def export_start(self, book, params):
         try:
-            job = export.start(tts, book, scope=params.get("scope", "chapter"), chapter=int(params.get("chapter", 0)),
+            job = export.start(model(), book, scope=params.get("scope", "chapter"), chapter=int(params.get("chapter", 0)),
                                kind=params.get("format", "mp3"), split=params.get("split", False),
                                speed=float(params.get("speed", default_speed)))
         except (ValueError, TypeError) as e:
             return self.send_json(400, {"error": str(e)})
+        except NotReady as e:
+            return self.send_json(503, {"error": str(e), "setup": True})
         self.send_json(202, {"job": job.id, "name": job.name})
 
     def export_get(self, job_id, wants_file):
@@ -396,6 +468,8 @@ class Handler(BaseHTTPRequestHandler):
             wav = chapter_wav(book["chapters"][number], speed)
         except ValueError as e:
             return self.send_json(400, {"error": str(e)})
+        except NotReady as e:
+            return self.send_json(503, {"error": str(e), "setup": True})
         with wav:
             self.send_response(200)
             self.send_header("Content-Type", "audio/wav")
@@ -414,12 +488,14 @@ class Handler(BaseHTTPRequestHandler):
         try:
             text, opts, stream = parse(params)
             if stream:
-                chunks = tts.stream(text, **opts)
+                chunks = model().stream(text, **opts)
                 first = next(chunks, None)  # surface invalid settings before the headers go out
             else:
-                speech = tts.say(text, **opts)
+                speech = model().say(text, **opts)
         except (ValueError, TypeError) as e:
             return self.send_json(400, {"error": str(e)})
+        except NotReady as e:
+            return self.send_json(503, {"error": str(e), "setup": True})
 
         if not stream:
             buf = io.BytesIO()
@@ -477,13 +553,13 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def start(host="127.0.0.1", port=8000, speed=1.0, cpu=False, lightning=False):
-    """Load the model and return a server that is ready for serve_forever()."""
-    global tts, default_speed
-    from ema import load_model
-
+    """Return a server that is ready for serve_forever(). The model loads in the background, if it is there;
+    otherwise the page offers to download it."""
+    global default_speed
     default_speed = speed
-    tts = load_model(cpu, lightning)
-    tts.say("Merhaba.")  # warm-up: moves the first request's delay to startup
+    options.update(cpu=cpu, lightning=lightning)
+    if runtime.ready():
+        threading.Thread(target=load, daemon=True).start()
     return ThreadingHTTPServer((host, port), Handler)
 
 
