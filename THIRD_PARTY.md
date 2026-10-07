@@ -13,8 +13,11 @@ EMA Reader'ın kendi kodu MIT Lisansı altındadır (bkz. `LICENSE`). Aşağıda
 | [pypdf](https://github.com/py-pdf/pypdf) | PDF dosyalarını okumak | BSD-3-Clause |
 | [trafilatura](https://github.com/adbar/trafilatura) | Web sayfalarından makale okumak | Apache 2.0 |
 | [huggingface_hub](https://github.com/huggingface/huggingface_hub) | Modeli indirmek | Apache 2.0 |
+| [Python](https://www.python.org) ([python-build-standalone](https://github.com/astral-sh/python-build-standalone) derlemesi) | Kurulum dosyalarıyla gelen, uygulamaya özel Python | PSF-2.0 |
+| [uv](https://github.com/astral-sh/uv) | İlk açılışta PyTorch'u indirmek | MIT ya da Apache 2.0 |
+| Microsoft Edge WebView2 kurucusu | Windows'ta pencereyi çizen bileşeni, eksikse kurmak | Microsoft'un yazılım lisans koşulları |
 | [pywebview](https://pywebview.flowrl.com) | Windows ve macOS'teki pencere | BSD-3-Clause |
-| [PyGObject](https://pygobject.gnome.org), GTK, libadwaita ve WebKitGTK | Linux'taki pencere (sistemden kullanılır, uygulamayla dağıtılmaz) | LGPL-2.1 ya da sonrası |
+| [PyGObject](https://pygobject.gnome.org), GTK, libadwaita ve WebKitGTK | Linux'taki pencere (PyGObject paketlerle birlikte gelir; GTK, libadwaita ve WebKitGTK sistemden kullanılır) | LGPL-2.1 ya da sonrası |
 | [Inter](https://rsms.me/inter/), [Newsreader](https://github.com/productiontype/Newsreader) ve [Caveat](https://github.com/googlefonts/caveat) | Uygulamanın yazı tipleri | SIL Open Font License 1.1 (metinleri `static/fonts/` içinde) |
 
 Windows ve macOS kurulum dosyaları, yukarıdaki Python paketlerinin ve model ağırlıklarının kopyalarını içerir.
