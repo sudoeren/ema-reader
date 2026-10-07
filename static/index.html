@@ -54,13 +54,11 @@
 
   /* continue where you left off: the book last listened to, on a card lit by its own cover */
   .resume { position: relative; overflow: hidden; display: flex; align-items: center; gap: 26px; margin-top: 26px; padding: 22px 28px 22px 22px; border-radius: 22px; background: var(--soft);
-            cursor: pointer; transition: transform .2s cubic-bezier(.2, .8, .2, 1), box-shadow .2s; }
-  .resume:hover, .resume:focus-visible { transform: translateY(-2px); box-shadow: 0 16px 34px -18px var(--shade); }
+            cursor: pointer; }
   .resume .glow { position: absolute; inset: -40%; background: var(--glow) center / cover; filter: blur(60px) saturate(1.4); opacity: .26; pointer-events: none; }
   :root[data-theme="dark"] .resume .glow { opacity: .34; }
   .resume > :not(.glow) { position: relative; }
-  .resume .cover { width: 104px; padding: 11px 9px; flex: none; box-shadow: 0 14px 26px -10px rgba(0,0,0,.55); transition: transform .25s cubic-bezier(.2, .8, .2, 1); }
-  .resume:hover .cover { transform: rotate(-2.5deg) scale(1.03); }
+  .resume .cover { width: 104px; padding: 11px 9px; flex: none; box-shadow: 0 14px 26px -10px rgba(0,0,0,.55); }
   .resume .cover strong { font-size: 12px; }
   .resume .cover small { display: none; }
   .resume .info { flex: 1; min-width: 0; }
@@ -71,8 +69,7 @@
   .resume .bar .track { flex: 1; height: 6px; border-radius: 3px; background: var(--strong-line); }
   .resume .bar .track i { border-radius: 3px; }
   .resume .bar b { color: var(--ink); font-weight: 600; }
-  .resume .go { flex: none; gap: 10px; padding: 15px 26px 15px 22px; box-shadow: 0 10px 22px -12px var(--shade); transition: transform .2s cubic-bezier(.2, .8, .2, 1); }
-  .resume:hover .go { transform: scale(1.05); opacity: 1; }
+  .resume .go { flex: none; gap: 10px; padding: 15px 26px 15px 22px; box-shadow: 0 10px 22px -12px var(--shade); }
   .track { height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
   .track i { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
 
@@ -232,6 +229,7 @@
   .panel .field.tall { flex-direction: column; align-items: stretch; gap: 10px; }
   .panel .field.tall .choice { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; }
   .panel .field.tall .choice button { padding: 7px 2px; font-size: 13px; white-space: nowrap; }
+  .panel #set-size { grid-auto-flow: row; grid-template-columns: 1fr 1fr; }   /* four sizes: two rows, so that "Çok büyük" has room in any font */
   .panel .tabs button.on { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
   .panel .about dl div { flex-direction: column; gap: 2px; }
   .panel .about dt { width: auto; font-size: 13px; }
