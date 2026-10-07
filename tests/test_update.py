@@ -10,10 +10,10 @@ RELEASE = {
     "html_url": "https://github.com/sudoeren/ema-reader/releases/tag/v1.10.0",
     "body": "## Yenilikler\n\n- **Daha hızlı** açılış\n* Koyu tema",
     "assets": [
-        {"name": "EMA-Reader-Setup.exe", "browser_download_url": "https://github.com/sudoeren/ema-reader/releases/download/v1.10.0/EMA-Reader-Setup.exe"},
-        {"name": "EMA-Reader.dmg", "browser_download_url": "https://github.com/sudoeren/ema-reader/releases/download/v1.10.0/EMA-Reader.dmg"},
-        {"name": "EMA-Reader.deb", "browser_download_url": "https://github.com/sudoeren/ema-reader/releases/download/v1.10.0/EMA-Reader.deb"},
-        {"name": "EMA-Reader.pkg.tar.zst", "browser_download_url": "https://github.com/sudoeren/ema-reader/releases/download/v1.10.0/EMA-Reader.pkg.tar.zst"},
+        {"name": "EMA-Reader-1.10.0-Setup.exe", "browser_download_url": "https://github.com/sudoeren/ema-reader/releases/download/v1.10.0/EMA-Reader-1.10.0-Setup.exe"},
+        {"name": "EMA-Reader-1.10.0.dmg", "browser_download_url": "https://github.com/sudoeren/ema-reader/releases/download/v1.10.0/EMA-Reader-1.10.0.dmg"},
+        {"name": "EMA-Reader-1.10.0.deb", "browser_download_url": "https://github.com/sudoeren/ema-reader/releases/download/v1.10.0/EMA-Reader-1.10.0.deb"},
+        {"name": "EMA-Reader-1.10.0.pkg.tar.zst", "browser_download_url": "https://github.com/sudoeren/ema-reader/releases/download/v1.10.0/EMA-Reader-1.10.0.pkg.tar.zst"},
     ],
 }
 
@@ -27,10 +27,10 @@ def test_a_copy_is_updated_with_the_same_kind_of_file_it_came_in(monkeypatch, tm
     monkeypatch.setattr(update, "PACKAGE", tmp_path / "package")
     assert update.release(RELEASE)["download"] is None  # from source: updated with git instead
     assert update.release(RELEASE)["latest"] == "1.10.0"
-    for name in ("EMA-Reader-Setup.exe", "EMA-Reader.dmg", "EMA-Reader.deb", "EMA-Reader.pkg.tar.zst"):
+    for name in ("EMA-Reader-{version}-Setup.exe", "EMA-Reader-{version}.dmg", "EMA-Reader-{version}.deb", "EMA-Reader-{version}.pkg.tar.zst"):
         (tmp_path / "package").write_text(name + "\n", encoding="utf-8")
-        assert update.release(RELEASE)["download"].endswith("/" + name)
-    (tmp_path / "package").write_text("EMA-Reader.rpm\n", encoding="utf-8")
+        assert update.release(RELEASE)["download"].endswith("/" + name.replace("{version}", "1.10.0"))
+    (tmp_path / "package").write_text("EMA-Reader-{version}.rpm\n", encoding="utf-8")
     assert update.release(RELEASE)["download"] is None  # not published in this release
 
 
@@ -95,9 +95,33 @@ def test_the_folder_build_is_swapped_for_the_new_one(monkeypatch, tmp_path):
     restarted = []
     monkeypatch.setattr(update, "ROOT", app)
     monkeypatch.setattr(update, "PACKAGE", app / "package")
-    (app / "package").write_text("EMA-Reader.tar.gz\n", encoding="utf-8")
+    (app / "package").write_text("EMA-Reader-{version}.tar.gz\n", encoding="utf-8")
     monkeypatch.setattr(update, "download", download)
     monkeypatch.setattr(update, "restart", lambda: restarted.append(True))
-    update.install({})
+    update.install({"latest": "1.2.3"})
     assert restarted and (app / "desktop.py").read_text() == "new" and not (app / "gone.py").exists()
     assert sorted(p.name for p in app.parent.iterdir()) == ["ema-reader"] and not (tmp_path / "download").exists()
+
+
+def test_without_the_api_the_releases_page_says_which_is_the_latest(monkeypatch, tmp_path):
+    class Answer:
+        url = "https://github.com/sudoeren/ema-reader/releases/tag/v1.4.0"
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            pass
+
+    def refuse(request, timeout=None):
+        if "api.github.com" in request.full_url:
+            raise OSError("rate limit")  # GitHub answers only sixty questions an hour from one address
+        return Answer()
+
+    monkeypatch.setattr(update.urllib.request, "urlopen", refuse)
+    monkeypatch.setattr(update, "cache", {"until": 0, "release": None})
+    monkeypatch.setattr(update, "PACKAGE", tmp_path / "package")
+    (tmp_path / "package").write_text("EMA-Reader-{version}.deb\n", encoding="utf-8")
+    found = update.check("1.0.0")
+    assert found["newer"] and found["latest"] == "1.4.0"
+    assert found["download"] == "https://github.com/sudoeren/ema-reader/releases/download/v1.4.0/EMA-Reader-1.4.0.deb"

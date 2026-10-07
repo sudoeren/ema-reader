@@ -2,6 +2,12 @@
 
 Her sürümün yenilikleri burada durur. Bir sürüm yayınlandığında o sürümün bölümü hem GitHub'daki sürüm sayfasına hem de uygulamadaki "Yeni sürüm" penceresine yazılır.
 
+## 0.0.2
+
+- Kurulum dosyalarının adında artık sürüm yazıyor.
+- Sürüm denetimi, GitHub yanıt vermediğinde de son sürümü bulabiliyor.
+- Bu sürüme 0.0.1'den geçmek için kurulum dosyasını bir kez elle indirip kurmak gerekir; sonraki sürümler kendiliğinden kurulur.
+
 ## 0.0.1
 
 İlk sürüm.

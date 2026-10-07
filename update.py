@@ -32,11 +32,12 @@ from pathlib import Path
 
 REPO = "sudoeren/ema-reader"
 URL = os.environ.get("EMA_READER_UPDATE_URL") or f"https://api.github.com/repos/{REPO}/releases/latest"
+PAGE = f"https://github.com/{REPO}/releases"
 FRESH = 6 * 3600  # how long an answer is kept
 RETRY = 600  # how soon to ask again after a failure
 ROOT = Path(__file__).parent
 # written by build.py and packaging/linux.py: the release file this copy was installed from, such as
-# EMA-Reader-Setup.exe or EMA-Reader.deb; a copy run from source has none
+# EMA-Reader-{version}-Setup.exe or EMA-Reader-{version}.deb, with the version left open; a copy run from source has none
 PACKAGE = ROOT / "package"
 
 cache = {"until": 0, "release": None}
@@ -58,10 +59,11 @@ def tidy(notes):
     return "\n".join(lines)
 
 
-def package():
-    """The release file this copy was installed from; None for a copy that runs from source."""
+def package(version=""):
+    """The release file this kind of copy comes in, as it is named in the release of `version`; None for a copy
+    that runs from source."""
     try:
-        return PACKAGE.read_text(encoding="utf-8").strip() or None
+        return PACKAGE.read_text(encoding="utf-8").strip().replace("{version}", version) or None
     except OSError:
         return None
 
@@ -71,10 +73,26 @@ def release(data):
     def link(url):
         return url if isinstance(url, str) and url.startswith("https://github.com/") else None
 
-    wanted = package()  # the same kind of file this copy came in; None when it is updated with git
+    latest = ".".join(map(str, number(data["tag_name"])))
+    wanted = package(latest)  # the same kind of file this copy came in; None when it is updated with git
     installers = (a.get("browser_download_url") for a in data.get("assets") or [] if wanted and a.get("name") == wanted)
-    return {"latest": ".".join(map(str, number(data["tag_name"]))), "notes": tidy(data.get("body")),
+    return {"latest": latest, "notes": tidy(data.get("body")),
             "page": link(data.get("html_url")), "download": link(next(installers, None))}
+
+
+def without_api(current):
+    """The latest release when GitHub's API will not say, which it stops doing after sixty questions an hour from
+    one address: the releases page forwards to the latest one, and the files of a release have known addresses.
+    The notes are not to be had this way."""
+    request = urllib.request.Request(f"{PAGE}/latest", method="HEAD", headers={"User-Agent": f"EMA Reader/{current}"})
+    with urllib.request.urlopen(request, timeout=6) as response:
+        tag = re.search(r"/releases/tag/(v?\d+\.\d+\.\d+)$", response.url)
+    if not tag:
+        raise ValueError("no release")
+    latest = ".".join(map(str, number(tag.group(1))))
+    name = package(latest)
+    return {"latest": latest, "notes": "", "page": f"{PAGE}/tag/{tag.group(1)}",
+            "download": f"{PAGE}/download/{tag.group(1)}/{name}" if name else None}
 
 
 def changelog(text, version):
@@ -91,8 +109,14 @@ def check(current, fresh=False):
             with urllib.request.urlopen(request, timeout=6) as response:
                 cache["release"] = release(json.load(response))
             cache["until"] = now + FRESH
-        except Exception:  # no network, no release yet, an answer that is not a release
-            cache["until"] = now + RETRY
+        except Exception:  # no network, no release yet, an answer that is not a release, or too many questions
+            try:
+                if not URL.startswith("https://api.github.com/"):
+                    raise  # an answer put there to try things out is the only one
+                cache["release"] = without_api(current)
+                cache["until"] = now + FRESH
+            except Exception:
+                cache["until"] = now + RETRY
     found = cache["release"] or {"latest": None, "notes": "", "page": None, "download": None}
     return {"current": current, **found, "newer": bool(found["latest"]) and number(found["latest"]) > number(current),
             "packaged": bool(package()), "job": dict(job)}
@@ -116,7 +140,7 @@ def start(current):
 
 def install(found):
     try:
-        name = package()
+        name = package(found.get("latest") or "")
         if not name:
             from_source()
         elif name.endswith(".exe"):
@@ -196,7 +220,7 @@ def with_folder(found):
 
     if not os.access(ROOT.parent, os.W_OK):
         raise Failed("Uygulama bulunduğu yerde değiştirilemiyor. Yeni sürümü sürüm sayfasından indirip kurabilirsin.")
-    path = download(found, package())
+    path = download(found, package(found["latest"]))
     job["step"] = "installing"
     fresh, old = ROOT.parent / f".{ROOT.name}.new", ROOT.parent / f".{ROOT.name}.old"
     try:
@@ -221,7 +245,7 @@ def with_folder(found):
 
 def with_package(found):
     """A Linux package: install the new one with the system's package manager, which asks for the password."""
-    name = package()
+    name = package(found["latest"])
     manager = (["apt-get", "install", "-y"] if name.endswith(".deb") else ["dnf", "install", "-y"] if name.endswith(".rpm")
                else ["pacman", "-U", "--noconfirm"])
     if not shutil.which("pkexec") or not shutil.which(manager[0]):

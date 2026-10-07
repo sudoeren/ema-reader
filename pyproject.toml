@@ -1,6 +1,6 @@
 [project]
 name = "ema-reader"
-version = "0.0.1"
+version = "0.0.2"
 description = "Türkçe metni EMA Lightning modeliyle seslendiren kitap ve makale okuyucu"
 readme = "README.md"
 license = "MIT"

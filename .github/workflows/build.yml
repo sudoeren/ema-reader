@@ -71,8 +71,7 @@ jobs:
         shell: bash
         run: |
           curl -fsSL -o packaging/MicrosoftEdgeWebview2Setup.exe "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
-          version="${GITHUB_REF_NAME#v}"
-          [[ "$GITHUB_REF_TYPE" == "tag" ]] || version="0.0.0"
+          version=$(sed -n 's/^VERSION = "\(.*\)"/\1/p' app.py)
           iscc "//DVersion=$version" packaging/windows.iss
 
       - name: macOS disk image
@@ -82,14 +81,15 @@ jobs:
           mkdir dist/dmg
           ditto "dist/EMA Reader.app" "dist/dmg/EMA Reader.app"
           ln -s /Applications dist/dmg/Applications
-          hdiutil create -volname "EMA Reader" -srcfolder dist/dmg -ov -format UDZO dist/EMA-Reader.dmg
+          version=$(sed -n 's/^VERSION = "\(.*\)"/\1/p' app.py)
+          hdiutil create -volname "EMA Reader" -srcfolder dist/dmg -ov -format UDZO "dist/EMA-Reader-$version.dmg"
 
       - uses: actions/upload-artifact@v4
         with:
           name: ema-reader-${{ runner.os }}
           path: |
-            dist/EMA-Reader-Setup.exe
-            dist/EMA-Reader.dmg
+            dist/EMA-Reader-*-Setup.exe
+            dist/EMA-Reader-*.dmg
 
       - name: Attach to the release
         if: github.ref_type == 'tag'
@@ -97,8 +97,8 @@ jobs:
         with:
           body_path: release-notes.md
           files: |
-            dist/EMA-Reader-Setup.exe
-            dist/EMA-Reader.dmg
+            dist/EMA-Reader-*-Setup.exe
+            dist/EMA-Reader-*.dmg
 
   # the Linux packages: built once, on the oldest system they support (see packaging/linux.py)
   linux:
@@ -123,14 +123,14 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: ema-reader-linux
-          path: dist/EMA-Reader.*
+          path: dist/EMA-Reader-*
 
       - name: Attach to the release
         if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
           body_path: release-notes.md
-          files: dist/EMA-Reader.*
+          files: dist/EMA-Reader-*
 
   # each package installed the way a reader installs it on each system, then started without a window by an
   # ordinary user: it downloads PyTorch and the model as a first start does, and speaks a sentence
@@ -156,18 +156,18 @@ jobs:
       - name: Install
         run: |
           case ${{ matrix.package }} in
-            deb) apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ./EMA-Reader.deb ;;
-            rpm) dnf install -y util-linux ./EMA-Reader.rpm ;;   # util-linux: runuser, for the check below
+            deb) apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ./EMA-Reader-*.deb ;;
+            rpm) dnf install -y util-linux ./EMA-Reader-*.rpm ;;   # util-linux: runuser, for the check below
             # nothing to install but what the window needs from the system; the folder is unpacked by the user below
             tar.gz) zypper --non-interactive install tar gzip shadow util-linux typelib-1_0-Gtk-4_0 typelib-1_0-Adw-1 typelib-1_0-WebKit-6_0 libgirepository-2_0-0 ;;
-            *) pacman -Syu --noconfirm && pacman -U --noconfirm ./EMA-Reader.pkg.tar.zst ;;
+            *) pacman -Syu --noconfirm && pacman -U --noconfirm ./EMA-Reader-*.pkg.tar.zst ;;
           esac
       - name: Check
         run: |
           useradd -m okur
           if [ "${{ matrix.package }}" = tar.gz ]; then
-            cp EMA-Reader.tar.gz /home/okur/
-            runuser -u okur -- sh -c 'cd /home/okur && tar -xzf EMA-Reader.tar.gz && HOME=/home/okur ./ema-reader/install &&
+            cp EMA-Reader-*[0-9].tar.gz /home/okur/
+            runuser -u okur -- sh -c 'cd /home/okur && tar -xzf EMA-Reader-*.tar.gz && HOME=/home/okur ./ema-reader/install &&
               HOME=/home/okur ./ema-reader/python/bin/python3.13 ./ema-reader/desktop.py --check'
           else
             runuser -u okur -- env EMA_READER_CHECK=${{ matrix.kind }} ema-reader --check
