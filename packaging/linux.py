@@ -1,14 +1,19 @@
-"""Builds the Linux package for the system this runs on: a .deb on Ubuntu and Debian, an .rpm on Fedora.
+"""Builds the Linux package for the system this runs on: a .deb on Ubuntu and Debian, an .rpm on
+Fedora, a pacman package on Arch Linux.
 
     python3 packaging/linux.py ubuntu-24.04      # writes dist/EMA-Reader-ubuntu-24.04.deb
-    python3 packaging/linux.py --layout DIR      # only the app's own files under DIR, for packaging/arch/PKGBUILD
+    python3 packaging/linux.py arch              # writes dist/EMA-Reader-arch.pkg.tar.zst
 
 It runs as root on the system the package is for; the build workflow runs it in a container of
-each supported system. The app goes to /opt/ema-reader with a Python environment of its own, made
-on the system's Python: a CPU-only PyTorch, the model weights and the other packages, so the first
-start needs no download. GTK 4, libadwaita, WebKitGTK and their Python bindings come from the
-system. That is why each system gets a package of its own: the environment only works with the
-Python it was made with, and the package asks for exactly that one.
+each supported system. The app goes to /opt/ema-reader with a Python environment of its own: a
+CPU-only PyTorch, the model weights and the other packages, so the first start needs no download.
+GTK 4, libadwaita and WebKitGTK come from the system.
+
+On Ubuntu, Debian and Fedora the environment is made on the system's Python and takes the GTK
+bindings (PyGObject) from the system too. It only works with the Python it was made with, so each
+system gets a package of its own that asks for exactly that Python. Arch moves to a new Python
+whenever one comes out, which would break such a package, so there the package carries a Python of
+its own and PyGObject is built for it.
 """
 
 import os
@@ -17,6 +22,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -36,7 +42,10 @@ DESCRIPTION = ("EMA Reader, EPUB, PDF, metin ve Markdown dosyalarını ve web'de
 NEEDS = {
     "deb": ["python3-gi", "gir1.2-gtk-4.0", "gir1.2-adw-1", "gir1.2-webkit-6.0"],
     "rpm": ["python3-gobject", "gtk4", "libadwaita", "webkitgtk6.0"],
+    # the PyGObject built here links to GLib's introspection and to cairo
+    "pkg.tar.zst": ["gtk4", "libadwaita", "webkitgtk-6.0", "gobject-introspection-runtime", "cairo"],
 }
+OWN_PYTHON = "3.13"  # the Python a pacman package carries
 
 METAINFO = """<?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
@@ -91,15 +100,6 @@ def version():
     return re.search(r'^VERSION = "(.+)"', (ROOT / "app.py").read_text(encoding="utf-8"), re.M).group(1)
 
 
-def put_sources(prefix, name):
-    """The app's code and pages in `prefix`, with the name of the package it came in."""
-    prefix.mkdir(parents=True, exist_ok=True)
-    for source in SOURCES:
-        (shutil.copytree if (ROOT / source).is_dir() else shutil.copy2)(ROOT / source, prefix / source)
-    # tells the app how it is updated (see update.py)
-    (prefix / "package").write_text(name + "\n", encoding="utf-8")
-
-
 def put_launcher(root):
     """The command, the applications menu entry, the icon and the software centre's description, under `root`."""
     files = {
@@ -115,26 +115,48 @@ def put_launcher(root):
     (root / "usr/bin/ema-reader").chmod(0o755)
 
 
+def pacman_package(stage, path):
+    """A pacman package is a compressed tar of the files with two descriptions in front: .PKGINFO says
+    what the package is and needs, .MTREE lists every file with its checksum, as makepkg writes them."""
+    size = sum(f.stat().st_size for f in stage.rglob("*") if f.is_file() and not f.is_symlink())
+    info = [f"pkgname = ema-reader", f"pkgbase = ema-reader", f"pkgver = {version()}-1", f"pkgdesc = {SUMMARY}",
+            f"url = {HOMEPAGE}", f"builddate = {int(time.time())}", f"packager = {MAINTAINER}", f"size = {size}",
+            "arch = x86_64", "license = MIT", *(f"depend = {need}" for need in NEEDS["pkg.tar.zst"])]
+    (stage / ".PKGINFO").write_text("\n".join(info) + "\n", encoding="utf-8")
+    entries = sorted(e.name for e in stage.iterdir() if not e.name.startswith("."))
+    env = {**os.environ, "LANG": "C"}
+    run("bsdtar", "-czf", ".MTREE", "--format=mtree",
+        "--options=!all,use-set,type,uid,gid,mode,time,size,md5,sha256,link", ".PKGINFO", *entries, cwd=stage, env=env)
+    run("bsdtar", "--zstd", "--options=zstd:compression-level=19", "-cf", path, ".MTREE", ".PKGINFO", *entries, cwd=stage, env=env)
+
+
 def main():
-    if len(sys.argv) == 3 and sys.argv[1] == "--layout":
-        root = Path(sys.argv[2])
-        put_sources(root / PREFIX.relative_to("/"), "aur")
-        return put_launcher(root)
-    if len(sys.argv) != 2 or not re.fullmatch(r"[a-z]+-[0-9.]+", sys.argv[1]):
+    if len(sys.argv) != 2 or not re.fullmatch(r"[a-z]+(-[0-9.]+)?", sys.argv[1]):
         sys.exit("kullanım: python3 packaging/linux.py ubuntu-24.04")
-    kind = "deb" if shutil.which("dpkg-deb") else "rpm" if shutil.which("rpmbuild") else sys.exit("dpkg-deb ya da rpmbuild gerekli")
+    kind = ("deb" if shutil.which("dpkg-deb") else "rpm" if shutil.which("rpmbuild") else "pkg.tar.zst" if shutil.which("pacman")
+            else sys.exit("dpkg-deb, rpmbuild ya da pacman gerekli"))
     name = f"EMA-Reader-{sys.argv[1]}.{kind}"
     python = f"{sys.version_info.major}.{sys.version_info.minor}"
 
     # the app is put together where it will be installed, because a Python environment cannot be moved
     shutil.rmtree(PREFIX, ignore_errors=True)
-    put_sources(PREFIX, name)
+    PREFIX.mkdir(parents=True)
+    for source in SOURCES:
+        (shutil.copytree if (ROOT / source).is_dir() else shutil.copy2)(ROOT / source, PREFIX / source)
+    # tells the app which release file updates it (see update.py)
+    (PREFIX / "package").write_text(name + "\n", encoding="utf-8")
 
     venv = PREFIX / "venv"
-    env = {**os.environ, "UV_CACHE_DIR": tempfile.mkdtemp(prefix="uv-"), "UV_COMPILE_BYTECODE": "1"}
-    run("uv", "venv", venv, "--python", sys.executable, "--system-site-packages", env=env)
+    env = {**os.environ, "UV_CACHE_DIR": tempfile.mkdtemp(prefix="uv-"), "UV_COMPILE_BYTECODE": "1",
+           "UV_PYTHON_INSTALL_DIR": str(PREFIX / "python")}
+    if kind == "pkg.tar.zst":
+        run("uv", "python", "install", OWN_PYTHON, env=env)
+        run("uv", "venv", venv, "--python", OWN_PYTHON, "--managed-python", env=env)
+    else:
+        run("uv", "venv", venv, "--python", sys.executable, "--system-site-packages", env=env)
     run("uv", "pip", "install", "--python", venv / "bin" / "python", "torch", "--index-url", "https://download.pytorch.org/whl/cpu", env=env)
-    run("uv", "pip", "install", "--python", venv / "bin" / "python", *PACKAGES, env=env)
+    run("uv", "pip", "install", "--python", venv / "bin" / "python", *PACKAGES,
+        *(["pygobject"] if kind == "pkg.tar.zst" else []), env=env)
     shutil.rmtree(env["UV_CACHE_DIR"])
     fetch = f"from huggingface_hub import hf_hub_download\nfor f in {FILES!r}: hf_hub_download({REPO!r}, f)"
     run(venv / "bin" / "python", "-c", fetch, env={**os.environ, "HF_HOME": str(PREFIX / "hf"), "HF_HUB_DISABLE_SYMLINKS": "1"})
@@ -160,7 +182,7 @@ def main():
             f"Section: sound\nPriority: optional\nHomepage: {HOMEPAGE}\nDescription: {SUMMARY}\n {DESCRIPTION}\n",
             encoding="utf-8")
         run("dpkg-deb", "--root-owner-group", "--build", stage, out / name)
-    else:
+    elif kind == "rpm":
         top = Path(tempfile.mkdtemp(prefix="rpmbuild-"))
         spec = top / "ema-reader.spec"
         spec.write_text(SPEC.format(version=version(), summary=SUMMARY, description=DESCRIPTION, homepage=HOMEPAGE, id=APP_ID,
@@ -168,6 +190,8 @@ def main():
         run("rpmbuild", "-bb", "--define", f"_topdir {top}", spec)
         shutil.copy(next((top / "RPMS").rglob("*.rpm")), out / name)
         shutil.rmtree(top)
+    else:
+        pacman_package(stage, out / name)
     shutil.rmtree(stage)
     print(f"hazır: {out / name} ({(out / name).stat().st_size / 1e6:.0f} MB)")
 

@@ -13,8 +13,7 @@ EMA Reader'ın teknik tarafı: nasıl kurulduğu, kaynaktan nasıl çalıştır�
 | `update.py` | GitHub'daki son sürüme bakar; yeni sürüm varsa uygulama bunu haber verir |
 | `desktop.py` | Sunucunun çevresindeki masaüstü penceresi |
 | `build.py` | Windows ve macOS için kendi kendine yeten uygulamayı üretir |
-| `packaging/linux.py` | Linux için `.deb` ve `.rpm` paketlerini üretir |
-| `packaging/arch/PKGBUILD` | AUR'daki Arch Linux paketi |
+| `packaging/linux.py` | Linux için `.deb`, `.rpm` ve pacman paketlerini üretir |
 | `static/index.html` | Arayüzün tamamı: tek sayfa, derleme adımı yok |
 | `CHANGELOG.md` | Her sürümün yenilikleri; sürüm sayfasına ve uygulamadaki "Yeni sürüm" penceresine buradan yazılır |
 | `tests/` | Model gerektirmeyen kısımların testleri |
@@ -85,25 +84,17 @@ Linux penceresi GTK 4, libadwaita ve WebKitGTK'yı sistemden aldığı için, Wi
 
 Paket ayrıca `/usr/bin/ema-reader` komutunu, uygulamalar menüsündeki başlatıcıyı, simgeyi ve yazılım merkezleri için bir AppStream açıklamasını kurar.
 
-`build.yml` her sürümde Ubuntu 24.04, Ubuntu 26.04, Debian 13 ve Fedora 44 için birer paket üretir. Her biri o sistemin kabında derlenir, sonra kurulup sıradan bir kullanıcıyla `ema-reader --check` ile denenir. Yeni bir sistem eklemek için iş akışındaki listeye bir satır eklemek yeterlidir; adı `EMA-Reader-<sistem>.deb` ya da `.rpm` olur.
+`build.yml` her sürümde Ubuntu 24.04, Ubuntu 26.04, Debian 13, Fedora 44 ve Arch Linux için birer paket üretir. Her biri o sistemin kabında derlenir, sonra kurulup sıradan bir kullanıcıyla `ema-reader --check` ile denenir. Yeni bir sistem eklemek için iş akışındaki listeye bir satır eklemek yeterlidir; adı `EMA-Reader-<sistem>.deb` ya da `.rpm` olur.
 
 ### Arch Linux
 
-Arch'a hazır paket verilmez: Arch sürekli güncellendiği için ortamın kurulduğu Python sürümü kısa sürede eskir. Onun yerine AUR'da bir `PKGBUILD` durur (`packaging/arch/PKGBUILD`) ve paket okuyucunun kendi bilgisayarında `makepkg` ile derlenir. Ortam aynı biçimde `/opt/ema-reader` altına kurulur, ama PyTorch'u Arch'ın kendi `python-pytorch` paketinden alır; onun yerine `python-pytorch-cuda` kuruluysa NVIDIA kartı kullanılır. PyPI'dan yalnızca Arch'ın paketlemediği şeyler gelir. Uygulamanın kendi dosyalarını ve başlatıcısını `packaging/linux.py --layout` yazar, böylece öbür paketlerle aynı kalırlar.
+Arch yeni bir Python sürümüne hemen geçer; sistemin Python'uyla kurulmuş bir ortam o gün bozulurdu. Bu yüzden Arch paketi (`EMA-Reader-arch.pkg.tar.zst`) kendi Python'unu taşır: `uv` ile indirilen bağımsız bir Python 3.13, `/opt/ema-reader/python` içinde. GTK'nın Python bağları (PyGObject) sistemden alınamaz, çünkü sistemin Python'u için derlenmişlerdir; paket derlenirken bu Python için yeniden derlenir ve sistemin GLib, cairo, GTK 4, libadwaita ve WebKitGTK kitaplıklarını kullanır. Bunların sürümleri değişse de arayüzleri sabit kaldığı için paket Arch güncellendikçe çalışmaya devam eder.
 
-Bu kopya kendini güncellemez; güncellemeyi okuyucunun AUR yardımcısı yapar. Uygulama yeni sürümü haber verir, "Güncelle"ye basılırsa bunu söyler.
-
-`build.yml` her çalışmada paketi bir Arch kabında `makepkg -si` ile derler, kurar ve `ema-reader --check` ile dener. Sürüm etiketinde, GitHub'ın o sürüm için verdiği kaynağın sağlama toplamını `PKGBUILD`'e yazar ve dosyayı sürüme ekler. AUR'a yayınlamak için o dosyayı AUR'daki `ema-reader` deposuna koy, `makepkg --printsrcinfo > .SRCINFO` çalıştır, ikisini gönder:
-
-```bash
-git clone ssh://aur@aur.archlinux.org/ema-reader.git && cd ema-reader
-cp ~/İndirilenler/PKGBUILD . && makepkg --printsrcinfo > .SRCINFO
-git add PKGBUILD .SRCINFO && git commit -m "1.1.0" && git push
-```
+Paketi `packaging/linux.py arch` bir Arch kabında üretir. `makepkg` kullanılmaz: paket, makepkg'nin de yazdığı `.PKGINFO` ve `.MTREE` açıklamalarıyla doğrudan `bsdtar` ile paketlenir. Derlemek için `base-devel`, `gobject-introspection` ve `cairo` gerekir.
 
 ## Sürüm yayınlama
 
-1. `app.py` içindeki `VERSION`, `pyproject.toml` içindeki `version` ve `packaging/arch/PKGBUILD` içindeki `pkgver` değerini yükselt (üçü aynı olmalı).
+1. `app.py` içindeki `VERSION` ile `pyproject.toml` içindeki `version` değerini yükselt (ikisi aynı olmalı).
 2. `CHANGELOG.md` dosyasının başına `## 1.1.0` gibi bir bölüm ekle ve yenilikleri kullanıcının anlayacağı dille yaz.
 3. Değişiklikleri gönder, sonra sürümü etiketle:
 
@@ -112,7 +103,7 @@ git tag v1.1.0
 git push origin v1.1.0
 ```
 
-Etiket gelince `build.yml` kurulum dosyalarını üretir ve `CHANGELOG.md` içindeki o bölümü not olarak koyduğu bir GitHub sürümü açar. Arch için sürüme eklenen `PKGBUILD`'i ayrıca AUR'a gönder (yukarıya bak). Etiket, `VERSION` ve `CHANGELOG.md` birbirini tutmuyorsa derleme durur; aynı şeyi testler de denetler.
+Etiket gelince `build.yml` kurulum dosyalarını üretir ve `CHANGELOG.md` içindeki o bölümü not olarak koyduğu bir GitHub sürümü açar. Etiket, `VERSION` ve `CHANGELOG.md` birbirini tutmuyorsa derleme durur; aynı şeyi testler de denetler.
 
 Uygulama açılışta `update.py` aracılığıyla GitHub'daki son sürüme bakar (yanıt altı saat saklanır; Ayarlar'daki "Denetle" hemen yeniden sorar). Kendi sürümünden yenisini bulursa kitaplığın üstünde "EMA Reader 1.1.0 yayınlandı" çubuğunu gösterir; aynı bilgi Ayarlar'daki sürüm satırında da durur. Açılıştaki denetim Ayarlar'dan kapatılabilir. Ön sürümler ve taslaklar haber verilmez.
 
@@ -121,8 +112,7 @@ Uygulama açılışta `update.py` aracılığıyla GitHub'daki son sürüme baka
 - **Kaynaktan çalışan kopya (Linux):** `git pull --ff-only` ile yeni kodu alır, Python ortamı projenin kendi `.venv` klasörüyse `uv sync` ile paketleri eşitler, sonra kendini yeniden başlatır.
 - **Windows:** yeni kurulum dosyasını indirir, sessizce çalıştırır ve kapanır; kurulum bitince uygulamayı yeniden açar.
 - **macOS:** yeni disk görüntüsünü indirir, uygulama kapanınca içindeki uygulamayı eskisinin yerine koyar ve yeniden açar. Eski uygulama, yenisi tümüyle kopyalanana kadar silinmez.
-- **Linux paketi:** aynı sistemin yeni paketini indirir (hangisi olduğunu paketin `/opt/ema-reader/package` dosyasına yazdığı addan bilir), `pkexec` ile `apt-get` ya da `dnf`'e kurdurur, sonra kendini yeniden başlatır. Sistem kullanıcının parolasını kendi penceresinde sorar. O sistem için paket yayınlanmamışsa uygulama güncellemeyi sunar ama kurulum dosyası olmadığını söyler.
-- **Arch Linux:** kendini güncellemez; güncellemeyi AUR yardımcısı yapar. "Güncelle" bunu söyler.
+- **Linux paketi:** aynı sistemin yeni paketini indirir (hangisi olduğunu paketin `/opt/ema-reader/package` dosyasına yazdığı addan bilir), `pkexec` ile `apt-get`, `dnf` ya da `pacman`'a kurdurur, sonra kendini yeniden başlatır. Sistem kullanıcının parolasını kendi penceresinde sorar. O sistem için paket yayınlanmamışsa uygulama güncellemeyi sunar ama kurulum dosyası olmadığını söyler.
 
 Güncellemeyi yalnızca aynı bilgisayardan gelen ve uygulamanın kendi sayfasının gönderdiği istek başlatabilir (`POST /api/update`, `X-EMA-Reader: update` başlığıyla). Kurulum dosyaları yalnızca `https://github.com/` adresinden indirilir.
 

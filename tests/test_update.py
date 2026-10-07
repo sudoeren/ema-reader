@@ -14,6 +14,7 @@ RELEASE = {
         {"name": "EMA-Reader.dmg", "browser_download_url": "https://github.com/sudoeren/ema-reader/releases/download/v1.10.0/EMA-Reader.dmg"},
         {"name": "EMA-Reader-debian-13.deb", "browser_download_url": "https://github.com/sudoeren/ema-reader/releases/download/v1.10.0/EMA-Reader-debian-13.deb"},
         {"name": "EMA-Reader-ubuntu-24.04.deb", "browser_download_url": "https://github.com/sudoeren/ema-reader/releases/download/v1.10.0/EMA-Reader-ubuntu-24.04.deb"},
+        {"name": "EMA-Reader-arch.pkg.tar.zst", "browser_download_url": "https://github.com/sudoeren/ema-reader/releases/download/v1.10.0/EMA-Reader-arch.pkg.tar.zst"},
     ],
 }
 
@@ -35,13 +36,10 @@ def test_a_linux_package_is_updated_with_the_package_for_the_same_system(monkeyp
     monkeypatch.setattr(update, "PACKAGE", tmp_path / "package")
     (tmp_path / "package").write_text("EMA-Reader-ubuntu-24.04.deb\n", encoding="utf-8")
     assert update.release(RELEASE, "linux")["download"].endswith("/EMA-Reader-ubuntu-24.04.deb")
+    (tmp_path / "package").write_text("EMA-Reader-arch.pkg.tar.zst\n", encoding="utf-8")
+    assert update.release(RELEASE, "linux")["download"].endswith("/EMA-Reader-arch.pkg.tar.zst")
     (tmp_path / "package").write_text("EMA-Reader-fedora-44.rpm\n", encoding="utf-8")
     assert update.release(RELEASE, "linux")["download"] is None  # not published for this system
-
-
-def test_the_arch_package_names_its_version_too():
-    stated = re.search(r'^VERSION = "(.+)"', (ROOT / "app.py").read_text(encoding="utf-8"), re.M).group(1)
-    assert re.search(r"^pkgver=(.+)$", (ROOT / "packaging" / "arch" / "PKGBUILD").read_text(encoding="utf-8"), re.M).group(1) == stated
 
 
 def test_release_notes_lose_their_markdown():
