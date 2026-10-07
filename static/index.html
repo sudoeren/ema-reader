@@ -326,7 +326,7 @@
   #time { font-size: 13px; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 84px; text-align: center; }
   #speed { font-size: 14px; font-weight: 600; padding: 7px 12px; border-radius: 8px; background: var(--accent-soft); font-variant-numeric: tabular-nums; }
   #speed:hover { opacity: .8; }
-  #speeds { position: fixed; bottom: 96px; left: 50%; background: var(--surface); border-radius: 14px; padding: 6px; box-shadow: 0 14px 40px -10px var(--shade), 0 0 0 1px var(--line); display: flex; flex-direction: column; min-width: 150px; }
+  #speeds { position: fixed; bottom: 96px; left: 50%; background: var(--surface); border-radius: 14px; padding: 6px; box-shadow: 0 14px 40px -10px var(--shade), 0 0 0 1px var(--line); display: flex; flex-direction: column; min-width: 150px; z-index: 51; }   /* above the tour's veil */
   #speeds button { display: flex; justify-content: space-between; gap: 18px; padding: 9px 12px; border-radius: 8px; font-size: 14px; text-align: left; }
   #speeds button:hover { background: var(--accent-soft); }
   #speeds button.on { font-weight: 700; color: var(--accent); }
@@ -1541,6 +1541,10 @@ async function play() {
       if (mine !== run) return;
       learnPace(sentences[index].text.length, seconds);
       loaded = null;
+      if (tour.step >= 0) {   // during the tour one sentence is enough to show how it sounds
+        if (index + 1 < sentences.length) select(index + 1);
+        break;
+      }
       heard = sentences[index].lasts; restSince = performance.now();
       await wait(pauseAfter(index) * 1000 || SENTENCE_PAUSE);
       if (mine !== run) return;
@@ -1647,15 +1651,9 @@ if ("mediaSession" in navigator) {
 const WELCOME_NAME = "EMA Reader'a hoş geldin.md";
 const WELCOME_TEXT = `# Hoş geldin
 
-EMA Reader'a hoş geldin. Bu kısa metin, uygulamayı denemen için burada. Alttaki oynat düğmesine bastığında bu satırları sana yüksek sesle okurum.
+Merhaba, ben EMA. Kitapları ve makaleleri sana sesli okurum. Bir cümleye tıklarsan oradan devam ederim.
 
-Okuduğum cümle her zaman işaretlenir, böylece gözünle de takip edebilirsin. Başka bir yerden devam etmek istersen o cümleye tıklaman yeterli.
-
-# Kendi kitapların
-
-Kitaplığına EPUB, PDF ya da düz metin dosyaları ekleyebilirsin. İnternetteki bir yazıyı dinlemek istersen adresini yapıştırman yeter.
-
-Nerede kaldığını ben hatırlarım. Uygulamayı kapatıp yarın açtığında kaldığın cümleden devam ederiz. İyi dinlemeler!`;
+Kaldığın yeri de hatırlarım. İyi dinlemeler!`;
 
 // what the guide says aloud at each step; a little fuller than the note on screen
 const SPOKEN = {
@@ -1689,7 +1687,8 @@ const tour = {
      before: async () => { await openWelcome(); }},
     // the first line of a sentence, so the hole is one tidy strip
     {target: () => sentences[2].el.getClientRects()[0], text: "tourSentence", from: [150, 250], bend: -90, pad: 5},
-    {target: () => $("speed"), text: "tourSpeed", from: [170, -200], bend: -70},
+    // to the left, so that the list of speeds has room to open above the button
+    {target: () => $("speed"), text: "tourSpeed", from: [-330, -110], bend: 60},
     // inside the desktop window the add button is in the header bar, just above the page
     {target: async () => {
        if (!shell) return $("add").getBoundingClientRect();
@@ -1702,8 +1701,9 @@ const tour = {
 };
 
 async function openWelcome() {
-  let welcome = books.find(b => b.title === WELCOME_NAME.replace(/\.md$/, ""));
-  if (!welcome) welcome = await api(`/api/books?name=${encodeURIComponent(WELCOME_NAME)}`, {method: "POST", body: WELCOME_TEXT});
+  // an earlier tour may have left its own, longer, welcome text behind
+  for (const old of books.filter(b => b.title === WELCOME_NAME.replace(/\.md$/, ""))) await api(`/api/books/${old.id}`, {method: "DELETE"}).catch(() => {});
+  const welcome = await api(`/api/books?name=${encodeURIComponent(WELCOME_NAME)}`, {method: "POST", body: WELCOME_TEXT});
   await openBook(welcome.id, false, 0, 0);
 }
 
@@ -1732,6 +1732,7 @@ function soundButton() {
 async function showStep(number) {
   const step = tour.steps[number];
   document.querySelectorAll("dialog[open]").forEach(d => d.close());
+  stop(); $("speeds").hidden = true;   // what was tried at one step does not carry on into the next
   tour.step = number;
   if (step.before) await step.before();
   $("tour").hidden = false;
