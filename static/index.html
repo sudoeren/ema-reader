@@ -229,7 +229,9 @@
   .panel .field.tall { flex-direction: column; align-items: stretch; gap: 10px; }
   .panel .field.tall .choice { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; }
   .panel .field.tall .choice button { padding: 7px 2px; font-size: 13px; white-space: nowrap; }
-  .panel #set-size button { height: 40px; padding: 0; font-family: var(--serif); font-weight: 500; line-height: 1; }   /* four letters, each at its own size */
+  /* four sizes in one row: each as wide as its word needs, so that "Çok büyük" is not cut short */
+  .panel .field.tall #set-size { display: flex; flex-wrap: nowrap; }
+  .panel .field.tall #set-size button { flex: 1 1 auto; padding: 7px 6px; }
   .panel .tabs button.on { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
   .panel .about dl div { flex-direction: column; gap: 2px; }
   .panel .about dt { width: auto; font-size: 13px; }
@@ -1127,11 +1129,7 @@ $("download-dialog").addEventListener("close", () => {
 
 function drawSettings() {
   pick("set-theme", ["light", "dark", "system"], settings.theme, v => t(v), v => { settings.theme = v; saveSettings(); drawSettings(); });
-  pick("set-size", Object.keys(SIZES), settings.size, () => "A", v => { settings.size = v; saveSettings(); drawSettings(); });
-  [...$("set-size").children].forEach((b, i) => {   // the letter shows the size; its name is there for a pointer and a screen reader
-    const name = Object.keys(SIZES)[i];
-    b.style.fontSize = `${SIZES[name] - 5}px`; b.title = t("sizes")[name]; b.setAttribute("aria-label", b.title);
-  });
+  pick("set-size", Object.keys(SIZES), settings.size, v => t("sizes")[v], v => { settings.size = v; saveSettings(); drawSettings(); });
   pick("set-updates", [true, false], settings.updates, v => t(v ? "on" : "off"), v => { settings.updates = v; saveSettings(); drawSettings(); checkUpdate(); });
   const dark = document.documentElement.dataset.theme === "dark";
   $("set-accent").replaceChildren(...Object.entries(ACCENTS).map(([name, colours]) => {
