@@ -34,5 +34,6 @@ Source: "..\dist\EMA Reader\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreve
 Name: "{group}\EMA Reader"; Filename: "{app}\EMA Reader.exe"
 Name: "{autodesktop}\EMA Reader"; Filename: "{app}\EMA Reader.exe"; Tasks: desktopicon
 
+; no "skipifsilent": the app updates itself by running this installer silently, and must come back afterwards
 [Run]
-Filename: "{app}\EMA Reader.exe"; Description: "{cm:LaunchProgram,EMA Reader}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\EMA Reader.exe"; Description: "{cm:LaunchProgram,EMA Reader}"; Flags: nowait postinstall

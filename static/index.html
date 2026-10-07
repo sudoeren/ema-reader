@@ -87,7 +87,8 @@
   a.btn { text-decoration: none; }
   .notes { white-space: pre-wrap; font-size: 14.5px; line-height: 1.55; color: var(--text); max-height: 260px; overflow-y: auto; margin: 0 0 6px; }
   .how { color: var(--muted); font-size: 14px; line-height: 1.5; margin: 14px 0 0; }
-  .how code { display: block; margin-top: 8px; padding: 9px 12px; border-radius: 8px; background: var(--soft); color: var(--ink); font: 13.5px ui-monospace, "SF Mono", Menlo, Consolas, monospace; user-select: all; }
+  #update-progress { margin-top: 16px; }
+  #update-error:empty { display: none; }
   .about .version button { color: var(--accent); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 
   .welcome { text-align: center; padding: 70px 20px 0; }
@@ -379,6 +380,7 @@
       <div class="field"><span data-t="theme"></span><div class="choice" id="set-theme"></div></div>
       <div class="field"><span data-t="accent"></span><div class="swatches" id="set-accent"></div></div>
       <div class="field"><span data-t="textSize"></span><div class="choice" id="set-size"></div></div>
+      <div class="field"><span><span id="set-version"></span><small id="set-version-state"></small></span><button class="btn quiet" id="set-version-action"></button></div>
       <div class="field"><span><span data-t="updates"></span><small data-t="updatesHint"></small></span><div class="choice" id="set-updates"></div></div>
       <div class="field"><span><span data-t="tourAgain"></span><small data-t="tourAgainHint"></small></span><button class="btn quiet" id="replay-tour" data-t="show"></button></div>
     </div>
@@ -443,9 +445,14 @@
     <h5 data-t="whatsNew"></h5>
     <p class="notes" id="update-notes"></p>
     <p class="how" id="update-how"></p>
+    <div class="progress" id="update-progress" hidden>
+      <div class="track"><i id="update-bar"></i></div>
+      <p><span id="update-step"></span></p>
+    </div>
+    <p class="status error" id="update-error" role="status"></p>
     <div class="footer">
       <a class="btn quiet" id="update-page" target="_blank" rel="noopener" data-t="updatePage"></a>
-      <a class="btn" id="update-download" target="_blank" rel="noopener"><svg width="16" height="16"><use href="#i-down"/></svg><span data-t="updateDownload"></span></a>
+      <button class="btn" id="update-run" data-t="updateSee"></button>
     </div>
   </div>
 </dialog>
@@ -533,13 +540,13 @@ const WORDS = {
   aboutText: "EMA Reader, kitapları ve makaleleri sana Türkçe sesli okuyan açık kaynaklı bir uygulamadır. Her şey kendi bilgisayarında çalışır; okudukların hiçbir yere gönderilmez.",
   madeBy: "Geliştiren", voice: "Ses modeli", source: "Kaynak kod", notice: "Not", noticeText: "Duyduğun ses yapay zekâ ile üretilmiştir.",
   version: v => `Sürüm ${v}`,
-  updates: "Güncellemeleri denetle", updatesHint: "Açılışta yeni bir sürüm çıkmış mı diye GitHub'a bakar", on: "Açık", off: "Kapalı",
-  updateFound: v => `EMA Reader ${v} yayınlandı.`, updateSee: "Güncelle", updateLater: "Şimdi değil",
-  updateTitle: v => `Yeni sürüm: ${v}`, whatsNew: "Yenilikler", noNotes: "Bu sürüm için not yazılmamış.",
-  updateDownload: "İndir ve kur", updatePage: "Sürüm sayfası",
-  updateHowInstaller: v => `Sende ${v} sürümü var. İndirdiğin dosyayı açıp kur; kitaplığın ve ayarların yerinde kalır.`,
-  updateHowSource: v => `Sende ${v} sürümü var. Güncellemek için uygulamanın klasöründe şunu çalıştır, sonra uygulamayı yeniden aç:`,
-  upToDate: " · güncel", newerVersion: v => `${v} sürümü çıktı`,
+  updates: "Açılışta denetle", updatesHint: "Her açılışta yeni bir sürüm çıkmış mı diye GitHub'a bakar", on: "Açık", off: "Kapalı",
+  updateFound: v => `EMA Reader ${v} yayınlandı.`, updateSee: "Güncelle", updateLater: "Şimdi değil", updateCheck: "Denetle",
+  updateTitle: v => `Yeni sürüm: ${v}`, whatsNew: "Yenilikler", noNotes: "Bu sürüm için not yazılmamış.", updatePage: "Sürüm sayfası",
+  updateHow: v => `Sende ${v} sürümü var. Güncelle'ye basman yeterli: uygulama yeni sürümü kendisi kurar ve yeniden açılır. Kitaplığın ve ayarların yerinde kalır.`,
+  upToDate: "Güncel", newerVersion: v => `${v} sürümü çıktı`, checking: "Denetleniyor…", checkFailed: "Denetlenemedi. İnternet bağlantını kontrol et.",
+  updateSteps: {preparing: "Hazırlanıyor…", downloading: "Yeni sürüm indiriliyor…", installing: "Kuruluyor…", restarting: "Uygulama yeniden başlatılıyor…"},
+  updateFailed: "Güncellenemedi.", updateDone: v => `EMA Reader ${v} sürümüne güncellendi.`,
   addFailed: "Eklenemedi.",
   tourWelcome: "Hoş geldin!", tourIntro: "EMA Reader kitapları ve makaleleri sana Türkçe okur. Nasıl çalıştığını yarım dakikada gösterelim.",
   tourStart: "Göster", tourNext: "İleri", tourDone: "Başlayalım", tourSkip: "Geç", tourMute: "Sesli anlatımı kapat", tourUnmute: "Sesli anlatımı aç",
@@ -913,33 +920,84 @@ document.querySelectorAll("#settings-dialog [data-tab]").forEach(b => b.onclick 
 function openSettings(tab = "settings") { drawSettings(); showTab(tab); $("settings-dialog").showModal(); }
 $("open-settings").onclick = $("open-settings-reader").onclick = () => openSettings();
 $("replay-tour").onclick = () => { $("settings-dialog").close(); showStep(0); };
-fetch("/health").then(r => r.json()).then(d => { if (d.version) $("version").textContent = t("version", d.version); }).catch(() => {});
+fetch("/health").then(r => r.json()).then(d => {
+  if (!d.version) return;
+  $("version").textContent = $("set-version").textContent = t("version", d.version);
+  let before = null;
+  try { before = localStorage.getItem("updating"); localStorage.removeItem("updating"); } catch {}
+  if (before && before !== d.version) toast(t("updateDone", d.version));   // back from an update
+}).catch(() => {});
 
-/* updates: the server asks GitHub for the latest release; a newer one is offered in the library and under "about" */
+/* updates: the server asks GitHub for the latest release; a newer one is offered in the library and in settings,
+   and installed from here: the server fetches it, puts it in place and starts the app again */
 
-let update = null;   // the latest answer: {current, latest, newer, notes, page, download, packaged}
-async function checkUpdate() {
-  update = null;
-  if (settings.updates) try { update = await api("/api/update"); } catch {}
+let update = null;   // the latest answer: {current, latest, newer, notes, page, download, packaged, job}
+async function checkUpdate(fresh = false) {
+  if (fresh) { $("set-version-state").textContent = t("checking"); $("set-version-state").className = ""; }
+  let failed = false;
+  if (settings.updates || fresh) try { update = await api(`/api/update${fresh ? "?fresh=1" : ""}`); } catch { failed = true; }
   let later = null;
   try { later = localStorage.getItem("later"); } catch {}
   const newer = Boolean(update?.newer);
   $("update").hidden = !newer || later === update.latest;   // "not now" hides the bar for that version only
   if (newer) $("update-text").replaceChildren(el("b", "", t("updateFound", update.latest)));
-  const state = newer ? el("button", "", t("newerVersion", update.latest)) : update?.latest ? t("upToDate") : "";
-  if (newer) { state.onclick = openUpdate; $("version-state").replaceChildren(" · ", state); } else $("version-state").replaceChildren(state);
+  const state = newer ? el("button", "", t("newerVersion", update.latest)) : update?.latest ? t("upToDate").toLocaleLowerCase(lang) : "";
+  if (newer) state.onclick = openUpdate;
+  $("version-state").replaceChildren(...(state ? [" · ", state] : []));
+  // settings: the version, what is known about a newer one, and one button that checks or updates
+  $("set-version-state").textContent = failed || (fresh && !update?.latest) ? t("checkFailed") : newer ? t("newerVersion", update.latest) : update?.latest ? t("upToDate") : "";
+  $("set-version-action").textContent = t(newer ? "updateSee" : "updateCheck");
+  $("set-version-action").className = newer ? "btn" : "btn quiet";
+  $("set-version-action").onclick = newer ? openUpdate : () => checkUpdate(true);
 }
+
 function openUpdate() {
   document.querySelectorAll("dialog[open]").forEach(d => d.close());
   $("update-title").textContent = t("updateTitle", update.latest);
   $("update-notes").textContent = update.notes || t("noNotes");
-  const installer = update.packaged && update.download;
-  $("update-how").replaceChildren(t(installer ? "updateHowInstaller" : "updateHowSource", update.current), ...(installer ? [] : [el("code", "", "git pull")]));
-  $("update-download").hidden = !installer; if (installer) $("update-download").href = update.download;
+  $("update-how").textContent = t("updateHow", update.current);
   $("update-page").hidden = !update.page; if (update.page) $("update-page").href = update.page;
+  $("update-progress").hidden = true; $("update-run").hidden = false; $("update-error").textContent = "";
   $("update-dialog").showModal();
+  if (update.job?.state === "working") followUpdate();   // already on its way, from another window
+}
+
+async function runUpdate() {
+  try {
+    await api("/api/update", {method: "POST", headers: {"X-EMA-Reader": "update"}});
+    try { localStorage.setItem("updating", update.current); } catch {}   // to say so once the new version is up
+    followUpdate();
+  } catch (e) {
+    $("update-error").textContent = e.told ? e.message : t("updateFailed");
+  }
+}
+
+async function followUpdate() {
+  $("update-run").hidden = true; $("update-progress").hidden = false; $("update-error").textContent = "";
+  const from = update.current;
+  const show = (step, progress) => {
+    $("update-step").textContent = t("updateSteps")[step] || t("updateSteps").preparing;
+    $("update-bar").style.width = step === "restarting" ? "100%" : step === "downloading" && progress ? `${100 * progress}%` : step === "installing" ? "80%" : "12%";
+  };
+  show("preparing");
+  let gone = false;   // the old app has stopped answering: the new one is starting
+  for (let tries = 0; tries < 400; tries++) {
+    await wait(700);
+    try {
+      const now = await api("/api/update");
+      if (now.current !== from) return location.reload();
+      if (gone) continue;   // it answered again with the old version: still on its way down
+      if (now.job.state === "failed") {
+        $("update-progress").hidden = true; $("update-run").hidden = false;
+        $("update-error").textContent = now.job.error || t("updateFailed");
+        return;
+      }
+      show(now.job.step, now.job.progress);
+    } catch { gone = true; show("restarting"); }
+  }
 }
 $("update-open").onclick = openUpdate;
+$("update-run").onclick = runUpdate;
 $("update-later").onclick = () => { try { localStorage.setItem("later", update.latest); } catch {} $("update").hidden = true; };
 checkUpdate();
 

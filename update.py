@@ -2,20 +2,32 @@
 
     check("1.0.0")
     # {"current": "1.0.0", "latest": "1.1.0", "newer": True, "notes": "...", "page": "https://...",
-    #  "download": "https://..." or None, "packaged": False}
+    #  "download": "https://..." or None, "packaged": False,
+    #  "job": {"state": "idle" | "working" | "failed", "step": ..., "progress": 0..1, "error": ...}}
+    start("1.0.0")   # install the newer version in the background and start the app again
 
 A version is published by pushing a tag such as v1.1.0: the build workflow then makes a GitHub
 release with the installers and that version's section of CHANGELOG.md as its notes. This asks
 GitHub for the latest release, at most once every few hours, and never fails: without a network
 or a release, `latest` is None and `newer` is False.
+
+Installing needs nothing from the reader. A copy that runs from source (Linux) pulls the new code
+with git and syncs its packages with uv. The Windows build downloads the new installer and runs
+it quietly; the macOS build downloads the disk image and swaps the application. Each then starts
+the app again.
 """
 
 import json
 import os
 import re
+import shutil
+import subprocess
 import sys
+import tempfile
+import threading
 import time
 import urllib.request
+from pathlib import Path
 
 REPO = "sudoeren/ema-reader"
 URL = os.environ.get("EMA_READER_UPDATE_URL") or f"https://api.github.com/repos/{REPO}/releases/latest"
@@ -23,7 +35,10 @@ FRESH = 6 * 3600  # how long an answer is kept
 RETRY = 600  # how soon to ask again after a failure
 INSTALLERS = {"win32": ".exe", "darwin": ".dmg"}  # on Linux the app runs from source and is updated with git
 
+ROOT = Path(__file__).parent
+
 cache = {"until": 0, "release": None}
+job = {"state": "idle", "step": None, "progress": 0, "error": None}
 
 
 def number(version):
@@ -58,9 +73,9 @@ def changelog(text, version):
     return found.group(1).strip() if found else None
 
 
-def check(current):
+def check(current, fresh=False):
     now = time.time()
-    if now >= cache["until"]:
+    if fresh or now >= cache["until"]:
         try:
             request = urllib.request.Request(URL, headers={"Accept": "application/vnd.github+json", "User-Agent": f"EMA Reader/{current}"})
             with urllib.request.urlopen(request, timeout=6) as response:
@@ -70,7 +85,125 @@ def check(current):
             cache["until"] = now + RETRY
     found = cache["release"] or {"latest": None, "notes": "", "page": None, "download": None}
     return {"current": current, **found, "newer": bool(found["latest"]) and number(found["latest"]) > number(current),
-            "packaged": bool(getattr(sys, "frozen", False))}
+            "packaged": bool(getattr(sys, "frozen", False)), "job": dict(job)}
+
+
+class Failed(Exception):
+    """Something the reader can be told, in Turkish."""
+
+
+def start(current):
+    """Begin installing the newer version; `job` then says how far it is."""
+    if job["state"] == "working":
+        return dict(job)
+    found = check(current)
+    if not found["newer"]:
+        raise ValueError("Zaten en güncel sürümü kullanıyorsun.")
+    job.update(state="working", step="preparing", progress=0, error=None)
+    threading.Thread(target=install, args=(found,), daemon=True).start()
+    return dict(job)
+
+
+def install(found):
+    try:
+        if not getattr(sys, "frozen", False):
+            from_source()
+        elif sys.platform == "win32":
+            with_installer(found)
+        elif sys.platform == "darwin":
+            with_disk_image(found)
+        else:
+            raise Failed("Bu kopya kendini güncelleyemiyor.")
+    except Failed as e:
+        job.update(state="failed", error=str(e))
+    except Exception as e:
+        job.update(state="failed", error=f"Güncelleme yarıda kaldı: {e}")
+
+
+def last_line(text):
+    return next((line.strip() for line in reversed((text or "").splitlines()) if line.strip()), "")
+
+
+def from_source():
+    """A git checkout: pull the new code, bring the packages in line, start again."""
+    if not (ROOT / ".git").exists() or not shutil.which("git"):
+        raise Failed("Bu kopya git ile kurulmamış. Yeni sürümü sürüm sayfasından indirebilirsin.")
+    job["step"] = "downloading"
+    pulled = subprocess.run(["git", "-C", str(ROOT), "pull", "--ff-only"], capture_output=True, text=True)
+    if pulled.returncode:
+        raise Failed(f"Yeni sürüm alınamadı: {last_line(pulled.stderr) or last_line(pulled.stdout)}")
+    # the packages, when this Python is the project's own environment and uv is there to sync it
+    if shutil.which("uv") and Path(sys.prefix).resolve() == (ROOT / ".venv").resolve():
+        job["step"] = "installing"
+        desktop = Path(getattr(sys.modules.get("__main__"), "__file__", "")).name == "desktop.py"
+        synced = subprocess.run(["uv", "sync", *(["--extra", "desktop"] if desktop else [])], cwd=ROOT, capture_output=True, text=True)
+        if synced.returncode:
+            raise Failed(f"Kod güncellendi ama gerekli paketler kurulamadı: {last_line(synced.stderr)}")
+    job["step"] = "restarting"
+    time.sleep(1.5)  # long enough for the page to hear that the app is about to start again
+    os.execv(sys.executable, [sys.executable, *sys.argv])
+
+
+def download(found, name):
+    if not found["download"]:
+        raise Failed("Bu sürümün kurulum dosyası henüz yayınlanmamış. Biraz sonra yeniden dene.")
+    job["step"] = "downloading"
+    path = Path(tempfile.mkdtemp(prefix="ema-reader-update-")) / name
+    request = urllib.request.Request(found["download"], headers={"User-Agent": f"EMA Reader/{found['current']}"})
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response, open(path, "wb") as out:
+            total, done = int(response.headers.get("Content-Length") or 0), 0
+            while data := response.read(1 << 16):
+                out.write(data)
+                done += len(data)
+                job["progress"] = done / total if total else 0
+    except OSError as e:
+        raise Failed(f"Yeni sürüm indirilemedi: {e}") from None
+    return path
+
+
+def with_installer(found):
+    """Windows: run the new installer quietly; it replaces the files and starts the app again."""
+    setup = download(found, "EMA-Reader-Setup.exe")
+    job["step"] = "restarting"
+    time.sleep(1.5)
+    flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+    subprocess.Popen([str(setup), "/SILENT", "/SUPPRESSMSGBOXES", "/NORESTART"], close_fds=True, creationflags=flags)
+    os._exit(0)  # the installer cannot replace a program that is running
+
+
+SWAP = """#!/bin/sh
+# waits for the app to quit, puts the new one from the disk image in its place and opens it;
+# the old application stays until the new one is fully copied
+app="$1"; image="$2"; pid="$3"
+while kill -0 "$pid" 2>/dev/null; do sleep 0.3; done
+mount=$(mktemp -d)
+if hdiutil attach "$image" -nobrowse -noautoopen -quiet -mountpoint "$mount"; then
+  new="$mount/$(basename "$app")"
+  if [ -d "$new" ] && rm -rf "$app.new" && ditto "$new" "$app.new"; then
+    rm -rf "$app.old"
+    mv "$app" "$app.old" && mv "$app.new" "$app" && rm -rf "$app.old"
+    [ -d "$app" ] || mv "$app.old" "$app"
+  fi
+  hdiutil detach "$mount" -quiet
+fi
+rm -rf "$app.new" "$(dirname "$image")"
+open "$app"
+"""
+
+
+def with_disk_image(found):
+    """macOS: swap the application for the one in the new disk image, once this one has quit."""
+    app = Path(sys.executable).resolve().parents[2]  # EMA Reader.app/Contents/MacOS/EMA Reader
+    if app.suffix != ".app" or not os.access(app.parent, os.W_OK):
+        raise Failed("Uygulama bulunduğu yerde değiştirilemiyor. Onu Uygulamalar klasörüne taşıyıp yeniden dene.")
+    image = download(found, "EMA-Reader.dmg")
+    script = image.with_name("swap.sh")
+    script.write_text(SWAP, encoding="utf-8")
+    job["step"] = "restarting"
+    time.sleep(1.5)
+    subprocess.Popen(["/bin/sh", str(script), str(app), str(image), str(os.getpid())], start_new_session=True, close_fds=True)
+    os._exit(0)
 
 
 if __name__ == "__main__":

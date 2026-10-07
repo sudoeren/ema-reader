@@ -23,7 +23,8 @@ Endpoints:
     GET    /api/exports/JOB/file               the finished file
     DELETE /api/exports/JOB                    cancel
     GET    /api/books/ID/chapters/N/audio      a chapter as one WAV file
-    GET    /api/update                         {"current", "latest", "newer", "notes", "page", "download", "packaged"}
+    GET    /api/update                         {"current", "latest", "newer", "notes", "page", "download", "packaged", "job"}; ?fresh=1 asks again
+    POST   /api/update                         install the newer version and start again (from this computer only)
     GET    /tts, POST /tts                     text, speed, seed, sample_rate, stream
 """
 
@@ -176,7 +177,7 @@ class Handler(BaseHTTPRequestHandler):
         elif url.path == "/tts":
             self.tts(query)
         elif url.path == "/api/update":
-            self.send_json(200, update.check(VERSION))
+            self.send_json(200, update.check(VERSION, fresh=query.get("fresh") == "1"))
         elif url.path == "/api/books":
             self.list_books()
         elif book and not book.group(2):
@@ -196,6 +197,8 @@ class Handler(BaseHTTPRequestHandler):
             params = self.read_json()
             if params is not None:
                 self.tts(params)
+        elif url.path == "/api/update":
+            self.update()
         elif url.path == "/api/books":
             self.add_book(dict(parse_qsl(url.query)))
         elif BOOK.fullmatch(url.path) and BOOK.fullmatch(url.path).group(2) == "/export":
@@ -287,6 +290,16 @@ class Handler(BaseHTTPRequestHandler):
                       {"Cache-Control": "max-age=31536000, immutable"})
         except FileNotFoundError:
             self.send_json(404, {"error": "Bu kitabın kapağı yok."})
+
+    def update(self):
+        # replacing the program is for the reader at this computer only: not for others on the network, and not for
+        # a web page open in the browser, which cannot send this header to another site
+        if self.client_address[0] not in ("127.0.0.1", "::1") or self.headers.get("X-EMA-Reader") != "update":
+            return self.send_json(403, {"error": "Güncelleme yalnızca uygulamanın içinden başlatılabilir."})
+        try:
+            self.send_json(202, update.start(VERSION))
+        except ValueError as e:
+            self.send_json(400, {"error": str(e)})
 
     # keeping: a chapter or a book as audio or text files
 
