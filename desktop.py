@@ -196,7 +196,7 @@ def run_gtk(data, splash):
         buttons = {
             "back": button("go-previous-symbolic", "back", "start"),
             "add": button("list-add-symbolic", "add", "start"),
-            "settings": button("emblem-system-symbolic", "settings", "end"),
+            "settings": button("preferences-system-symbolic", "settings", "end"),
             "chapters": button("view-list-symbolic", "chapters", "end"),
             "download": button("folder-download-symbolic", "download", "end"),
             "info": button("help-about-symbolic", "info", "end"),
@@ -210,7 +210,7 @@ def run_gtk(data, splash):
                 title.set_title(message.get("title") or NAME)
                 title.set_subtitle(message.get("subtitle") or "")
                 shown = {"back": reader, "info": reader, "download": reader, "chapters": reader and message.get("chapters", False),
-                         "add": not reader and not empty, "search": not reader and not empty, "settings": not reader}
+                         "add": not reader and not empty, "search": not reader and not empty, "settings": True}
                 for name, visible in shown.items():
                     buttons[name].set_visible(visible)
             if "theme" in message:
