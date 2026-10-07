@@ -66,3 +66,34 @@ def test_before_the_download_speech_asks_for_it_and_only_the_app_may_start_it(mo
         assert found.value.code == 403
     finally:
         server.shutdown()
+
+
+def test_removed_downloads_go_when_the_app_starts_again(monkeypatch, tmp_path):
+    monkeypatch.setenv("EMA_READER_RUNTIME", str(tmp_path / "runtime"))
+    shared = tmp_path / "cache" / "models--ema"
+    monkeypatch.setattr(runtime, "model_folder", lambda: shared)
+    monkeypatch.setattr(runtime, "leaving", False)
+    monkeypatch.setattr(sys, "path", list(sys.path))
+    for folder, size in ((tmp_path / "runtime" / "site" / "torch", 300), (shared / "blobs", 40)):
+        folder.mkdir(parents=True)
+        (folder / "data").write_bytes(bytes(size))
+    (tmp_path / "runtime" / "state.json").write_text('{"choice": "cpu"}')
+    (tmp_path / "runtime" / "library").mkdir()
+    assert runtime.used() == 340
+
+    runtime.remove()
+    runtime.activate()  # the app that is still running leaves them alone
+    assert runtime.used() == 340
+
+    monkeypatch.setattr(runtime, "leaving", False)  # the app that starts next
+    runtime.activate()
+    assert runtime.used() == 0 and not shared.exists() and runtime.state() == {}
+    assert (tmp_path / "runtime" / "library").is_dir() and not (tmp_path / "runtime" / "remove").exists()
+
+
+def test_nothing_is_removed_in_the_middle_of_a_download(monkeypatch, tmp_path):
+    monkeypatch.setenv("EMA_READER_RUNTIME", str(tmp_path))
+    monkeypatch.setitem(runtime.job, "state", "working")
+    with pytest.raises(ValueError):
+        runtime.remove()
+    assert not (tmp_path / "remove").exists()

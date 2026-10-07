@@ -32,6 +32,8 @@ Endpoints:
     POST   /api/update                         install the newer version and start again (from this computer only)
     GET    /api/setup                          what the first start downloads: {"ready", "choices", "using", "device", "job", ...}
     POST   /api/setup                          {"choice": "cuda" | "mps" | "cpu"}: download it (from this computer only)
+    GET    /api/downloads                      {"bytes": 123}: how much room the downloaded PyTorch and model take
+    DELETE /api/downloads                      remove them and start again (from this computer only)
     POST   /api/restart                        start again, to use what was downloaded (from this computer only)
 
 Until the model is there, speech answers 503 with {"setup": true}; while it loads, requests wait for it.
@@ -251,6 +253,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, {"status": "ok", "version": VERSION})
         elif url.path == "/tts":
             self.tts(query)
+        elif url.path == "/api/downloads":
+            self.send_json(200, {"bytes": runtime.used()})
         elif url.path == "/api/update":
             self.send_json(200, update.check(VERSION, fresh=query.get("fresh") == "1"))
         elif url.path == "/api/setup":
@@ -311,6 +315,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_DELETE(self):
         path = urlparse(self.path).path
+        if path == "/api/downloads":
+            return self.remove_downloads()
         if PENDING.fullmatch(path) and not PENDING.fullmatch(path).group(2):
             pending.pop(PENDING.fullmatch(path).group(1), None)
             return self.send_json(200, {"forgotten": PENDING.fullmatch(path).group(1)})
@@ -412,6 +418,17 @@ class Handler(BaseHTTPRequestHandler):
         if self.from_app():
             self.send_json(202, {})
             threading.Thread(target=update.restart, daemon=True).start()
+
+    def remove_downloads(self):
+        """What the first start downloaded goes when the app starts again, so it is started again at once."""
+        if not self.from_app():
+            return
+        try:
+            runtime.remove()
+        except ValueError as e:
+            return self.send_json(409, {"error": str(e)})
+        self.send_json(202, {})
+        threading.Thread(target=update.restart, daemon=True).start()
 
     def update(self):
         if not self.from_app():
