@@ -47,6 +47,10 @@ def free_port():
     """PORT if it is free, otherwise any free port."""
     for port in (PORT, 0):
         with socket.socket() as s:
+            if os.name != "nt":
+                # as the server itself does: a port whose last connections are still winding down is free.
+                # Without this, an app that starts again at once (after an update) lands on another port
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             try:
                 s.bind(("127.0.0.1", port))
                 return s.getsockname()[1]
