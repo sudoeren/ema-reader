@@ -154,15 +154,18 @@
   .contents small { color: var(--faint); font-size: 13px; white-space: nowrap; }
   .contents button.current span { font-weight: 600; color: var(--accent); }
 
-  /* about a book: not a window in the middle but a panel that floats in from the left */
-  #info-dialog { inset: 16px auto 16px 16px; margin: 0; width: min(460px, calc(100vw - 32px)); height: calc(100vh - 32px); max-height: none; animation: panel-in .22s ease-out; }
+  /* about a book: not a window over the page but a panel that floats in at the left edge, and the page makes room for it */
+  #info-dialog { position: fixed; z-index: 6; inset: 16px auto 16px 16px; margin: 0; width: min(460px, calc(100vw - 32px)); height: calc(100vh - 32px); max-height: none; overflow-y: auto; animation: panel-in .22s ease-out;
+                 box-shadow: 0 20px 60px -20px var(--shade), 0 0 0 1px var(--line); }
+  body { padding-left: var(--side, 0px); transition: padding-left .22s ease-out; }
+  @media (min-width: 1000px) { body.with-info { --side: 484px; } }   /* a narrower window has no room to give: there the panel lies over the page */
   #info-dialog .sheet { display: flex; flex-direction: column; min-height: 100%; }
   #info-dialog .bookhead .cover { width: 108px; }
   #info-dialog .bookhead h3 { font-size: 24px; }
   #info-dialog .describe { flex: none; }
   #info-dialog .contents { flex: 1 1 0; min-height: 150px; max-height: none; }
   @keyframes panel-in { from { opacity: 0; transform: translateX(-28px); } }
-  @media (prefers-reduced-motion: reduce) { #info-dialog { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { #info-dialog { animation: none; } body { transition: none; } }
 
   .options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .options button { text-align: left; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--line); min-width: 0; }
@@ -197,7 +200,7 @@
   #text span:hover { background: var(--soft); }
   #text span.current { background: var(--accent-soft); color: var(--ink); }
 
-  #player { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; padding: 10px 14px 10px 12px; border-radius: 999px; background: var(--surface); box-shadow: 0 14px 40px -10px var(--shade), 0 0 0 1px var(--line); }
+  #player { position: fixed; left: calc(50% + var(--side, 0px) / 2); bottom: 26px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; padding: 10px 14px 10px 12px; border-radius: 999px; background: var(--surface); box-shadow: 0 14px 40px -10px var(--shade), 0 0 0 1px var(--line); }
   #play { width: 48px; height: 48px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
   #play:hover { opacity: .88; }
   #player .mini { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); }
@@ -667,6 +670,7 @@ document.querySelectorAll("dialog").forEach(dialog => {
   dialog.querySelectorAll("[data-close]").forEach(b => b.onclick = () => dialog.close());
   dialog.addEventListener("click", e => { if (e.target === dialog) dialog.close(); });
 });
+$("info-dialog").addEventListener("close", () => document.body.classList.remove("with-info"));
 const chapterTitle = (b, n) => b.chapters[n].title || t("chapterN", n + 1);
 
 /* library */
@@ -793,7 +797,9 @@ window.addEventListener("drop", e => {
 
 /* about a book: its cover, description and contents */
 
+let infoOf = null;   // the book the panel is about
 async function openInfo(id) {
+  infoOf = id;
   const b = book?.id === id ? book : await api(`/api/books/${id}`);
   const about = b.about || {};
   const sizes = b.chapters.map(c => c.paragraphs.reduce((sum, p) => sum + p.reduce((n, s) => n + s.length, 0), 0));
@@ -829,7 +835,8 @@ async function openInfo(id) {
     row.onclick = () => open(i, 0, false);
     return row;
   }));
-  $("info-dialog").showModal();
+  $("info-dialog").show();   // not modal: the page stays in use beside it
+  document.body.classList.add("with-info");
 }
 
 /* downloading: a chapter or the whole book, as audio or text */
@@ -1005,6 +1012,7 @@ checkUpdate();
 
 async function openBook(id, start = false, number = null, sentence = null) {
   book = await api(`/api/books/${id}`);
+  if (infoOf !== id) $("info-dialog").close();   // the panel beside the page was about another book
   $("library").hidden = true; $("reader").hidden = false;
   $("book-title").textContent = book.title; $("book-author").textContent = book.author || "";
   document.title = `${book.title} · EMA Reader`;
@@ -1245,7 +1253,8 @@ showSpeed();
 
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") { $("speeds").hidden = true; $("chapters").classList.remove("open"); }
-  if (!book || document.querySelector("dialog[open]") || tour.step >= 0 || e.target.matches("input")) return;
+  if (e.key === "Escape" && !document.querySelector("dialog:modal")) $("info-dialog").close();
+  if (!book || document.querySelector("dialog:modal") || tour.step >= 0 || e.target.matches("input")) return;
   if (e.key === " " && e.target.matches("button")) return;   // the focused button handles it
   if (e.key === " ") { e.preventDefault(); toggle(); }
   else if (e.key === "ArrowRight") jump(index + 1);
