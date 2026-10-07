@@ -22,6 +22,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
 
+      # the release notes are this version's section of CHANGELOG.md; the app shows them when it offers the update.
+      # This fails when the tag, VERSION in app.py and CHANGELOG.md do not agree
+      - name: Release notes
+        if: github.ref_type == 'tag'
+        shell: bash
+        run: uv run --no-project --python 3.12 update.py "$GITHUB_REF_NAME" > release-notes.md
+
       - name: Make the macOS icon
         if: runner.os == 'macOS'
         run: |
@@ -57,6 +64,7 @@ jobs:
         if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
+          body_path: release-notes.md
           files: |
             dist/EMA-Reader-Setup.exe
             dist/EMA-Reader.dmg

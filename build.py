@@ -36,7 +36,7 @@ def run(*command, **kwargs):
 def main():
     if sys.platform == "linux":
         # the Linux window is GTK from the system, which a self-contained folder cannot carry along
-        sys.exit("On Linux, run EMA Reader from source: uv run --extra desktop desktop.py --install")
+        sys.exit("Linux'ta EMA Reader kaynaktan çalışır: uv run --extra desktop desktop.py --install")
     python = VENV / ("Scripts/python.exe" if sys.platform == "win32" else "bin/python")
     if not python.exists():
         run("uv", "venv", VENV, "--python", "3.12")
@@ -58,9 +58,10 @@ def main():
         "--paths", ROOT,
         "--add-data", f"{ROOT / 'static'}{sep}static",
         "--add-data", f"{HF}{sep}hf",
-        "--hidden-import", "app", "--hidden-import", "ema", "--hidden-import", "extract", "--hidden-import", "export",
+        "--hidden-import", "app", "--hidden-import", "ema", "--hidden-import", "extract", "--hidden-import", "export", "--hidden-import", "update",
         "--add-data", f"{ROOT / 'LICENSE'}{sep}.",
         "--add-data", f"{ROOT / 'THIRD_PARTY.md'}{sep}.",
+        "--add-data", f"{ROOT / 'CHANGELOG.md'}{sep}.",
     ]
     if (ROOT / "static" / icon).exists():
         command += ["--icon", ROOT / "static" / icon]
@@ -72,7 +73,7 @@ def main():
     exe = out / "Contents" / "MacOS" / NAME if sys.platform == "darwin" else out / (NAME + (".exe" if sys.platform == "win32" else ""))
     run(exe, "--check")
     size = sum(f.stat().st_size for f in out.rglob("*") if f.is_file()) / 1e6
-    print(f"built {out} ({size:.0f} MB)")
+    print(f"hazır: {out} ({size:.0f} MB)")
     shutil.rmtree(BUILD / "work", ignore_errors=True)
 
 

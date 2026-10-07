@@ -145,13 +145,13 @@ class Job:
 
 def start(tts, book, scope="chapter", chapter=0, kind="mp3", split=False, speed=1.0):
     if kind not in KINDS:
-        raise ValueError(f"format must be one of {', '.join(KINDS)}")
+        raise ValueError(f"format şunlardan biri olmalı: {', '.join(KINDS)}")
     if scope not in ("chapter", "book"):
-        raise ValueError("scope must be chapter or book")
+        raise ValueError("scope, chapter ya da book olmalı")
     if not 0 <= chapter < len(book["chapters"]):
-        raise ValueError("no such chapter")
+        raise ValueError("Böyle bir bölüm yok.")
     if not 0.25 <= speed <= 4:
-        raise ValueError("speed must be a number from 0.25 to 4")
+        raise ValueError("speed 0.25 ile 4 arasında bir sayı olmalı")
     job = Job(tts, book, scope, chapter, kind, bool(split), speed)
     jobs[job.id] = job
     threading.Thread(target=job.run, daemon=True).start()

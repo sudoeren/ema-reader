@@ -10,7 +10,7 @@
   :root {
     --bg: #ffffff; --surface: #ffffff; --ink: #16161a; --on-ink: #ffffff; --text: #2a2a31; --muted: #6b6b75; --faint: #8a8a93;
     --line: #ececef; --strong-line: #d5d5dc; --soft: #f3f3f5; --danger: #c62828;
-    --accent: #2b50ff; --accent-soft: #e4eaff;
+    --accent: #3a3a44; --accent-soft: #e9e9ee; --on-accent: #ffffff;
     --veil: rgba(255,255,255,.86); --shade: rgba(20,20,60,.3); --backdrop: rgba(22,22,26,.35);
     --reading-size: 22px;
     --sans: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -33,14 +33,14 @@
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   [hidden] { display: none !important; }
 
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 18px; border-radius: 10px; background: var(--ink); color: var(--on-ink); font-weight: 600; font-size: 14px; white-space: nowrap; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 18px; border-radius: 10px; background: var(--accent); color: var(--on-accent); font-weight: 600; font-size: 14px; white-space: nowrap; }
   .btn:hover { opacity: .88; }
   .btn.big { padding: 14px 24px; font-size: 15px; border-radius: 999px; }
-  .btn.quiet { background: var(--soft); color: var(--ink); }
-  .btn.quiet:hover { background: var(--line); opacity: 1; }
+  .btn.quiet { background: var(--accent-soft); color: var(--ink); }
+  .btn.quiet:hover { opacity: .8; }
   .btn.danger { background: none; color: var(--danger); padding-left: 8px; padding-right: 8px; }
   .icon { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; color: var(--muted); }
-  .icon:hover { background: var(--soft); color: var(--ink); }
+  .icon:hover { background: var(--accent-soft); color: var(--accent); }
 
   /* library */
   #library { max-width: 1180px; margin: 0 auto; padding: 22px 44px 70px; }
@@ -52,18 +52,26 @@
   .search:focus-within { box-shadow: 0 0 0 2px var(--accent); }
   h2.section { font-size: 13px; font-weight: 600; color: var(--faint); margin: 34px 0 14px; letter-spacing: .2px; }
 
-  .resume { display: flex; align-items: center; gap: 22px; padding: 18px 26px 18px 18px; border: 1px solid var(--line); border-radius: 16px; cursor: pointer; transition: border-color .15s, background .15s; }
-  .resume:hover { border-color: var(--strong-line); background: var(--soft); }
-  .resume .cover { width: 84px; padding: 10px 8px; flex: none; }
-  .resume .cover strong { font-size: 11px; }
+  /* continue where you left off: the book last listened to, on a card lit by its own cover */
+  .resume { position: relative; overflow: hidden; display: flex; align-items: center; gap: 26px; margin-top: 26px; padding: 22px 28px 22px 22px; border-radius: 22px; background: var(--soft);
+            cursor: pointer; }
+  .resume .glow { position: absolute; inset: -40%; background: var(--glow) center / cover; filter: blur(60px) saturate(1.4); opacity: .26; pointer-events: none; }
+  :root[data-theme="dark"] .resume .glow { opacity: .34; }
+  .resume > :not(.glow) { position: relative; }
+  .resume .cover { width: 104px; padding: 11px 9px; flex: none; box-shadow: 0 14px 26px -10px rgba(0,0,0,.55); }
+  .resume .cover strong { font-size: 12px; }
   .resume .cover small { display: none; }
   .resume .info { flex: 1; min-width: 0; }
-  .resume h3 { font-family: var(--serif); font-size: 27px; font-weight: 500; margin: 0 0 4px; letter-spacing: -.3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .resume p { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
-  .resume .go { width: 58px; height: 58px; border-radius: 50%; background: var(--ink); color: var(--on-ink); display: grid; place-items: center; flex: none; transition: transform .15s; }
-  .resume:hover .go { transform: scale(1.06); }
+  .resume .kicker { font-size: 12px; font-weight: 600; letter-spacing: .9px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .resume h3 { font-family: var(--serif); font-size: 32px; font-weight: 500; line-height: 1.12; margin: 0 0 6px; letter-spacing: -.4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .resume p { margin: 0 0 18px; color: var(--muted); font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .resume .bar { display: flex; align-items: center; gap: 14px; font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .resume .bar .track { flex: 1; height: 6px; border-radius: 3px; background: var(--strong-line); }
+  .resume .bar .track i { border-radius: 3px; }
+  .resume .bar b { color: var(--ink); font-weight: 600; }
+  .resume .go { flex: none; gap: 10px; padding: 15px 26px 15px 22px; box-shadow: 0 10px 22px -12px var(--shade); }
   .track { height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
-  .track i { display: block; height: 100%; background: var(--ink); border-radius: 2px; }
+  .track i { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
 
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 28px 22px; }
   .item { position: relative; cursor: pointer; min-width: 0; }
@@ -80,13 +88,23 @@
   .item:hover .more, .item .more:focus-visible { opacity: 1; }
   .none { color: var(--faint); font-size: 14px; }
 
+  .update { display: flex; align-items: center; gap: 12px; margin-top: 18px; padding: 10px 10px 10px 18px; border-radius: 14px; background: var(--accent-soft); font-size: 14.5px; }
+  .update b { font-weight: 600; }
+  .update span { flex: 1; min-width: 0; }
+  .update .btn { padding: 8px 14px; }
+  a.btn { text-decoration: none; }
+  .notes { white-space: pre-wrap; font-size: 14.5px; line-height: 1.55; color: var(--text); max-height: 260px; overflow-y: auto; margin: 0 0 6px; }
+  .how { color: var(--muted); font-size: 14px; line-height: 1.5; margin: 14px 0 0; }
+  #update-progress { margin-top: 16px; }
+  #update-error:empty { display: none; }
+  .about .version button { color: var(--accent); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+
   .welcome { text-align: center; padding: 70px 20px 0; }
   .welcome h1 { font-family: var(--serif); font-weight: 500; font-size: 38px; letter-spacing: -.6px; margin: 0 0 10px; }
   .welcome p { color: var(--muted); margin: 0 0 30px; font-size: 16px; }
 
   /* dialogs */
   dialog { border: 0; border-radius: 20px; padding: 0; width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 48px); background: var(--surface); color: var(--ink); box-shadow: 0 30px 80px -20px var(--shade); }
-  dialog.wide { width: min(680px, calc(100vw - 32px)); }
   dialog::backdrop { background: var(--backdrop); }
   .sheet { padding: 26px; }
   .sheet > header { display: flex; align-items: center; margin-bottom: 18px; }
@@ -100,22 +118,52 @@
   .urlrow { display: flex; gap: 8px; }
   .urlrow input { flex: 1; min-width: 0; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--strong-line); background: var(--bg); outline: 0; font-size: 14px; }
   .urlrow input:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .panel .dropzone { background: var(--surface); padding: 26px 16px; }
+  /* the little book bobs while a file is held over the window, or when the pointer is on it: not all the time,
+     an animation that never rests keeps the whole window redrawing */
+  .dropart { width: 84px; height: 84px; margin: 0 auto 10px; transition: transform .3s cubic-bezier(.2, 1.4, .4, 1); }
+  .dropzone:hover .dropart { transform: translateY(-4px) rotate(-3deg); }
+  body.dragging .dropart { animation: float .9s ease-in-out infinite; }
+  @keyframes float { 50% { transform: translateY(-7px) rotate(-4deg); } }
+  .panel .urlrow { flex-direction: column; }
+  .panel .urlrow input { background: var(--surface); padding: 11px 14px; }
+  .addstate { text-align: center; padding: 70px 10px 0; color: var(--muted); font-size: 15px; }
+  .addstate p { margin: 18px 0 0; overflow-wrap: anywhere; }
+  .wave { display: flex; align-items: center; justify-content: center; gap: 6px; height: 60px; }
+  .wave i { width: 7px; height: 52px; border-radius: 4px; background: var(--accent); transform: scaleY(.25); animation: wave 1s ease-in-out infinite; }
+  .wave i:nth-child(2) { animation-delay: .12s; } .wave i:nth-child(3) { animation-delay: .24s; }
+  .wave i:nth-child(4) { animation-delay: .36s; } .wave i:nth-child(5) { animation-delay: .48s; }
+  @keyframes wave { 50% { transform: scaleY(1); } }
+  #add-preview .bookhead { flex-direction: column; align-items: center; text-align: center; gap: 14px; margin-bottom: 16px; }
+  #add-preview .bookhead .cover { width: 124px; text-align: left; animation: pop .55s cubic-bezier(.2, 1.3, .4, 1) both; }
+  #add-preview .bookhead .cover strong { font-size: 13px; }
+  #add-preview .bookhead .meta { width: 100%; }
+  #add-preview .bookhead h3 { font-size: 23px; }
+  #add-preview .bookhead .facts { margin-bottom: 0; }
+  #add-preview h5 { padding-top: 14px; border-top: 1px solid var(--line); }
+  .excerpt { font-family: var(--serif); font-size: 15.5px; line-height: 1.55; color: var(--text); margin: 0 0 14px; }
+  #add-contents .more { padding: 6px 8px; color: var(--faint); font-size: 13px; }
+  @keyframes pop { from { opacity: 0; transform: scale(.7) rotate(-7deg); } }
+  .tick { width: 76px; height: 76px; fill: none; stroke: var(--accent); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; animation: pop .5s cubic-bezier(.2, 1.4, .4, 1) both; }
+  .tick path { stroke-dasharray: 40; stroke-dashoffset: 40; animation: draw .35s ease-out .25s forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  @media (prefers-reduced-motion: reduce) { .dropart, .wave i, #add-preview .bookhead .cover, .tick { animation: none; } .wave i { transform: scaleY(.7); } .tick path { animation: none; stroke-dashoffset: 0; } }
   .status { min-height: 20px; margin: 14px 0 0; font-size: 14px; color: var(--muted); }
   .status.error { color: var(--danger); }
 
   .tabs { display: flex; gap: 4px; flex: 1; }
   .tabs button { padding: 7px 14px; border-radius: 8px; font-size: 15px; font-weight: 600; color: var(--muted); }
-  .tabs button.on { background: var(--soft); color: var(--ink); }
+  .tabs button.on { background: var(--accent-soft); color: var(--ink); }
   .field { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); }
   .field:first-of-type { border-top: 0; }
   .field > span { flex: 1; font-size: 15px; font-weight: 500; }
   .field > span small { display: block; font-weight: 400; color: var(--muted); font-size: 13px; margin-top: 2px; }
   .choice { display: flex; gap: 4px; padding: 3px; border-radius: 10px; background: var(--soft); flex-wrap: wrap; }
   .choice button { padding: 6px 12px; border-radius: 8px; font-size: 13.5px; font-weight: 600; color: var(--muted); }
-  .choice button.on { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.18); }
+  .choice button.on { background: var(--surface); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.18); }
   .swatches { display: flex; gap: 8px; }
   .swatches button { width: 26px; height: 26px; border-radius: 50%; }
-  .swatches button.on { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
+  .swatches button.on { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent); }
   .about { text-align: center; padding: 6px 0 4px; }
   .about img { width: 84px; height: 84px; }
   .about h4 { margin: 10px 0 2px; font-size: 22px; font-weight: 700; }
@@ -138,28 +186,104 @@
   h5 { font-size: 13px; font-weight: 600; color: var(--faint); margin: 0 0 6px; letter-spacing: .2px; }
   .contents { max-height: 230px; overflow-y: auto; margin: 0 -8px; }
   .contents button { display: flex; gap: 12px; width: 100%; text-align: left; padding: 9px 8px; border-radius: 8px; font-size: 14px; }
-  .contents button:hover { background: var(--soft); }
+  .contents button:hover { background: var(--accent-soft); }
   .contents i { font-style: normal; color: var(--faint); font-variant-numeric: tabular-nums; min-width: 24px; }
   .contents span { flex: 1; overflow-wrap: anywhere; }
   .contents small { color: var(--faint); font-size: 13px; white-space: nowrap; }
   .contents button.current span { font-weight: 600; color: var(--accent); }
 
+  /* side panels: adding, a book's details and downloading at the left edge, the chapters and the settings at the right.
+     Not windows over the page: the page makes room at once, in one step, and only the panel itself moves, which
+     costs nothing however long the chapter beside it is. One panel is open at a time */
+  .panel { position: fixed; z-index: 6; top: 12px; bottom: 12px; margin: 0; width: min(348px, calc(100vw - 24px)); height: calc(100vh - 24px); max-height: none;
+           overflow: hidden; border-radius: 18px; background: var(--soft); box-shadow: 0 0 0 1px var(--line); }
+  .panel.left { left: 12px; right: auto; --from: -34px; transform-origin: left center; }
+  /* at the right it starts under the desktop window's header bar, whose close button must stay in reach */
+  .panel.right { right: 12px; left: auto; --from: 34px; transform-origin: right center; top: calc(12px + var(--top, 0px)); height: calc(100vh - 24px - var(--top, 0px)); }
+  .panel:focus-visible { outline: 0; }
+  .panel[open] { animation: panel-in .34s cubic-bezier(.2, .9, .25, 1.12) both; }
+  .panel.closing { animation: panel-out .17s ease-in both; pointer-events: none; }
+  .panel[open] .scroll > * { animation: rise .42s cubic-bezier(.2, .8, .2, 1) both; }
+  .panel[open] .scroll > :nth-child(2) { animation-delay: .05s; }
+  .panel[open] .scroll > :nth-child(3) { animation-delay: .1s; }
+  .panel[open] .scroll > :nth-child(4) { animation-delay: .15s; }
+  .panel[open] .scroll > :nth-child(n + 5) { animation-delay: .2s; }
+  @keyframes panel-in { from { opacity: 0; transform: translateX(var(--from)) scale(.96); } }
+  @keyframes panel-out { to { opacity: 0; transform: translateX(var(--from)) scale(.98); } }
+  @keyframes rise { from { opacity: 0; transform: translateY(12px); } }
+  @media (prefers-reduced-motion: reduce) { .panel[open], .panel.closing, .panel[open] .scroll > * { animation: none; } }
+  body { padding: var(--top, 0px) var(--side-right, 0px) 0 var(--side, 0px); }
+  /* a narrower window has no room to give: there the panel lies over the page */
+  @media (min-width: 1000px) { body.side-left { --side: 364px; } body.side-right { --side-right: 364px; } }
+  .panel .sheet { display: flex; flex-direction: column; height: 100%; padding: 0; }
+  .panel .sheet > header { margin: 0; padding: 12px 12px 8px 20px; }
+  .panel .sheet > header h3 { font-size: 13px; font-weight: 600; color: var(--faint); letter-spacing: .2px; }
+  .panel .scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 2px 20px 20px; margin-bottom: 10px; }
+  .panel .options { grid-template-columns: repeat(2, 1fr); }
+  .panel .options button { background: var(--surface); border-color: transparent; box-shadow: inset 0 0 0 1px var(--line); }
+  .panel .options button.on { background: var(--surface); border-color: var(--accent); box-shadow: none; }
+  .panel .choice { background: var(--line); }
+  .panel .btn.quiet { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+  .panel .footer { margin-top: 18px; }
+  .panel .footer .btn { flex: 1; padding: 12px 18px; }
+  .panel .field.tall { flex-direction: column; align-items: stretch; gap: 10px; }
+  .panel .field.tall .choice { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; }
+  .panel .field.tall .choice button { padding: 7px 2px; font-size: 13px; white-space: nowrap; }
+  /* four sizes in one row: each as wide as its word needs, so that "Çok büyük" is not cut short */
+  .panel .field.tall #set-size { display: flex; flex-wrap: nowrap; }
+  .panel .field.tall #set-size button { flex: 1 1 auto; padding: 7px 6px; }
+  .panel .tabs button.on { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+  .panel .about dl div { flex-direction: column; gap: 2px; }
+  .panel .about dt { width: auto; font-size: 13px; }
+
+  /* about a book */
+  #info-dialog .bookhead { flex-direction: column; align-items: center; text-align: center; gap: 14px; margin-bottom: 16px; }
+  #info-dialog .bookhead .cover { width: 112px; text-align: left; }
+  #info-dialog .bookhead .cover strong { font-size: 12px; }
+  #info-dialog .bookhead .meta { width: 100%; }
+  #info-dialog .bookhead h3 { font-size: 23px; }
+  #info-dialog .bookhead .by { margin-bottom: 6px; }
+  #info-dialog .bookhead .facts { margin-bottom: 14px; }
+  #info-dialog .bookhead .actions { justify-content: center; }
+  #info-dialog #info-listen { flex: 1 0 100%; padding: 12px 18px; }
+  #info-dialog #info-download { flex: 1; }
+  #info-dialog .describe { font-size: 15px; line-height: 1.5; max-height: none; overflow: visible; margin-bottom: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+  #info-dialog h5 { padding-top: 14px; border-top: 1px solid var(--line); }
+  .panel .contents { max-height: none; overflow: visible; }
+  .panel .contents button:hover, .panel #chapter-list button:hover { background: var(--surface); }
+
+  /* scrollbars inside panels and dialogs: a thin rounded thumb that keeps clear of the edge, and no track */
+  .scroll::-webkit-scrollbar, .contents::-webkit-scrollbar, .describe::-webkit-scrollbar, .notes::-webkit-scrollbar, #chapter-list::-webkit-scrollbar { width: 12px; }
+  .scroll::-webkit-scrollbar-thumb, .contents::-webkit-scrollbar-thumb, .describe::-webkit-scrollbar-thumb, .notes::-webkit-scrollbar-thumb, #chapter-list::-webkit-scrollbar-thumb
+    { background: var(--strong-line); border: 4px solid transparent; border-radius: 999px; background-clip: content-box; min-height: 40px; }
+  .scroll::-webkit-scrollbar-thumb:hover, .contents::-webkit-scrollbar-thumb:hover, .describe::-webkit-scrollbar-thumb:hover, .notes::-webkit-scrollbar-thumb:hover, #chapter-list::-webkit-scrollbar-thumb:hover
+    { background-color: var(--faint); }
+  .scroll::-webkit-scrollbar-track, .contents::-webkit-scrollbar-track, .describe::-webkit-scrollbar-track, .notes::-webkit-scrollbar-track, #chapter-list::-webkit-scrollbar-track { background: transparent; }
+  .scroll::-webkit-scrollbar-button, .contents::-webkit-scrollbar-button, .describe::-webkit-scrollbar-button, .notes::-webkit-scrollbar-button, #chapter-list::-webkit-scrollbar-button { display: none; }
+  @supports not selector(::-webkit-scrollbar) { .scroll, .contents, .describe, .notes, #chapter-list { scrollbar-width: thin; scrollbar-color: var(--strong-line) transparent; } }
+
   .options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .options button { text-align: left; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--line); min-width: 0; }
   .options button:hover { border-color: var(--strong-line); }
-  .options button.on { border-color: var(--ink); background: var(--soft); }
+  .options button.on { border-color: var(--accent); background: var(--accent-soft); }
   .options b { display: block; font-size: 14.5px; }
   .options small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; }
   .options.two { grid-template-columns: repeat(2, 1fr); }
   .options.two small { white-space: nowrap; }
   .check { display: flex; align-items: center; gap: 10px; font-size: 14px; margin-top: 12px; cursor: pointer; }
-  .check input { width: 17px; height: 17px; accent-color: var(--ink); }
+  .check input { width: 17px; height: 17px; accent-color: var(--accent); }
   .group { margin-bottom: 20px; }
   .progress { margin-top: 4px; }
   .progress .track { height: 6px; border-radius: 3px; }
   .progress .track i { transition: width .3s; border-radius: 3px; }
   .progress p { display: flex; justify-content: space-between; gap: 12px; margin: 10px 0 0; font-size: 14px; color: var(--muted); }
   .footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
+  .downhead { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+  .downhead .cover { width: 54px; padding: 6px 5px; border-radius: 4px; flex: none; }
+  .downhead .cover strong { font-size: 7.5px; }
+  .downhead .cover small { display: none; }
+  .downhead b { display: block; font-family: var(--serif); font-size: 19px; font-weight: 500; line-height: 1.2; overflow-wrap: anywhere; }
+  .downhead small { color: var(--muted); font-size: 13.5px; }
 
   /* reader */
   #reader { height: 100%; display: flex; flex-direction: column; }
@@ -177,33 +301,29 @@
   #text span:hover { background: var(--soft); }
   #text span.current { background: var(--accent-soft); color: var(--ink); }
 
-  #player { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; padding: 10px 14px 10px 12px; border-radius: 999px; background: var(--surface); box-shadow: 0 14px 40px -10px var(--shade), 0 0 0 1px var(--line); }
-  #play { width: 48px; height: 48px; border-radius: 50%; background: var(--ink); color: var(--on-ink); display: grid; place-items: center; }
+  #player { position: fixed; left: calc(50% + (var(--side, 0px) - var(--side-right, 0px)) / 2); bottom: 26px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; padding: 10px 14px 10px 12px; border-radius: 999px; background: var(--surface); box-shadow: 0 14px 40px -10px var(--shade), 0 0 0 1px var(--line); }
+  #play { width: 48px; height: 48px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
   #play:hover { opacity: .88; }
   #player .mini { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); }
-  #player .mini:hover { background: var(--soft); color: var(--ink); }
+  #player .mini:hover { background: var(--accent-soft); color: var(--accent); }
   #player .sep { width: 1px; height: 24px; background: var(--line); }
-  #time { font-size: 13px; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  #speed { font-size: 14px; font-weight: 600; padding: 7px 12px; border-radius: 8px; background: var(--soft); font-variant-numeric: tabular-nums; }
-  #speed:hover { background: var(--line); }
+  #time { font-size: 13px; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 84px; text-align: center; }
+  #speed { font-size: 14px; font-weight: 600; padding: 7px 12px; border-radius: 8px; background: var(--accent-soft); font-variant-numeric: tabular-nums; }
+  #speed:hover { opacity: .8; }
   #speeds { position: fixed; bottom: 96px; left: 50%; background: var(--surface); border-radius: 14px; padding: 6px; box-shadow: 0 14px 40px -10px var(--shade), 0 0 0 1px var(--line); display: flex; flex-direction: column; min-width: 150px; }
   #speeds button { display: flex; justify-content: space-between; gap: 18px; padding: 9px 12px; border-radius: 8px; font-size: 14px; text-align: left; }
-  #speeds button:hover { background: var(--soft); }
+  #speeds button:hover { background: var(--accent-soft); }
   #speeds button.on { font-weight: 700; color: var(--accent); }
   #speeds small { color: var(--faint); font-weight: 400; }
 
-  #chapters { position: fixed; top: 0; right: 0; bottom: 0; width: min(340px, 100vw); background: var(--surface); box-shadow: -20px 0 60px -20px var(--shade), 0 0 0 1px var(--line); display: flex; flex-direction: column; transform: translateX(105%); visibility: hidden; transition: transform .2s, visibility .2s; z-index: 5; }
-  #chapters.open { transform: none; visibility: visible; }
-  #chapters header { display: flex; align-items: center; padding: 14px 14px 10px 22px; }
-  #chapters h3 { flex: 1; margin: 0; font-size: 16px; font-weight: 700; }
-  #chapter-list { overflow-y: auto; padding: 0 10px 20px; }
+  #chapter-list { margin: 0 -10px; }
   #chapter-list button { display: flex; gap: 12px; width: 100%; text-align: left; padding: 10px 12px; border-radius: 10px; font-size: 14px; color: var(--muted); }
-  #chapter-list button:hover { background: var(--soft); }
-  #chapter-list button.current { color: var(--ink); font-weight: 600; background: var(--accent-soft); }
+  #chapter-list button:hover { background: var(--accent-soft); }
+  #chapter-list button.current { color: var(--ink); font-weight: 600; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
   #chapter-list i { font-style: normal; color: var(--faint); font-variant-numeric: tabular-nums; min-width: 22px; }
   #chapter-list span { overflow-wrap: anywhere; }
 
-  #toast { position: fixed; left: 50%; top: 20px; transform: translateX(-50%); background: var(--ink); color: var(--on-ink); padding: 10px 18px; border-radius: 10px; font-size: 14px; z-index: 60; }
+  #toast { position: fixed; left: 50%; top: calc(20px + var(--top, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--on-ink); padding: 10px 18px; border-radius: 10px; font-size: 14px; z-index: 60; }
 
   /* onboarding: a veil with a hole around what is being shown, a hand-written note and a dashed arrow */
   #tour { position: fixed; inset: 0; z-index: 50; pointer-events: none; }   /* what it points at stays clickable */
@@ -224,10 +344,10 @@
   #tour-note .row { display: flex; align-items: center; gap: 14px; }
   #tour-note .skip { font-size: 13px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
   #tour-note .sound { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); }
-  #tour-note .sound:hover { background: var(--soft); color: var(--ink); }
+  #tour-note .sound:hover { background: var(--accent-soft); color: var(--accent); }
   #tour-note .dots { margin-left: auto; display: flex; gap: 5px; }
   #tour-note .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--strong-line); }
-  #tour-note .dots i.on { background: var(--ink); }
+  #tour-note .dots i.on { background: var(--accent); }
   #tour-note.center { text-align: center; width: min(460px, calc(100vw - 40px)); }
   #tour-note.center p { font-size: 44px; margin-bottom: 6px; }
   #tour-note.center span { display: block; font-size: 16px; color: var(--muted); margin-bottom: 22px; line-height: 1.5; }
@@ -235,20 +355,23 @@
   @media (prefers-reduced-motion: reduce) { #tour .dashes, #tour .reveal, #tour .head, #tour-note { animation: none; opacity: 1; } }
 
   /* inside the desktop window, whose header bar has the title and these buttons */
+  .shell { --top: 47px; }   /* the window's header bar lies over the top of the page; the window says how tall it is */
   .shell .top, .shell .rtop { display: none; }
   .shell .top.searching { display: flex; justify-content: center; }
   .shell .top.searching > :not(.search) { display: none; }
   .shell .search { width: min(420px, 100%); }
   .shell #library { padding-top: 6px; }
-  .shell #resume-box h2.section, .shell #shelf > h2.section:first-child { margin-top: 20px; }
+  .shell .resume { margin-top: 14px; }
+  .shell #shelf > h2.section:first-child { margin-top: 20px; }
 
   @media (max-width: 720px) {
     #library { padding: 16px 18px 60px; }
     .top { flex-wrap: wrap; }
     .search { order: 3; width: 100%; }
-    .resume { padding-right: 18px; gap: 14px; }
-    .resume .cover { width: 60px; }
-    .resume h3 { font-size: 21px; }
+    .resume { flex-wrap: wrap; padding: 18px; gap: 16px; }
+    .resume .cover { width: 72px; }
+    .resume h3 { font-size: 23px; }
+    .resume .go { flex: 1 0 100%; }
     #page { padding: 28px 18px 160px; }
     #player { gap: 8px; bottom: 16px; }
     .rtop .by { display: none; }
@@ -273,7 +396,7 @@
   <symbol id="i-down" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M12 4.5V15m0 0 4.5-4.5M12 15l-4.5-4.5M5 19.5h14"/></symbol>
   <symbol id="i-close" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M12 11v5.5M12 7.6v.01"/></symbol>
-  <symbol id="i-gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/><circle cx="12" cy="12" r="6.6"/></g></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7.5h8.6M18.9 7.5H20M4 16.5h1.1M11.4 16.5H20"/><circle cx="15.75" cy="7.5" r="2.9"/><circle cx="8.25" cy="16.5" r="2.9"/></g></symbol>
   <symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" fill="currentColor"/><path d="M15.5 9a4.5 4.5 0 0 1 0 6M18.3 6.5a8.5 8.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
   <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" fill="currentColor"/><path d="m16 9.5 5 5M21 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
 </svg>
@@ -283,7 +406,13 @@
     <div class="brand"><img src="/static/logo.svg" alt="">EMA Reader</div>
     <label class="search" id="search-box" hidden><svg width="16" height="16"><use href="#i-search"/></svg><input id="search" type="search" data-placeholder="search"></label>
     <button class="btn" id="add" hidden><svg width="16" height="16"><use href="#i-plus"/></svg><span data-t="add"></span></button>
-    <button class="icon" id="open-settings" data-label="settings"><svg width="20" height="20"><use href="#i-gear"/></svg></button>
+    <button class="icon" id="open-settings" data-label="settings"><svg width="20" height="20"><use href="#i-sliders"/></svg></button>
+  </div>
+
+  <div class="update" id="update" hidden>
+    <span id="update-text"></span>
+    <button class="btn" id="update-open" data-t="updateSee"></button>
+    <button class="icon" id="update-later" data-label="updateLater"><svg width="18" height="18"><use href="#i-close"/></svg></button>
   </div>
 
   <div class="welcome" id="welcome" hidden>
@@ -294,7 +423,6 @@
 
   <div id="shelf" hidden>
     <div id="resume-box" hidden>
-      <h2 class="section" data-t="continue"></h2>
       <div class="resume" id="resume" tabindex="0"></div>
     </div>
     <h2 class="section" data-t="library"></h2>
@@ -310,6 +438,7 @@
     <button class="icon" id="open-info" data-label="aboutBook"><svg width="20" height="20"><use href="#i-info"/></svg></button>
     <button class="icon" id="open-download" data-label="download"><svg width="20" height="20"><use href="#i-down"/></svg></button>
     <button class="icon" id="open-chapters" data-label="chapters"><svg width="20" height="20"><use href="#i-list"/></svg></button>
+    <button class="icon" id="open-settings-reader" data-label="settings"><svg width="20" height="20"><use href="#i-sliders"/></svg></button>
   </div>
   <div id="chapter-progress"><i></i></div>
   <div id="page"><article id="text"></article></div>
@@ -323,43 +452,71 @@
   </div>
   <div id="speeds" hidden></div>
 
-  <aside id="chapters">
-    <header><h3 data-t="chapters"></h3><button class="icon" id="close-chapters" data-label="close"><svg width="20" height="20"><use href="#i-close"/></svg></button></header>
-    <div id="chapter-list"></div>
-  </aside>
 </main>
 
-<dialog id="add-dialog">
+<dialog id="chapters" class="panel right" tabindex="-1">
   <div class="sheet">
-    <header><h3 data-t="add"></h3><button class="icon" data-close data-label="close"><svg width="20" height="20"><use href="#i-close"/></svg></button></header>
-    <div class="dropzone">
-      <p data-t="dropHere"></p><small data-t="formats"></small>
-      <button class="btn" id="choose" data-t="chooseFile"></button>
-      <input type="file" id="file" accept=".epub,.pdf,.txt,.md,.html,.htm" hidden>
-    </div>
-    <div class="or" data-t="or"></div>
-    <div class="urlrow"><input type="url" id="url" placeholder="https://…" data-label="articleAddress"><button class="btn quiet" id="add-url" data-t="addArticle"></button></div>
-    <p class="status" id="status" role="status"></p>
+    <header><h3 data-t="chapters"></h3><button class="icon" data-close data-label="close"><svg width="20" height="20"><use href="#i-close"/></svg></button></header>
+    <div class="scroll"><div id="chapter-list"></div></div>
   </div>
 </dialog>
 
-<dialog id="settings-dialog">
+<dialog id="add-dialog" class="panel left" tabindex="-1">
+  <div class="sheet">
+    <header><h3 data-t="add"></h3><button class="icon" data-close data-label="close"><svg width="20" height="20"><use href="#i-close"/></svg></button></header>
+    <div class="scroll">
+      <div id="add-choose">
+        <div class="dropzone">
+          <svg class="dropart" viewBox="0 0 96 96" aria-hidden="true"><rect x="24" y="16" width="48" height="64" rx="6" fill="var(--surface)" stroke="var(--strong-line)" stroke-width="2"/><path d="M33 16v64" stroke="var(--strong-line)" stroke-width="2"/><g stroke="var(--accent)" stroke-width="3.4" stroke-linecap="round"><path d="M43 44v8M49.5 38v20M56 33v30M62.5 40v16"/></g></svg>
+          <p data-t="dropHere"></p><small data-t="formats"></small>
+          <button class="btn" id="choose" data-t="chooseFile"></button>
+          <input type="file" id="file" accept=".epub,.pdf,.txt,.md,.html,.htm" hidden>
+        </div>
+        <div class="or" data-t="or"></div>
+        <div class="urlrow"><input type="url" id="url" placeholder="https://…" data-label="articleAddress"><button class="btn quiet" id="add-url" data-t="addArticle"></button></div>
+        <p class="status" id="status" role="status"></p>
+      </div>
+      <div id="add-reading" class="addstate" hidden>
+        <div class="wave"><i></i><i></i><i></i><i></i><i></i></div>
+        <p id="add-reading-name"></p>
+      </div>
+      <div id="add-preview" hidden>
+        <div class="bookhead">
+          <div id="add-cover"></div>
+          <div class="meta"><h3 id="add-title"></h3><div class="by" id="add-author"></div><div class="facts" id="add-facts"></div></div>
+        </div>
+        <h5 data-t="begins"></h5>
+        <p class="excerpt" id="add-excerpt"></p>
+        <div id="add-contents-box"><h5 data-t="contents"></h5><div class="contents" id="add-contents"></div></div>
+        <div class="footer"><button class="btn quiet" id="add-cancel" data-t="addCancel"></button><button class="btn" id="add-confirm"><svg width="16" height="16"><use href="#i-plus"/></svg><span data-t="addConfirm"></span></button></div>
+      </div>
+      <div id="add-done" class="addstate" hidden>
+        <svg class="tick" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="28"/><path d="M20 33.5l8.5 8.5L45 24.5"/></svg>
+        <p data-t="addedDone"></p>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="settings-dialog" class="panel right" tabindex="-1">
   <div class="sheet">
     <header>
       <div class="tabs"><button data-tab="settings" data-t="settings" class="on"></button><button data-tab="about" data-t="about"></button></div>
       <button class="icon" data-close data-label="close"><svg width="20" height="20"><use href="#i-close"/></svg></button>
     </header>
+    <div class="scroll">
     <div id="tab-settings">
-      <div class="field"><span data-t="theme"></span><div class="choice" id="set-theme"></div></div>
-      <div class="field"><span data-t="accent"></span><div class="swatches" id="set-accent"></div></div>
-      <div class="field"><span data-t="textSize"></span><div class="choice" id="set-size"></div></div>
-      <div class="field"><span data-t="language"></span><div class="choice" id="set-language"></div></div>
+      <div class="field tall"><span data-t="theme"></span><div class="choice" id="set-theme"></div></div>
+      <div class="field tall"><span data-t="accent"></span><div class="swatches" id="set-accent"></div></div>
+      <div class="field tall"><span data-t="textSize"></span><div class="choice" id="set-size"></div></div>
+      <div class="field"><span><span id="set-version"></span><small id="set-version-state"></small></span><button class="btn quiet" id="set-version-action"></button></div>
+      <div class="field"><span><span data-t="updates"></span><small data-t="updatesHint"></small></span><div class="choice" id="set-updates"></div></div>
       <div class="field"><span><span data-t="tourAgain"></span><small data-t="tourAgainHint"></small></span><button class="btn quiet" id="replay-tour" data-t="show"></button></div>
     </div>
     <div id="tab-about" class="about" hidden>
       <img src="/static/logo.svg" alt="">
       <h4>EMA Reader</h4>
-      <div class="version" id="version"></div>
+      <div class="version"><span id="version"></span><span id="version-state"></span></div>
       <p data-t="aboutText"></p>
       <dl>
         <div><dt data-t="madeBy"></dt><dd>Eren Çakar · <a href="https://erencakar.com" target="_blank" rel="noopener">erencakar.com</a></dd></div>
@@ -368,12 +525,14 @@
         <div><dt data-t="notice"></dt><dd data-t="noticeText"></dd></div>
       </dl>
     </div>
+    </div>
   </div>
 </dialog>
 
-<dialog id="info-dialog" class="wide">
+<dialog id="info-dialog" class="panel left" tabindex="-1">
   <div class="sheet">
     <header><h3 data-t="aboutBook"></h3><button class="icon" data-close data-label="close"><svg width="20" height="20"><use href="#i-close"/></svg></button></header>
+    <div class="scroll">
     <div class="bookhead">
       <div id="info-cover"></div>
       <div class="meta">
@@ -390,12 +549,15 @@
     <p class="describe" id="info-description"></p>
     <h5 data-t="contents"></h5>
     <div class="contents" id="info-contents"></div>
+    </div>
   </div>
 </dialog>
 
-<dialog id="download-dialog">
+<dialog id="download-dialog" class="panel left" tabindex="-1">
   <div class="sheet">
     <header><h3 data-t="downloadTitle"></h3><button class="icon" data-close data-label="close"><svg width="20" height="20"><use href="#i-close"/></svg></button></header>
+    <div class="scroll">
+    <div class="downhead"><div id="download-cover"></div><div><b id="download-book"></b><small id="download-by"></small></div></div>
     <div id="download-form">
       <div class="group" id="scope-group"><h5 data-t="what"></h5><div class="options two" id="set-scope"></div>
         <label class="check" id="split-row"><input type="checkbox" id="split"><span data-t="split"></span></label></div>
@@ -408,6 +570,25 @@
       <div class="footer"><button class="btn quiet" id="cancel-download" data-t="cancel"></button></div>
     </div>
     <p class="status" id="download-status" role="status"></p>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="update-dialog">
+  <div class="sheet">
+    <header><h3 id="update-title"></h3><button class="icon" data-close data-label="close"><svg width="20" height="20"><use href="#i-close"/></svg></button></header>
+    <h5 data-t="whatsNew"></h5>
+    <p class="notes" id="update-notes"></p>
+    <p class="how" id="update-how"></p>
+    <div class="progress" id="update-progress" hidden>
+      <div class="track"><i id="update-bar"></i></div>
+      <p><span id="update-step"></span></p>
+    </div>
+    <p class="status error" id="update-error" role="status"></p>
+    <div class="footer">
+      <a class="btn quiet" id="update-page" target="_blank" rel="noopener" data-t="updatePage"></a>
+      <button class="btn" id="update-run" data-t="updateSee"></button>
+    </div>
   </div>
 </dialog>
 
@@ -432,16 +613,16 @@ const audio = $("audio");
 
 /* settings: kept in the browser, applied before anything is drawn */
 
-const ACCENTS = {   // name: [light, light soft, dark, dark soft]
+const ACCENTS = {   // name: [light, light soft, dark, dark soft]; the first is the one the app starts with
+  graphite: ["#3a3a44", "#e9e9ee", "#c9c9d2", "#34343c"],
   blue: ["#2b50ff", "#e4eaff", "#8ea2ff", "#262d5c"],
   violet: ["#6d3df5", "#ece6ff", "#b39dff", "#33285f"],
   green: ["#0f8f6a", "#d9f3ea", "#4fd1a5", "#173d33"],
   orange: ["#d9600a", "#ffe9d6", "#ffa55c", "#4a2c12"],
   rose: ["#d6336c", "#ffe1ec", "#ff8fb3", "#4d1f30"],
-  graphite: ["#3a3a44", "#e9e9ee", "#c9c9d2", "#34343c"],
 };
 const SIZES = {small: 19, medium: 22, large: 25, huge: 29};
-const settings = {theme: "light", accent: "blue", size: "medium", language: "auto"};
+const settings = {theme: "light", accent: "graphite", size: "medium", updates: true};
 try { Object.assign(settings, JSON.parse(localStorage.getItem("settings") || "{}")); } catch {}
 const darkQuery = matchMedia("(prefers-color-scheme: dark)");
 const shell = window.emaShell ? window.webkit?.messageHandlers?.shell : null;   // the desktop window, if the page is inside it
@@ -451,11 +632,12 @@ function applySettings() {
   const dark = settings.theme === "dark" || (settings.theme === "system" && darkQuery.matches);
   const root = document.documentElement;
   root.dataset.theme = dark ? "dark" : "light";
-  const [light, lightSoft, night, nightSoft] = ACCENTS[settings.accent] || ACCENTS.blue;
+  const [light, lightSoft, night, nightSoft] = ACCENTS[settings.accent] || ACCENTS.graphite;
   root.style.setProperty("--accent", dark ? night : light);
   root.style.setProperty("--accent-soft", dark ? nightSoft : lightSoft);
+  root.style.setProperty("--on-accent", dark ? "#131316" : "#ffffff");   // the night accents are light, the day ones dark
   root.style.setProperty("--reading-size", `${SIZES[settings.size] || SIZES.medium}px`);
-  tell({theme: dark ? "dark" : "light"});
+  tell({theme: dark ? "dark" : "light", accent: dark ? night : light});
 }
 function saveSettings() {
   try { localStorage.setItem("settings", JSON.stringify(settings)); } catch {}
@@ -465,82 +647,49 @@ darkQuery.addEventListener("change", applySettings);
 if (shell) document.documentElement.classList.add("shell");
 applySettings();
 
-/* words */
+/* words: the voice speaks Turkish only, and so does the app */
 
+const lang = "tr";
 const WORDS = {
-  tr: {
-    add: "Kitap ya da makale ekle", search: "Kitaplığında ara", continue: "Kaldığın yerden devam et", library: "Kitaplığın",
-    resume: "Dinlemeye devam et", listen: "Dinle", noMatch: "Aramana uyan bir şey yok.",
-    welcomeTitle: "Kitaplarını dinlemeye başla", welcomeText: "Bir kitap ya da makale ekle, EMA Reader sana Türkçe okusun.",
-    dropHere: "Dosyayı buraya bırak", formats: "EPUB, PDF, metin ya da Markdown", chooseFile: "Dosya seç", or: "ya da",
-    addArticle: "Makaleyi ekle", articleAddress: "Makale adresi", adding: n => `${n} ekleniyor…`, theArticle: "Makale",
-    chapters: "Bölümler", chapterOf: (n, total) => `Bölüm ${n} / ${total}`, chapterN: n => `${n}. bölüm`, chapterCount: n => `${n} bölüm`,
-    fresh: "Yeni", finished: "Bitti", article: "Makale", percent: n => `%${n}`,
-    minutes: n => `${n} dk`, hours: (h, m) => m ? `${h} sa ${m} dk` : `${h} sa`, left: s => `${s} kaldı`, listening: s => `yaklaşık ${s} dinleme`,
-    remove: "Kitaplıktan kaldır", confirmRemove: "Emin misin? Kaldır", close: "Kapat", backToLibrary: "Kitaplığa dön",
-    previous: "Önceki cümle", next: "Sonraki cümle", play: "Oynat", pause: "Duraklat", speed: "Okuma hızı", estimate: "Yaklaşık süre",
-    slow: "Yavaş", normal: "Normal", fast: "Hızlı", audioFailed: "Ses üretilemedi. Uygulamanın açık olduğundan emin ol.",
-    aboutBook: "Kitap hakkında", contents: "İçindekiler", added: d => `${d} tarihinde eklendi`,
-    download: "İndir", downloadShort: "İndir", downloadTitle: "Dinlemek için indir", what: "Ne indirilsin?", format: "Dosya türü",
-    thisChapter: "Bu bölüm", wholeBook: "Tüm kitap", split: "Her bölüm ayrı dosya olsun (ZIP)", cancel: "İptal",
-    preparing: "Hazırlanıyor…", downloadFailed: "İndirme hazırlanamadı.", downloaded: "İndirme başladı.",
-    fmt: {mp3: ["MP3", "Her cihazda çalışır"], ogg: ["OGG", "Küçük dosya, iyi kalite"], opus: ["Opus", "En küçük dosya"],
-          flac: ["FLAC", "Kayıpsız, büyük dosya"], wav: ["WAV", "Ham ses, en büyük dosya"], txt: ["Metin", "Ses yok, sadece yazı"]},
-    settings: "Ayarlar", about: "Hakkında", theme: "Tema", light: "Açık", dark: "Koyu", system: "Sistem", accent: "Vurgu rengi",
-    textSize: "Yazı boyutu", sizes: {small: "Küçük", medium: "Orta", large: "Büyük", huge: "Çok büyük"},
-    language: "Dil", auto: "Otomatik", tourAgain: "Tanıtım", tourAgainHint: "Uygulamanın nasıl kullanıldığını yeniden göster", show: "Göster",
-    aboutText: "EMA Reader, kitapları ve makaleleri sana Türkçe sesli okuyan açık kaynaklı bir uygulamadır. Her şey kendi bilgisayarında çalışır; okudukların hiçbir yere gönderilmez.",
-    madeBy: "Geliştiren", voice: "Ses modeli", source: "Kaynak kod", notice: "Not", noticeText: "Duyduğun ses yapay zekâ ile üretilmiştir.",
-    version: v => `Sürüm ${v}`,
-    errors: {   // the server explains failures in English; these are the ones a reader can run into
-      "unsupported file type": "Bu dosya türü desteklenmiyor. EPUB, PDF, metin ya da Markdown ekleyebilirsin.",
-      "no readable text found": "Burada okunacak metin bulunamadı. Taranmış (resim) PDF'ler okunamaz.",
-      "the address must start": "Adres http:// ya da https:// ile başlamalı.",
-      "could not download the page": "Sayfa indirilemedi. Adresi ve internet bağlantını kontrol et.",
-      "the file is too large": "Dosya çok büyük.",
-      "could not read it": "Bu dosya okunamadı; bozuk olabilir.",
-    },
-    addFailed: "Eklenemedi.",
-    tourWelcome: "Hoş geldin!", tourIntro: "EMA Reader kitapları ve makaleleri sana Türkçe okur. Nasıl çalıştığını yarım dakikada gösterelim.",
-    tourStart: "Göster", tourNext: "İleri", tourDone: "Başlayalım", tourSkip: "Geç", tourMute: "Sesli anlatımı kapat", tourUnmute: "Sesli anlatımı aç",
-    tourPlay: "Dinlemek için buna bas", tourSentence: "Bir cümleye tıkla, oradan okumaya başlasın",
-    tourSpeed: "Hızlı ya da yavaş mı? Buradan ayarla", tourAdd: "Kendi kitabını ya da bir makaleyi buradan ekle",
-  },
-  en: {
-    add: "Add a book or article", search: "Search your library", continue: "Continue where you left off", library: "Your library",
-    resume: "Continue listening", listen: "Listen", noMatch: "Nothing matches your search.",
-    welcomeTitle: "Start listening to your books", welcomeText: "Add a book or an article and EMA Reader reads it to you in Turkish.",
-    dropHere: "Drop a file here", formats: "EPUB, PDF, text or Markdown", chooseFile: "Choose a file", or: "or",
-    addArticle: "Add article", articleAddress: "Article address", adding: n => `Adding ${n}…`, theArticle: "the article",
-    chapters: "Chapters", chapterOf: (n, total) => `Chapter ${n} of ${total}`, chapterN: n => `Chapter ${n}`, chapterCount: n => n === 1 ? "1 chapter" : `${n} chapters`,
-    fresh: "New", finished: "Finished", article: "Article", percent: n => `${n}%`,
-    minutes: n => `${n} min`, hours: (h, m) => m ? `${h} h ${m} min` : `${h} h`, left: s => `${s} left`, listening: s => `about ${s} of listening`,
-    remove: "Remove from library", confirmRemove: "Sure? Remove", close: "Close", backToLibrary: "Back to library",
-    previous: "Previous sentence", next: "Next sentence", play: "Play", pause: "Pause", speed: "Reading speed", estimate: "Estimated time",
-    slow: "Slow", normal: "Normal", fast: "Fast", audioFailed: "Could not make the audio. Check that the app is still running.",
-    aboutBook: "About this book", contents: "Contents", added: d => `Added on ${d}`,
-    download: "Download", downloadShort: "Download", downloadTitle: "Download to listen", what: "What to download", format: "File type",
-    thisChapter: "This chapter", wholeBook: "The whole book", split: "A separate file for each chapter (ZIP)", cancel: "Cancel",
-    preparing: "Preparing…", downloadFailed: "Could not prepare the download.", downloaded: "The download has started.",
-    fmt: {mp3: ["MP3", "Plays everywhere"], ogg: ["OGG", "Small file, good quality"], opus: ["Opus", "Smallest file"],
-          flac: ["FLAC", "Lossless, large file"], wav: ["WAV", "Raw audio, largest file"], txt: ["Text", "No audio, only the words"]},
-    settings: "Settings", about: "About", theme: "Theme", light: "Light", dark: "Dark", system: "System", accent: "Accent colour",
-    textSize: "Text size", sizes: {small: "Small", medium: "Medium", large: "Large", huge: "Very large"},
-    language: "Language", auto: "Automatic", tourAgain: "Tour", tourAgainHint: "Show how the app works again", show: "Show",
-    aboutText: "EMA Reader is an open-source app that reads books and articles to you in Turkish. Everything runs on your own computer; nothing you read is sent anywhere.",
-    madeBy: "Made by", voice: "Voice model", source: "Source code", notice: "Note", noticeText: "The voice you hear is generated by AI.",
-    version: v => `Version ${v}`,
-    addFailed: "Could not add it.",
-    tourWelcome: "Welcome!", tourIntro: "EMA Reader reads books and articles to you in Turkish. Here is how it works, in half a minute.",
-    tourStart: "Show me", tourNext: "Next", tourDone: "Let's start", tourSkip: "Skip", tourMute: "Turn the spoken guide off", tourUnmute: "Turn the spoken guide on",
-    tourPlay: "Press this to listen", tourSentence: "Click a sentence to read from there",
-    tourSpeed: "Too fast or too slow? Change it here", tourAdd: "Add your own book or an article here",
-  },
+  add: "Kitap ya da makale ekle", search: "Kitaplığında ara", continue: "Kaldığın yerden devam et", library: "Kitaplığın",
+  resume: "Dinlemeye devam et", resumeShort: "Devam et", listen: "Dinle", noMatch: "Aramana uyan bir şey yok.",
+  welcomeTitle: "Kitaplarını dinlemeye başla", welcomeText: "Bir kitap ya da makale ekle, EMA Reader sana Türkçe okusun.",
+  dropHere: "Dosyayı buraya bırak", formats: "EPUB, PDF, metin ya da Markdown", chooseFile: "Dosya seç", or: "ya da",
+  addArticle: "Makaleyi getir", articleAddress: "Makale adresi", reading: n => `${n} okunuyor…`, theArticle: "Makale",
+  begins: "Şöyle başlıyor", addConfirm: "Kitaplığa ekle", addCancel: "Vazgeç", addedDone: "Kitaplığına eklendi", moreChapters: n => `ve ${n} bölüm daha`,
+  chapters: "Bölümler", chapterOf: (n, total) => `Bölüm ${n} / ${total}`, chapterN: n => `${n}. bölüm`, chapterCount: n => `${n} bölüm`,
+  fresh: "Yeni", finished: "Bitti", article: "Makale", percent: n => `%${n}`,
+  minutes: n => `${n} dk`, hours: (h, m) => m ? `${h} sa ${m} dk` : `${h} sa`, left: s => `${s} kaldı`, listening: s => `yaklaşık ${s} dinleme`,
+  remove: "Kitaplıktan kaldır", confirmRemove: "Emin misin? Kaldır", close: "Kapat", backToLibrary: "Kitaplığa dön",
+  previous: "Önceki cümle", next: "Sonraki cümle", play: "Oynat", pause: "Duraklat", speed: "Okuma hızı", estimate: "Yaklaşık süre",
+  slow: "Yavaş", normal: "Normal", fast: "Hızlı", audioFailed: "Ses üretilemedi. Uygulamanın açık olduğundan emin ol.",
+  aboutBook: "Kitap hakkında", contents: "İçindekiler", added: d => `${d} tarihinde eklendi`,
+  download: "İndir", downloadShort: "İndir", downloadTitle: "Dinlemek için indir", what: "Ne indirilsin?", format: "Dosya türü",
+  thisChapter: "Bu bölüm", wholeBook: "Tüm kitap", split: "Her bölüm ayrı dosya olsun (ZIP)", cancel: "İptal",
+  preparing: "Hazırlanıyor…", downloadFailed: "İndirme hazırlanamadı.", downloaded: "İndirme başladı.",
+  fmt: {mp3: ["MP3", "Her cihazda çalışır"], ogg: ["OGG", "Küçük dosya, iyi kalite"], opus: ["Opus", "En küçük dosya"],
+        flac: ["FLAC", "Kayıpsız, büyük dosya"], wav: ["WAV", "Ham ses, en büyük dosya"], txt: ["Metin", "Ses yok, sadece yazı"]},
+  settings: "Ayarlar", about: "Hakkında", theme: "Tema", light: "Açık", dark: "Koyu", system: "Sistem", accent: "Vurgu rengi",
+  accents: {blue: "Mavi", violet: "Mor", green: "Yeşil", orange: "Turuncu", rose: "Pembe", graphite: "Grafit"},
+  textSize: "Yazı boyutu", sizes: {small: "Küçük", medium: "Orta", large: "Büyük", huge: "Çok büyük"},
+  tourAgain: "Tanıtım", tourAgainHint: "Uygulamanın nasıl kullanıldığını yeniden göster", show: "Göster",
+  aboutText: "EMA Reader, kitapları ve makaleleri sana Türkçe sesli okuyan açık kaynaklı bir uygulamadır. Her şey kendi bilgisayarında çalışır; okudukların hiçbir yere gönderilmez.",
+  madeBy: "Geliştiren", voice: "Ses modeli", source: "Kaynak kod", notice: "Not", noticeText: "Duyduğun ses yapay zekâ ile üretilmiştir.",
+  version: v => `Sürüm ${v}`,
+  updates: "Açılışta denetle", updatesHint: "Her açılışta yeni bir sürüm çıkmış mı diye GitHub'a bakar", on: "Açık", off: "Kapalı",
+  updateFound: v => `EMA Reader ${v} yayınlandı.`, updateSee: "Güncelle", updateLater: "Şimdi değil", updateCheck: "Denetle",
+  updateTitle: v => `Yeni sürüm: ${v}`, whatsNew: "Yenilikler", noNotes: "Bu sürüm için not yazılmamış.", updatePage: "Sürüm sayfası",
+  updateHow: v => `Sende ${v} sürümü var. Güncelle'ye basman yeterli: uygulama yeni sürümü kendisi kurar ve yeniden açılır. Kitaplığın ve ayarların yerinde kalır.`,
+  upToDate: "Güncel", newerVersion: v => `${v} sürümü çıktı`, checking: "Denetleniyor…", checkFailed: "Denetlenemedi. İnternet bağlantını kontrol et.",
+  updateSteps: {preparing: "Hazırlanıyor…", downloading: "Yeni sürüm indiriliyor…", installing: "Kuruluyor…", restarting: "Uygulama yeniden başlatılıyor…"},
+  updateFailed: "Güncellenemedi.", updateDone: v => `EMA Reader ${v} sürümüne güncellendi.`,
+  addFailed: "Eklenemedi.",
+  tourWelcome: "Hoş geldin!", tourIntro: "EMA Reader kitapları ve makaleleri sana Türkçe okur. Nasıl çalıştığını yarım dakikada gösterelim.",
+  tourStart: "Göster", tourNext: "İleri", tourDone: "Başlayalım", tourSkip: "Geç", tourMute: "Sesli anlatımı kapat", tourUnmute: "Sesli anlatımı aç",
+  tourPlay: "Dinlemek için buna bas", tourSentence: "Bir cümleye tıkla, oradan okumaya başlasın",
+  tourSpeed: "Hızlı ya da yavaş mı? Buradan ayarla", tourAdd: "Kendi kitabını ya da bir makaleyi buradan ekle",
 };
-const lang = settings.language === "tr" || settings.language === "en" ? settings.language
-  : (navigator.language || "tr").toLowerCase().startsWith("tr") ? "tr" : "en";
-const t = (key, ...args) => typeof WORDS[lang][key] === "function" ? WORDS[lang][key](...args) : WORDS[lang][key];
-document.documentElement.lang = lang;
+const t = (key, ...args) => typeof WORDS[key] === "function" ? WORDS[key](...args) : WORDS[key];
 document.querySelectorAll("[data-t]").forEach(node => node.textContent = t(node.dataset.t));
 document.querySelectorAll("[data-label]").forEach(node => { node.setAttribute("aria-label", t(node.dataset.label)); node.title = t(node.dataset.label); });
 document.querySelectorAll("[data-placeholder]").forEach(node => { node.placeholder = t(node.dataset.placeholder); node.setAttribute("aria-label", node.placeholder); });
@@ -556,6 +705,11 @@ function tellShell() {
 }
 let shellReply = null;
 window.shellAnswer = value => shellReply?.(value);
+let shellTop = shell ? 47 : 0;
+window.shellTop = height => { shellTop = height; document.documentElement.style.setProperty("--top", `${height}px`); };
+// the header bar steps aside for the panel that stands at the left edge, which reaches the top of the window
+const tellSide = () => tell({side: parseFloat(getComputedStyle(document.body).paddingLeft) || 0});
+window.addEventListener("resize", tellSide);
 function askShell(question) {   // where is one of the window's own buttons?
   return new Promise(resolve => {
     shellReply = resolve;
@@ -565,11 +719,11 @@ function askShell(question) {   // where is one of the window's own buttons?
 }
 window.shellAction = name => ({
   back: () => showLibrary(),
-  add: () => openAdd(),
-  chapters: () => $("chapters").classList.toggle("open"),
-  download: () => openDownload(book),
-  info: () => openInfo(book.id),
-  settings: () => openSettings(),
+  add: () => toggleAdd(),
+  chapters: () => toggleChapters(),
+  download: () => toggleDownload(book),
+  info: () => toggleInfo(book.id),
+  settings: () => toggleSettings(),
   search: () => { searching = !searching; if (!searching) $("search").value = ""; renderLibrary(); if (searching) $("search").focus(); },
 })[name]?.();
 // links leave the app: the desktop window hands them to the system's browser
@@ -580,7 +734,7 @@ document.addEventListener("click", e => {
 
 /* state */
 
-const CHARS_PER_SECOND = 17;          // how fast the voice reads at speed 1, to estimate times
+const FIRST_PACE = 17, PACE_TRUST = 30;   // characters a second at speed 1: a first guess, worth this many seconds of listening
 const SENTENCE_PAUSE = 150, PARAGRAPH_PAUSE = 500;   // milliseconds
 const PREFETCH = 3, CACHE_LIMIT = 40;
 const SPEEDS = [[0.75, "slow"], [0.9], [1, "normal"], [1.1], [1.25, "fast"], [1.5]];
@@ -599,10 +753,24 @@ const cache = new Map();
 let speed = 1;
 try { speed = Number(localStorage.getItem("speed")) || 1; } catch {}
 
+// how fast the voice really reads, measured from the sentences that have been played; times are estimated from it
+const pace = {chars: 0, seconds: 0};
+try {
+  const kept = JSON.parse(localStorage.getItem("pace") || "{}");
+  if (kept.chars > 0 && kept.seconds > 0) Object.assign(pace, {chars: kept.chars, seconds: kept.seconds});
+} catch {}
+const charsPerSecond = () => (pace.chars + FIRST_PACE * PACE_TRUST) / (pace.seconds + PACE_TRUST);
+function learnPace(chars, seconds) {
+  if (!Number.isFinite(seconds) || seconds < 0.3) return;
+  pace.chars += chars; pace.seconds += seconds * speed;
+  if (pace.seconds > 1800) { pace.chars /= 2; pace.seconds /= 2; }   // recent listening counts for more
+  try { localStorage.setItem("pace", JSON.stringify(pace)); } catch {}
+}
+
 async function api(path, options) {
   const response = await fetch(path, options);
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "request failed");
+  if (!response.ok) throw Object.assign(new Error(data.error || "request failed"), {told: Boolean(data.error)});   // told: the server explained it
   return data;
 }
 
@@ -635,10 +803,34 @@ function icon(name, size = 16) {
   return holder.firstChild;
 }
 
-// every dialog closes from its × and from a click outside it
+/* side panels: one open at a time; the page makes room for it and gets the room back when it has gone */
+
+const PANELS = [...document.querySelectorAll(".panel")];
+const isOpen = panel => panel.open && !panel.classList.contains("closing");
+function makeRoom() {
+  for (const side of ["left", "right"]) document.body.classList.toggle(`side-${side}`, PANELS.some(p => p.open && p.classList.contains(side)));
+  tellSide();
+}
+function openPanel(panel) {
+  for (const other of PANELS) if (other !== panel && other.open) other.close();   // the one it replaces goes at once
+  panel.classList.remove("closing");
+  if (!panel.open) panel.show();   // not modal: the page stays in use beside it
+  panel.focus({preventScroll: true});   // the panel itself, not its close button, which would show a focus ring
+  makeRoom();
+}
+function closePanel(panel) {   // it slides away first, then the page takes the room back
+  if (!isOpen(panel)) return;
+  panel.classList.add("closing");
+  setTimeout(() => { if (panel.classList.contains("closing")) panel.close(); }, 170);
+}
+const togglePanel = (panel, open) => isOpen(panel) ? closePanel(panel) : open();
+PANELS.forEach(panel => panel.addEventListener("close", () => { panel.classList.remove("closing"); makeRoom(); }));
+
+// a panel closes from its ×; a dialog over the page also from a click outside it
 document.querySelectorAll("dialog").forEach(dialog => {
-  dialog.querySelectorAll("[data-close]").forEach(b => b.onclick = () => dialog.close());
-  dialog.addEventListener("click", e => { if (e.target === dialog) dialog.close(); });
+  const panel = dialog.classList.contains("panel");
+  dialog.querySelectorAll("[data-close]").forEach(b => b.onclick = () => panel ? closePanel(dialog) : dialog.close());
+  if (!panel) dialog.addEventListener("click", e => { if (e.target === dialog) dialog.close(); });
 });
 const chapterTitle = (b, n) => b.chapters[n].title || t("chapterN", n + 1);
 
@@ -653,7 +845,7 @@ function cover(b) {
   }
   box.append(el("strong", "", b.title), el("small", "", b.author || ""));
   if (b.cover) {   // the book's own picture, over the drawn one in case it fails to load
-    const picture = el("img"); picture.alt = ""; picture.loading = "lazy"; picture.src = `/api/books/${b.id}/cover`;
+    const picture = el("img"); picture.alt = ""; picture.loading = "lazy"; picture.src = b.coverUrl || `/api/books/${b.id}/cover`;
     picture.onerror = () => picture.remove();
     box.append(picture);
   }
@@ -661,7 +853,7 @@ function cover(b) {
 }
 
 const isFinished = b => b.done >= b.size;
-const remaining = b => duration((b.size - b.done) / CHARS_PER_SECOND / speed);
+const remaining = b => duration((b.size - b.done) / charsPerSecond() / speed);
 
 function statusOf(b) {
   if (isFinished(b)) return t("finished");
@@ -673,7 +865,7 @@ function card(b) {
   const item = el("div", "item"); item.tabIndex = 0;
   const more = el("button", "more"); more.append(icon("info", 18));
   more.title = t("aboutBook"); more.setAttribute("aria-label", `${t("aboutBook")}: ${b.title}`);
-  more.onclick = e => { e.stopPropagation(); openInfo(b.id); };
+  more.onclick = e => { e.stopPropagation(); toggleInfo(b.id); };
   item.append(cover(b), el("h4", "", b.title), el("span", "", statusOf(b)), more);
   item.onclick = () => openBook(b.id);
   item.onkeydown = e => { if (e.key === "Enter" && e.target === item) openBook(b.id); };
@@ -696,12 +888,16 @@ function renderLibrary() {
   $("resume-box").hidden = !last || Boolean(query);
   if (!last) return;
   const info = el("div", "info");
-  const track = el("div", "track"); track.innerHTML = `<i style="width:${100 * last.done / last.size}%"></i>`;
-  const where = [last.author, last.chapters > 1 && t("chapterN", last.chapter + 1), t("left", remaining(last))].filter(Boolean).join(" · ");
-  info.append(el("h3", "", last.title), el("p", "", where), track);
-  const go = el("button", "go"); go.append(icon("play", 24));
-  go.title = t("resume"); go.setAttribute("aria-label", t("resume"));
-  $("resume").replaceChildren(cover(last), info, go);
+  const picture = cover(last);
+  const glow = el("div", "glow");   // the cover, blurred into the card's own light
+  glow.style.setProperty("--glow", last.cover ? `url(/api/books/${last.id}/cover)` : picture.style.background || "var(--strong-line)");
+  const chapterName = last.chapters > 1 && [t("chapterN", last.chapter + 1), last.chapter_title].filter(Boolean).join(": ");
+  const bar = el("div", "bar"), track = el("div", "track");
+  track.innerHTML = `<i style="width:${100 * last.done / last.size}%"></i>`;
+  bar.append(track, el("b", "", t("percent", Math.round(100 * last.done / last.size))), el("span", "", t("left", remaining(last))));
+  info.append(el("div", "kicker", t("continue")), el("h3", "", last.title), el("p", "", [last.author, chapterName].filter(Boolean).join(" · ")), bar);
+  const go = el("button", "btn big go"); go.append(icon("play", 18), el("span", "", t("resumeShort")));
+  $("resume").replaceChildren(glow, picture, info, go);
   $("resume").onclick = () => openBook(last.id, true);
   $("resume").onkeydown = e => { if (e.key === "Enter") openBook(last.id, true); };
 }
@@ -712,7 +908,7 @@ async function showLibrary() {
   clearTimeout(saveTimer);
   await pendingSave?.();   // so the library shows the position just left
   $("reader").hidden = true; $("library").hidden = false;
-  $("chapters").classList.remove("open"); $("speeds").hidden = true;
+  $("chapters").close(); $("speeds").hidden = true;
   document.title = "EMA Reader";
   books = await api("/api/books");
   renderLibrary();
@@ -723,30 +919,80 @@ $("search").oninput = renderLibrary;
 /* adding */
 
 const addDialog = $("add-dialog");
-function openAdd() { status(""); addDialog.showModal(); }
-$("add").onclick = openAdd; $("add-first").onclick = openAdd;
+let waiting = null;   // what has been read and is on show, waiting for a yes: {token, title, ...}
+let addTurn = 0;      // bumped whenever a reading is given up, so that its answer is dropped
+function addStep(name) { for (const step of ["choose", "reading", "preview", "done"]) $(`add-${step}`).hidden = step !== name; }
+function forget(token) { fetch(`/api/pending/${token}`, {method: "DELETE"}).catch(() => {}); }
+function giveUp() {
+  addTurn++;
+  if (waiting) forget(waiting.token);
+  waiting = null;
+}
+function openAdd() { giveUp(); status(""); addStep("choose"); openPanel(addDialog); }
+const toggleAdd = () => togglePanel(addDialog, openAdd);
+$("add").onclick = toggleAdd; $("add-first").onclick = toggleAdd;
+addDialog.addEventListener("close", giveUp);
 
 function status(message, error = false) {
   $("status").textContent = message;
   $("status").className = "status" + (error ? " error" : "");
 }
 
-async function add(request, label) {
-  if (!addDialog.open) addDialog.showModal();
-  status(t("adding", label));
+// nothing is added at once: the file or the page is read, shown, and added when the reader says so
+async function look(request, label) {
+  if (!isOpen(addDialog)) openAdd();
+  giveUp();
+  const mine = addTurn;
+  $("add-reading-name").textContent = t("reading", label);
+  addStep("reading");
   try {
-    const added = await request();
-    addDialog.close();
-    openBook(added.id);
+    const [found] = await Promise.all([request(), wait(700)]);   // long enough to see what is going on
+    if (mine !== addTurn) return forget(found.token);
+    waiting = found;
+    showPreview(found);
+    addStep("preview");
   } catch (e) {
-    const known = WORDS[lang].errors;
-    const match = known && Object.keys(known).find(start => e.message.startsWith(start));
-    status(known ? (match ? known[match] : t("addFailed")) : e.message, true);
+    if (mine !== addTurn) return;
+    addStep("choose");
+    status(e.told ? e.message : t("addFailed"), true);
   }
 }
 
-const addFile = file => add(() => api(`/api/books?name=${encodeURIComponent(file.name)}`, {method: "POST", body: file}), file.name);
-const addUrl = url => add(() => api("/api/books", {method: "POST", body: JSON.stringify({url})}), t("theArticle"));
+function showPreview(found) {
+  $("add-cover").replaceChildren(cover({...found, coverUrl: `/api/pending/${found.token}/cover`}));
+  $("add-title").textContent = found.title;
+  $("add-author").textContent = found.author || "";
+  $("add-facts").textContent = `${found.article ? t("article") : t("chapterCount", found.chapters)}, ${t("listening", duration(found.size / charsPerSecond() / speed))}`;
+  $("add-excerpt").textContent = found.excerpt.length < found.size ? found.excerpt.replace(/[.…\s]+$/, "") + "…" : found.excerpt;
+  $("add-contents-box").hidden = found.chapters < 2;
+  const rows = found.contents.map((title, i) => {
+    const row = el("button"); row.disabled = true;
+    row.append(el("i", "", i + 1), el("span", "", title || t("chapterN", i + 1)));
+    return row;
+  });
+  if (found.chapters > found.contents.length) rows.push(el("div", "more", t("moreChapters", found.chapters - found.contents.length)));
+  $("add-contents").replaceChildren(...rows);
+}
+
+$("add-cancel").onclick = () => { giveUp(); addStep("choose"); };
+$("add-confirm").onclick = async () => {
+  if (!waiting) return;
+  const {token} = waiting;
+  waiting = null;   // it is the library's now, not something to forget
+  try {
+    const added = await api(`/api/pending/${token}`, {method: "POST"});
+    addStep("done");
+    await wait(1100);
+    if (isOpen(addDialog)) closePanel(addDialog);
+    openBook(added.id);
+  } catch (e) {
+    addStep("choose");
+    status(e.told ? e.message : t("addFailed"), true);
+  }
+};
+
+const addFile = file => look(() => api(`/api/books?preview=1&name=${encodeURIComponent(file.name)}`, {method: "POST", body: file}), file.name);
+const addUrl = url => look(() => api("/api/books", {method: "POST", body: JSON.stringify({url, preview: true})}), t("theArticle"));
 
 $("choose").onclick = () => $("file").click();
 $("file").onchange = () => { if ($("file").files[0]) addFile($("file").files[0]); $("file").value = ""; };
@@ -768,7 +1014,9 @@ window.addEventListener("drop", e => {
 
 /* about a book: its cover, description and contents */
 
+let infoOf = null;   // the book the panel is about
 async function openInfo(id) {
+  infoOf = id;
   const b = book?.id === id ? book : await api(`/api/books/${id}`);
   const about = b.about || {};
   const sizes = b.chapters.map(c => c.paragraphs.reduce((sum, p) => sum + p.reduce((n, s) => n + s.length, 0), 0));
@@ -779,33 +1027,34 @@ async function openInfo(id) {
   $("info-title").textContent = b.title;
   $("info-author").textContent = b.author || "";
   const published = [about.publisher, (about.date || "").slice(0, 4)].filter(Boolean).join(", ");
-  const facts = [published, `${t("chapterCount", b.chapters.length)}, ${t("listening", duration(total / CHARS_PER_SECOND / speed))}`,
+  const facts = [published, `${t("chapterCount", b.chapters.length)}, ${t("listening", duration(total / charsPerSecond() / speed))}`,
                  t("added", new Date(b.added * 1000).toLocaleDateString(lang))].filter(Boolean);
   $("info-facts").replaceChildren(...facts.flatMap((line, i) => i ? [el("br"), line] : [line]));
   $("info-description").textContent = about.description || ""; $("info-description").hidden = !about.description;
 
   const open = (number, sentence, start) => {
-    $("info-dialog").close();
+    closePanel($("info-dialog"));
     if (book?.id === id) openChapter(number, sentence, start); else openBook(id, start, number, sentence);
   };
   $("info-listen").lastElementChild.textContent = t(started ? "resume" : "listen");
   $("info-listen").onclick = () => open(b.progress.chapter, b.progress.sentence, true);
-  $("info-download").onclick = () => { $("info-dialog").close(); openDownload(b); };
+  $("info-download").onclick = () => openDownload(b);
   const remove = $("info-remove"); remove.textContent = t("remove"); remove.dataset.armed = "";
   remove.onclick = async () => {
     if (!remove.dataset.armed) { remove.dataset.armed = "1"; remove.textContent = t("confirmRemove"); return; }
     await api(`/api/books/${id}`, {method: "DELETE"});
-    $("info-dialog").close();
+    closePanel($("info-dialog"));
     showLibrary();
   };
   $("info-contents").replaceChildren(...b.chapters.map((c, i) => {
     const row = el("button", i === b.progress.chapter && started ? "current" : "");
-    row.append(el("i", "", i + 1), el("span", "", chapterTitle(b, i)), el("small", "", duration(sizes[i] / CHARS_PER_SECOND / speed)));
+    row.append(el("i", "", i + 1), el("span", "", chapterTitle(b, i)), el("small", "", duration(sizes[i] / charsPerSecond() / speed)));
     row.onclick = () => open(i, 0, false);
     return row;
   }));
-  $("info-dialog").showModal();
+  openPanel($("info-dialog"));
 }
+const toggleInfo = id => isOpen($("info-dialog")) && infoOf === id ? closePanel($("info-dialog")) : openInfo(id);
 
 /* downloading: a chapter or the whole book, as audio or text */
 
@@ -836,9 +1085,12 @@ function drawDownload() {
 function openDownload(b) {
   Object.assign(download, {book: b, chapter: book?.id === b.id ? chapter : b.progress.chapter, job: null});
   $("download-form").hidden = false; $("download-progress").hidden = true; $("download-status").textContent = "";
+  $("download-cover").replaceChildren(cover({id: b.id, title: b.title, author: b.author, cover: Boolean(b.cover), article: /^https?:/.test(b.source)}));
+  $("download-book").textContent = b.title; $("download-by").textContent = b.author || "";
   drawDownload();
-  $("download-dialog").showModal();
+  openPanel($("download-dialog"));
 }
+const toggleDownload = b => togglePanel($("download-dialog"), () => openDownload(b));
 
 $("start-download").onclick = async () => {
   const {book: b, scope, format} = download;
@@ -858,7 +1110,7 @@ $("start-download").onclick = async () => {
       download.job = null;
       if (state.state !== "ready") throw new Error(state.error || "failed");
       location.href = `/api/exports/${job}/file`;   // an attachment: the page stays where it is
-      $("download-dialog").close();
+      closePanel($("download-dialog"));
       if (!shell) toast(t("downloaded"));
     }
   } catch (e) {
@@ -867,7 +1119,7 @@ $("start-download").onclick = async () => {
     $("download-status").textContent = t("downloadFailed"); $("download-status").className = "status error";
   }
 };
-$("cancel-download").onclick = () => $("download-dialog").close();
+$("cancel-download").onclick = () => closePanel($("download-dialog"));
 $("download-dialog").addEventListener("close", () => {
   if (download.job) fetch(`/api/exports/${download.job}`, {method: "DELETE"});
   download.job = null;
@@ -878,12 +1130,11 @@ $("download-dialog").addEventListener("close", () => {
 function drawSettings() {
   pick("set-theme", ["light", "dark", "system"], settings.theme, v => t(v), v => { settings.theme = v; saveSettings(); drawSettings(); });
   pick("set-size", Object.keys(SIZES), settings.size, v => t("sizes")[v], v => { settings.size = v; saveSettings(); drawSettings(); });
-  pick("set-language", ["auto", "tr", "en"], settings.language, v => ({auto: t("auto"), tr: "Türkçe", en: "English"})[v],
-       v => { settings.language = v; saveSettings(); location.reload(); });   // every text on the page changes
+  pick("set-updates", [true, false], settings.updates, v => t(v ? "on" : "off"), v => { settings.updates = v; saveSettings(); drawSettings(); checkUpdate(); });
   const dark = document.documentElement.dataset.theme === "dark";
   $("set-accent").replaceChildren(...Object.entries(ACCENTS).map(([name, colours]) => {
     const b = el("button", name === settings.accent ? "on" : "");
-    b.style.background = colours[dark ? 2 : 0]; b.title = name; b.setAttribute("aria-label", name);
+    b.style.background = colours[dark ? 2 : 0]; b.title = t("accents")[name]; b.setAttribute("aria-label", b.title);
     b.onclick = () => { settings.accent = name; saveSettings(); drawSettings(); };
     return b;
   }));
@@ -893,15 +1144,97 @@ function showTab(name) {
   $("tab-settings").hidden = name !== "settings"; $("tab-about").hidden = name !== "about";
 }
 document.querySelectorAll("#settings-dialog [data-tab]").forEach(b => b.onclick = () => showTab(b.dataset.tab));
-function openSettings(tab = "settings") { drawSettings(); showTab(tab); $("settings-dialog").showModal(); }
-$("open-settings").onclick = () => openSettings();
-$("replay-tour").onclick = () => { $("settings-dialog").close(); showStep(0); };
-fetch("/health").then(r => r.json()).then(d => { if (d.version) $("version").textContent = t("version", d.version); }).catch(() => {});
+function openSettings(tab = "settings") { drawSettings(); showTab(tab); openPanel($("settings-dialog")); }
+const toggleSettings = () => togglePanel($("settings-dialog"), openSettings);
+$("open-settings").onclick = $("open-settings-reader").onclick = toggleSettings;
+$("replay-tour").onclick = () => showStep(0);   // which closes this panel
+fetch("/health").then(r => r.json()).then(d => {
+  if (!d.version) return;
+  $("version").textContent = $("set-version").textContent = t("version", d.version);
+  let before = null;
+  try { before = localStorage.getItem("updating"); localStorage.removeItem("updating"); } catch {}
+  if (before && before !== d.version) toast(t("updateDone", d.version));   // back from an update
+}).catch(() => {});
+
+/* updates: the server asks GitHub for the latest release; a newer one is offered in the library and in settings,
+   and installed from here: the server fetches it, puts it in place and starts the app again */
+
+let update = null;   // the latest answer: {current, latest, newer, notes, page, download, packaged, job}
+async function checkUpdate(fresh = false) {
+  if (fresh) { $("set-version-state").textContent = t("checking"); $("set-version-state").className = ""; }
+  let failed = false;
+  if (settings.updates || fresh) try { update = await api(`/api/update${fresh ? "?fresh=1" : ""}`); } catch { failed = true; }
+  let later = null;
+  try { later = localStorage.getItem("later"); } catch {}
+  const newer = Boolean(update?.newer);
+  $("update").hidden = !newer || later === update.latest;   // "not now" hides the bar for that version only
+  if (newer) $("update-text").replaceChildren(el("b", "", t("updateFound", update.latest)));
+  const state = newer ? el("button", "", t("newerVersion", update.latest)) : update?.latest ? t("upToDate").toLocaleLowerCase(lang) : "";
+  if (newer) state.onclick = openUpdate;
+  $("version-state").replaceChildren(...(state ? [" · ", state] : []));
+  // settings: the version, what is known about a newer one, and one button that checks or updates
+  $("set-version-state").textContent = failed || (fresh && !update?.latest) ? t("checkFailed") : newer ? t("newerVersion", update.latest) : update?.latest ? t("upToDate") : "";
+  $("set-version-action").textContent = t(newer ? "updateSee" : "updateCheck");
+  $("set-version-action").className = newer ? "btn" : "btn quiet";
+  $("set-version-action").onclick = newer ? openUpdate : () => checkUpdate(true);
+}
+
+function openUpdate() {
+  document.querySelectorAll("dialog[open]").forEach(d => d.close());
+  $("update-title").textContent = t("updateTitle", update.latest);
+  $("update-notes").textContent = update.notes || t("noNotes");
+  $("update-how").textContent = t("updateHow", update.current);
+  $("update-page").hidden = !update.page; if (update.page) $("update-page").href = update.page;
+  $("update-progress").hidden = true; $("update-run").hidden = false; $("update-error").textContent = "";
+  $("update-dialog").showModal();
+  if (update.job?.state === "working") followUpdate();   // already on its way, from another window
+}
+
+async function runUpdate() {
+  try {
+    await api("/api/update", {method: "POST", headers: {"X-EMA-Reader": "update"}});
+    try { localStorage.setItem("updating", update.current); } catch {}   // to say so once the new version is up
+    followUpdate();
+  } catch (e) {
+    $("update-error").textContent = e.told ? e.message : t("updateFailed");
+  }
+}
+
+async function followUpdate() {
+  $("update-run").hidden = true; $("update-progress").hidden = false; $("update-error").textContent = "";
+  const from = update.current;
+  const show = (step, progress) => {
+    $("update-step").textContent = t("updateSteps")[step] || t("updateSteps").preparing;
+    $("update-bar").style.width = step === "restarting" ? "100%" : step === "downloading" && progress ? `${100 * progress}%` : step === "installing" ? "80%" : "12%";
+  };
+  show("preparing");
+  let gone = false;   // the old app has stopped answering: the new one is starting
+  for (let tries = 0; tries < 400; tries++) {
+    await wait(700);
+    try {
+      const now = await api("/api/update");
+      if (now.current !== from) return location.reload();
+      if (gone) continue;   // it answered again with the old version: still on its way down
+      if (now.job.state === "failed") {
+        $("update-progress").hidden = true; $("update-run").hidden = false;
+        $("update-error").textContent = now.job.error || t("updateFailed");
+        return;
+      }
+      show(now.job.step, now.job.progress);
+    } catch { gone = true; show("restarting"); }
+  }
+}
+$("update-open").onclick = openUpdate;
+$("update-run").onclick = runUpdate;
+$("update-later").onclick = () => { try { localStorage.setItem("later", update.latest); } catch {} $("update").hidden = true; };
+checkUpdate();
 
 /* reader */
 
 async function openBook(id, start = false, number = null, sentence = null) {
   book = await api(`/api/books/${id}`);
+  if (infoOf !== id) $("info-dialog").close();   // the panel beside the page was about another book
+  if (download.book?.id !== id) $("download-dialog").close();
   $("library").hidden = true; $("reader").hidden = false;
   $("book-title").textContent = book.title; $("book-author").textContent = book.author || "";
   document.title = `${book.title} · EMA Reader`;
@@ -910,7 +1243,7 @@ async function openBook(id, start = false, number = null, sentence = null) {
   $("chapter-list").replaceChildren(...book.chapters.map((c, i) => {
     const b = el("button");
     b.append(el("i", "", i + 1), el("span", "", chapterTitle(book, i)));
-    b.onclick = () => { $("chapters").classList.remove("open"); openChapter(i, 0, playing); };
+    b.onclick = () => openChapter(i, 0, playing);   // the list stays open beside the text
     return b;
   }));
   openChapter(number ?? book.progress.chapter, sentence ?? book.progress.sentence, start);
@@ -937,6 +1270,7 @@ function openChapter(number, sentence, keepPlaying) {
     nodes.push(p);
   }
   sentences.total = before;
+  layTimeline();
   $("text").replaceChildren(...nodes);
   [...$("chapter-list").children].forEach((b, i) => b.classList.toggle("current", i === chapter));
   $("page").scrollTop = 0;
@@ -944,14 +1278,47 @@ function openChapter(number, sentence, keepPlaying) {
   if (keepPlaying) play();
 }
 
-function showTime() {
-  const rate = CHARS_PER_SECOND * speed;
-  $("time").textContent = `${clock(sentences[index].before / rate)} / ${clock(sentences.total / rate)}`;
+// The clock. Every sentence has a start and a length in seconds: an estimate from the measured pace until its
+// audio arrives, then the audio's real length. So the time shown is real seconds: it ticks once a second while
+// the voice speaks, runs on through the pauses, and passes from one sentence to the next without a jump.
+const pauseAfter = i => i < sentences.length - 1 ? (sentences[i].endsParagraph ? PARAGRAPH_PAUSE : SENTENCE_PAUSE) / 1000 : 0;
+function layTimeline(from = 0, guess = true) {
+  const rate = charsPerSecond() * speed;
+  let at = from ? sentences[from].at : 0;
+  for (let i = from; i < sentences.length; i++) {
+    const s = sentences[i];
+    if (guess) { s.lasts = s.text.length / rate; s.real = false; }
+    s.at = at;
+    at += s.lasts + pauseAfter(i);
+  }
+  sentences.seconds = at;
 }
+function settle(i, seconds) {   // the audio of sentence i turned out to be this long
+  const s = sentences[i];
+  if (!s || s.real || !(seconds > 0)) return;
+  s.lasts = seconds; s.real = true;
+  layTimeline(i, false);
+}
+
+let heard = 0;        // seconds of the current sentence that have been spoken
+let restSince = 0;    // when the pause after it began, or 0
+function showTime() {
+  const current = sentences[index];
+  const rest = restSince ? Math.min((performance.now() - restSince) / 1000, pauseAfter(index)) : 0;
+  $("time").textContent = `${clock(current.at + Math.min(heard, current.lasts) + rest)} / ${clock(sentences.seconds)}`;
+}
+function tick() {
+  if (!book || !sentences.length) return;
+  if (loaded === clipKey(index)) heard = audio.currentTime;
+  showTime();
+}
+audio.addEventListener("timeupdate", tick);
+setInterval(() => { if (playing) tick(); }, 200);   // "timeupdate" alone is too sparse in some engines, and silent in the pauses
 
 function select(i, finished = false) {
   sentences[index]?.el.classList.remove("current");
   index = i;
+  heard = finished ? sentences[i].lasts : 0; restSince = 0;
   const current = sentences[index];
   current.el.classList.add("current");
   const box = current.el.getBoundingClientRect(), page = $("page").getBoundingClientRect();
@@ -974,25 +1341,32 @@ function saveProgress(finished = false) {
 
 /* playback: one request per sentence, the next few fetched ahead */
 
-function speech(text, rate) {
-  return fetch("/tts", {method: "POST", body: JSON.stringify({text, speed: rate})})
-    .then(r => { if (!r.ok) throw new Error("no audio"); return r.blob(); })
-    .then(blob => URL.createObjectURL(blob));
+// a sentence as audio: {src, seconds}. The length is read from the WAV header, since not every engine
+// knows an audio element's duration before it has played
+async function speech(text, rate) {
+  const response = await fetch("/tts", {method: "POST", body: JSON.stringify({text, speed: rate})});
+  if (!response.ok) throw new Error("no audio");
+  const blob = await response.blob();
+  const bytesPerSecond = new DataView(await blob.slice(0, 44).arrayBuffer()).getUint32(28, true);
+  return {src: URL.createObjectURL(blob), seconds: (blob.size - 44) / bytesPerSecond};
 }
 
+const clipKey = i => `${book.id}:${chapter}:${i}:${speed}`;
 function clip(i) {
-  const key = `${book.id}:${chapter}:${i}:${speed}`;
+  const key = clipKey(i);
   if (!cache.has(key)) {
-    const url = speech(sentences[i].text, speed);
-    url.catch(() => cache.delete(key));
-    cache.set(key, url);
+    const made = speech(sentences[i].text, speed);
+    made.catch(() => cache.delete(key));
+    cache.set(key, made);
     if (cache.size > CACHE_LIMIT) {
       const [oldest, stale] = cache.entries().next().value;
       cache.delete(oldest);
-      if (oldest !== loaded) stale.then(URL.revokeObjectURL, () => {});
+      if (oldest !== loaded) stale.then(c => URL.revokeObjectURL(c.src), () => {});
     }
   }
-  return {key, url: cache.get(key)};
+  const made = cache.get(key);
+  made.then(c => { if (book && key === clipKey(i)) settle(i, c.seconds); }, () => {});   // still the same chapter and speed
+  return {key, made};
 }
 
 const ended = () => new Promise(resolve => audio.addEventListener("ended", resolve, {once: true}));
@@ -1002,20 +1376,23 @@ async function play() {
   if (!book) return;
   hush();   // the spoken tour gives way to the book
   const mine = ++run;
+  restSince = 0;
   setPlaying(true);
   try {
     while (mine === run) {
       for (let i = 1; i <= PREFETCH && index + i < sentences.length; i++) clip(index + i);
-      const {key, url} = clip(index);
-      const src = await url;
+      const {key, made} = clip(index);
+      const {src, seconds} = await made;
       if (mine !== run) return;
       if (loaded !== key) { audio.src = src; loaded = key; }   // otherwise resume where it was paused
       const done = ended();
       await audio.play();
       await done;
       if (mine !== run) return;
+      learnPace(sentences[index].text.length, seconds);
       loaded = null;
-      await wait(sentences[index].endsParagraph ? PARAGRAPH_PAUSE : SENTENCE_PAUSE);
+      heard = sentences[index].lasts; restSince = performance.now();
+      await wait(pauseAfter(index) * 1000 || SENTENCE_PAUSE);
       if (mine !== run) return;
       if (index + 1 < sentences.length) select(index + 1);
       else if (chapter + 1 < book.chapters.length) return openChapter(chapter + 1, 0, true);
@@ -1058,10 +1435,13 @@ $("play").onclick = toggle;
 $("prev").onclick = () => jump(index - 1);
 $("next").onclick = () => jump(index + 1);
 $("back").onclick = () => showLibrary();
-$("open-chapters").onclick = () => $("chapters").classList.toggle("open");
-$("close-chapters").onclick = () => $("chapters").classList.remove("open");
-$("open-download").onclick = () => openDownload(book);
-$("open-info").onclick = () => openInfo(book.id);
+const toggleChapters = () => togglePanel($("chapters"), () => {
+  openPanel($("chapters"));
+  $("chapter-list").children[chapter]?.scrollIntoView({block: "center"});
+});
+$("open-chapters").onclick = toggleChapters;
+$("open-download").onclick = () => toggleDownload(book);
+$("open-info").onclick = () => toggleInfo(book.id);
 
 /* speed */
 
@@ -1079,6 +1459,7 @@ function setSpeed(value) {
   speed = value;
   try { localStorage.setItem("speed", speed); } catch {}
   $("speeds").hidden = true;
+  layTimeline(); heard = 0;
   showSpeed(); showTime();
   if (playing) jump(index, true);   // re-read the current sentence at the new speed
   else loaded = null;
@@ -1091,13 +1472,13 @@ $("speed").onclick = e => {
 };
 document.addEventListener("click", e => {
   if (!e.target.closest("#speeds")) $("speeds").hidden = true;
-  if (!e.target.closest("#chapters, #open-chapters")) $("chapters").classList.remove("open");
 });
 showSpeed();
 
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") { $("speeds").hidden = true; $("chapters").classList.remove("open"); }
-  if (!book || document.querySelector("dialog[open]") || tour.step >= 0 || e.target.matches("input")) return;
+  if (e.key === "Escape") $("speeds").hidden = true;
+  if (e.key === "Escape" && !document.querySelector("dialog:modal")) PANELS.forEach(closePanel);
+  if (!book || document.querySelector("dialog:modal") || tour.step >= 0 || e.target.matches("input")) return;
   if (e.key === " " && e.target.matches("button")) return;   // the focused button handles it
   if (e.key === " ") { e.preventDefault(); toggle(); }
   else if (e.key === "ArrowRight") jump(index + 1);
@@ -1126,7 +1507,7 @@ Kitaplığına EPUB, PDF ya da düz metin dosyaları ekleyebilirsin. İnternette
 
 Nerede kaldığını ben hatırlarım. Uygulamayı kapatıp yarın açtığında kaldığın cümleden devam ederiz. İyi dinlemeler!`;
 
-// the voice only speaks Turkish, so the guide is spoken in Turkish whatever the language of the page
+// what the guide says aloud at each step; a little fuller than the note on screen
 const SPOKEN = {
   welcome: "Hoş geldin! Ben EMA. Kitapları ve makaleleri sana sesli okurum. Nasıl çalıştığımı yarım dakikada göstereyim.",
   tourPlay: "Dinlemek için bu düğmeye bas. Durdurmak için bir daha basman yeterli.",
@@ -1143,7 +1524,7 @@ async function say(key) {
   const mine = guideTurn;
   if (!guideOn || playing) return;
   try {
-    const src = await speech(SPOKEN[key], 1);
+    const {src} = await speech(SPOKEN[key], 1);
     if (mine !== guideTurn) return;
     guide.src = src;
     await guide.play();   // a browser may refuse sound before the first click; the notes still show
@@ -1163,7 +1544,7 @@ const tour = {
     {target: async () => {
        if (!shell) return $("add").getBoundingClientRect();
        const box = await askShell("add") || {left: 6, right: 40};
-       return {left: box.left, right: box.right, top: -34, bottom: -4};
+       return {left: box.left, right: box.right, top: shellTop - 34, bottom: shellTop - 4};
      },
      text: "tourAdd", from: () => shell ? [230, 240] : [-330, 170], bend: 80, last: true,
      before: async () => { await showLibrary(); tell({highlight: "add"}); }},

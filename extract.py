@@ -45,7 +45,7 @@ NOISE = re.compile(r"\[(\d+|değiştir[^\]]*|edit[^\]]*|kaynak belirtilmeli|cita
 def chapter(title, paragraphs):
     paragraphs = [" ".join(NOISE.sub("", p).split()) for p in paragraphs]
     paragraphs = [p for p in paragraphs if p]
-    title = " ".join(title.split()) if title else None  # None: the reader shows "Chapter N"
+    title = " ".join(title.split()) if title else None  # None: the reader shows "N. bölüm"
     if paragraphs and paragraphs[0] == title:
         paragraphs = paragraphs[1:]  # the heading is already shown as the chapter title
     return {"title": title, "paragraphs": [sentences(p) for p in paragraphs]}
@@ -266,7 +266,7 @@ def extract_html(html):
 
     text = trafilatura.extract(html, include_comments=False, include_tables=False)
     if not text:
-        raise ValueError("no readable text found on the page")
+        raise ValueError("Sayfada okunacak metin bulunamadı.")
     meta = trafilatura.extract_metadata(html)
     title = meta.title if meta else None
     if title:
@@ -291,7 +291,7 @@ def extract_file(name, data):
     elif suffix in (".txt", ".md", ""):
         book = extract_text(data.decode("utf-8", errors="replace"))
     else:
-        raise ValueError(f"unsupported file type: {suffix}")
+        raise ValueError("Bu dosya türü desteklenmiyor. EPUB, PDF, metin ya da Markdown ekleyebilirsin.")
     book["title"] = book["title"] or PurePosixPath(name).stem
     return finish(book)
 
@@ -300,10 +300,10 @@ def extract_url(url):
     import trafilatura
 
     if not url.startswith(("http://", "https://")):
-        raise ValueError("the address must start with http:// or https://")
+        raise ValueError("Adres http:// ya da https:// ile başlamalı.")
     html = trafilatura.fetch_url(url)
     if not html:
-        raise ValueError("could not download the page")
+        raise ValueError("Sayfa indirilemedi. Adresi ve internet bağlantını kontrol et.")
     book = extract_html(html)
     book["title"] = book["title"] or url
     book["author"] = urlparse(url).hostname  # page metadata rarely names the author reliably
@@ -333,5 +333,5 @@ def finish(book):
     book.setdefault("cover", None)
     book["chapters"] = [c for c in book["chapters"] if c["paragraphs"]]
     if not book["chapters"]:
-        raise ValueError("no readable text found")
+        raise ValueError("Burada okunacak metin bulunamadı. Taranmış (resim) PDF'ler okunamaz.")
     return book

@@ -1,7 +1,7 @@
 [project]
 name = "ema-reader"
 version = "1.0.0"
-description = "A book and article reader that speaks Turkish text with the EMA Lightning model"
+description = "Türkçe metni EMA Lightning modeliyle seslendiren kitap ve makale okuyucu"
 readme = "README.md"
 license = "MIT"
 authors = [{ name = "Eren Çakar" }]

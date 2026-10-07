@@ -1,20 +1,20 @@
-# Third-party work
+# Üçüncü taraf çalışmalar
 
-EMA Reader's own code is under the MIT License (see `LICENSE`). It builds on the following, each under its own licence.
+EMA Reader'ın kendi kodu MIT Lisansı altındadır (bkz. `LICENSE`). Aşağıdaki çalışmaların üzerine kuruludur; her biri kendi lisansına tabidir.
 
-| What | Used for | Licence |
+| Ne | Ne için kullanılıyor | Lisans |
 |---|---|---|
-| [EMA Lightning](https://huggingface.co/canberkkkkkk/ema-lightning) by Canberk Aslan (model weights and the `ema-lightning` package) | The voice | Apache 2.0 |
-| [normalizer-tr](https://github.com/erdemtuna/normalizer-tr) by Erdem Tuna | Reading numbers, dates and symbols | Apache 2.0 |
-| [PyTorch](https://pytorch.org) | Running the model | BSD-3-Clause |
-| [NumPy](https://numpy.org) | Audio arrays | BSD-3-Clause |
-| [python-soundfile](https://github.com/bastibe/python-soundfile) and libsndfile | Writing MP3, OGG, Opus, FLAC and WAV | BSD-3-Clause, LGPL-2.1 |
-| [sounddevice](https://python-sounddevice.readthedocs.io) and PortAudio | Playing audio from the command line | MIT |
-| [pypdf](https://github.com/py-pdf/pypdf) | Reading PDF files | BSD-3-Clause |
-| [trafilatura](https://github.com/adbar/trafilatura) | Reading articles from web pages | Apache 2.0 |
-| [huggingface_hub](https://github.com/huggingface/huggingface_hub) | Downloading the model | Apache 2.0 |
-| [pywebview](https://pywebview.flowrl.com) | The window on Windows and macOS | BSD-3-Clause |
-| [PyGObject](https://pygobject.gnome.org), GTK, libadwaita and WebKitGTK | The window on Linux (used from the system, not shipped) | LGPL-2.1 or later |
-| [Inter](https://rsms.me/inter/), [Newsreader](https://github.com/productiontype/Newsreader) and [Caveat](https://github.com/googlefonts/caveat) | The app's fonts | SIL Open Font License 1.1 (texts in `static/fonts/`) |
+| Canberk Aslan'ın [EMA Lightning](https://huggingface.co/canberkkkkkk/ema-lightning) modeli (model ağırlıkları ve `ema-lightning` paketi) | Ses | Apache 2.0 |
+| Erdem Tuna'nın [normalizer-tr](https://github.com/erdemtuna/normalizer-tr) paketi | Sayıları, tarihleri ve simgeleri okumak | Apache 2.0 |
+| [PyTorch](https://pytorch.org) | Modeli çalıştırmak | BSD-3-Clause |
+| [NumPy](https://numpy.org) | Ses dizileri | BSD-3-Clause |
+| [python-soundfile](https://github.com/bastibe/python-soundfile) ve libsndfile | MP3, OGG, Opus, FLAC ve WAV yazmak | BSD-3-Clause, LGPL-2.1 |
+| [sounddevice](https://python-sounddevice.readthedocs.io) ve PortAudio | Komut satırından ses çalmak | MIT |
+| [pypdf](https://github.com/py-pdf/pypdf) | PDF dosyalarını okumak | BSD-3-Clause |
+| [trafilatura](https://github.com/adbar/trafilatura) | Web sayfalarından makale okumak | Apache 2.0 |
+| [huggingface_hub](https://github.com/huggingface/huggingface_hub) | Modeli indirmek | Apache 2.0 |
+| [pywebview](https://pywebview.flowrl.com) | Windows ve macOS'teki pencere | BSD-3-Clause |
+| [PyGObject](https://pygobject.gnome.org), GTK, libadwaita ve WebKitGTK | Linux'taki pencere (sistemden kullanılır, uygulamayla dağıtılmaz) | LGPL-2.1 ya da sonrası |
+| [Inter](https://rsms.me/inter/), [Newsreader](https://github.com/productiontype/Newsreader) ve [Caveat](https://github.com/googlefonts/caveat) | Uygulamanın yazı tipleri | SIL Open Font License 1.1 (metinleri `static/fonts/` içinde) |
 
-The installers for Windows and macOS contain copies of the Python packages above and of the model weights.
+Windows ve macOS kurulum dosyaları, yukarıdaki Python paketlerinin ve model ağırlıklarının kopyalarını içerir.

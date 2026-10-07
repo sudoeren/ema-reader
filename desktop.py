@@ -28,8 +28,7 @@ SPLASH = """<!doctype html><meta charset="utf-8"><style>
 html,body{height:100%;margin:0}body{display:grid;place-items:center;font-family:system-ui,sans-serif;color:#6b6b75;background:#fff}
 @media(prefers-color-scheme:dark){body{background:#131316;color:#a0a0ab}}
 div{text-align:center}img{width:72px;height:72px;display:block;margin:0 auto 18px;animation:p 1.6s ease-in-out infinite}
-@keyframes p{50%{opacity:.45}}</style><div><img src="data:image/svg+xml;base64,LOGO" alt=""><span></span></div>
-<script>document.querySelector("span").textContent=(navigator.language||"tr").toLowerCase().startsWith("tr")?"EMA Reader açılıyor…":"Starting EMA Reader…"</script>"""
+@keyframes p{50%{opacity:.45}}</style><div><img src="data:image/svg+xml;base64,LOGO" alt="">EMA Reader açılıyor…</div>"""
 
 
 def data_dir():
@@ -48,6 +47,10 @@ def free_port():
     """PORT if it is free, otherwise any free port."""
     for port in (PORT, 0):
         with socket.socket() as s:
+            if os.name != "nt":
+                # as the server itself does: a port whose last connections are still winding down is free.
+                # Without this, an app that starts again at once (after an update) lands on another port
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             try:
                 s.bind(("127.0.0.1", port))
                 return s.getsockname()[1]
@@ -76,27 +79,23 @@ def check():
     port = server.server_address[1]
     page = urlopen(f"http://127.0.0.1:{port}/").read()
     wav = urlopen(f"http://127.0.0.1:{port}/tts?text=Merhaba").read()
-    assert b"EMA Reader" in page and wav[:4] == b"RIFF", "the app did not answer as expected"
-    print(f"ok: page {len(page)} bytes, audio {len(wav)} bytes")
+    assert b"EMA Reader" in page and wav[:4] == b"RIFF", "uygulama beklendiği gibi yanıt vermedi"
+    print(f"tamam: sayfa {len(page)} bayt, ses {len(wav)} bayt")
 
 
-WORDS = {
-    "tr": {"back": "Kitaplığa dön", "add": "Kitap ya da makale ekle", "search": "Kitaplığında ara", "settings": "Ayarlar",
-           "info": "Kitap hakkında", "chapters": "Bölümler", "download": "İndir", "saved": "İndirilenler klasörüne kaydedildi: {}"},
-    "en": {"back": "Back to library", "add": "Add a book or article", "search": "Search your library", "settings": "Settings",
-           "info": "About this book", "chapters": "Chapters", "download": "Download", "saved": "Saved to Downloads: {}"},
-}
+WORDS = {"back": "Kitaplığa dön", "add": "Kitap ya da makale ekle", "search": "Kitaplığında ara", "settings": "Ayarlar",
+         "info": "Kitap hakkında", "chapters": "Bölümler", "download": "İndir", "saved": "İndirilenler klasörüne kaydedildi: {}"}
 
 
 APP_ID = "io.github.emareader.EMAReader"
 LAUNCHER = """[Desktop Entry]
 Type=Application
 Name=EMA Reader
-Comment=Listen to books and articles in Turkish
-Comment[tr]=Kitapları ve makaleleri Türkçe dinle
+Comment=Kitapları ve makaleleri Türkçe dinle
 Exec={exec} %f
 Icon={id}
 Terminal=false
+NoDisplay={hidden}
 Categories=Office;Viewer;
 MimeType=application/epub+zip;application/pdf;text/plain;text/markdown;
 StartupWMClass={id}
@@ -108,8 +107,7 @@ def launcher_paths():
     return share / "applications" / f"{APP_ID}.desktop", share / "icons" / "hicolor" / "scalable" / "apps" / f"{APP_ID}.svg"
 
 
-def install_launcher():
-    """Add this copy of the app to the Linux applications menu, for the current user."""
+def write_launcher(hidden):
     import shlex
 
     entry, icon = launcher_paths()
@@ -117,15 +115,35 @@ def install_launcher():
     command = [sys.executable] if getattr(sys, "frozen", False) else [sys.executable, str(Path(__file__).resolve())]
     entry.parent.mkdir(parents=True, exist_ok=True)
     icon.parent.mkdir(parents=True, exist_ok=True)
-    entry.write_text(LAUNCHER.format(exec=" ".join(map(shlex.quote, command)), id=APP_ID), encoding="utf-8")
+    entry.write_text(LAUNCHER.format(exec=" ".join(map(shlex.quote, command)), id=APP_ID, hidden=str(hidden).lower()),
+                     encoding="utf-8")
     icon.write_bytes((ROOT / "static" / "logo.svg").read_bytes())
-    print(f"installed {entry}")
+    return entry
+
+
+def install_launcher():
+    """Add this copy of the app to the Linux applications menu, for the current user."""
+    print(f"kuruldu: {write_launcher(hidden=False)}")
+
+
+def ensure_icon():
+    """The desktop finds a window's icon through its launcher. Without `--install` there is none and
+    the window gets a placeholder, so a launcher that stays out of the menu is written for it."""
+    entry, icon = launcher_paths()
+    try:
+        if not entry.exists():
+            write_launcher(hidden=True)
+        elif not icon.exists() or icon.read_bytes() != (ROOT / "static" / "logo.svg").read_bytes():
+            icon.parent.mkdir(parents=True, exist_ok=True)
+            icon.write_bytes((ROOT / "static" / "logo.svg").read_bytes())  # the logo changed since it was installed
+    except OSError:
+        pass  # a read-only home: the app still works, with the placeholder icon
 
 
 def uninstall_launcher():
     for path in launcher_paths():
         path.unlink(missing_ok=True)
-    print("removed the launcher")
+    print("başlatıcı kaldırıldı")
 
 
 def start_server(ready):
@@ -152,7 +170,7 @@ def start_server(ready):
 def run_gtk(data, splash):
     """The window on Linux: GTK 4 and libadwaita, with the app's controls in the header bar."""
     import json
-    import locale
+    import re
 
     import gi
 
@@ -161,18 +179,20 @@ def run_gtk(data, splash):
     gi.require_version("WebKit", "6.0")
     from gi.repository import Adw, Gdk, Gio, GLib, Gtk, WebKit
 
-    words = WORDS["tr" if (locale.getlocale()[0] or "").lower().startswith("tr") else "en"]
-
     def activate(application):
         style = Adw.StyleManager.get_default()
         css = Gtk.CssProvider()
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
-        def set_theme(dark):
-            """The window follows the page: the header bar and the page are one surface."""
+        def set_theme(dark, accent=None):
+            """The window follows the page: the header bar and the page are one surface, with the page's accent colour."""
             style.set_color_scheme(Adw.ColorScheme.FORCE_DARK if dark else Adw.ColorScheme.FORCE_LIGHT)
-            colour = "#131316" if dark else "#ffffff"
-            css.load_from_string(f"window, headerbar {{ background: {colour}; }}")
+            colour, on_accent = ("#131316", "#131316") if dark else ("#ffffff", "#ffffff")
+            rules = f"window, headerbar {{ background: {colour}; }}"
+            if accent and re.fullmatch(r"#[0-9a-fA-F]{6}", accent):
+                rules = (f"@define-color accent_bg_color {accent}; @define-color accent_color {accent}; "
+                         f"@define-color accent_fg_color {on_accent}; {rules}")
+            css.load_from_string(rules)
             web.set_background_color(Gdk.RGBA(*((0.075, 0.075, 0.086, 1) if dark else (1, 1, 1, 1))))
 
         # what the page tells the window, and the page itself
@@ -189,7 +209,7 @@ def run_gtk(data, splash):
             web.evaluate_javascript(script, -1, None, None, None, None, None)
 
         def button(icon, word, side):
-            b = Gtk.Button(icon_name=icon, tooltip_text=words[word], visible=False)
+            b = Gtk.Button(icon_name=icon, tooltip_text=WORDS[word], visible=False)
             b.connect("clicked", lambda *_: run(f"shellAction({json.dumps(word)})"))
             (header.pack_start if side == "start" else header.pack_end)(b)
             return b
@@ -197,10 +217,20 @@ def run_gtk(data, splash):
         header = Adw.HeaderBar()
         title = Adw.WindowTitle(title=NAME)
         header.set_title_widget(title)
+        # the logo in the top left corner, as on the page; inside a book the back button takes its place
+        logo = Gtk.Image(pixel_size=26, margin_start=8, margin_end=4)
+        try:
+            logo.set_from_paintable(Gdk.Texture.new_from_filename(str(ROOT / "static" / "logo.png")))
+        except GLib.Error:
+            logo.set_visible(False)
+        header.pack_start(logo)
+        # some desktops put a small window icon among the title buttons; the logo above already is that
+        layout = Gtk.Settings.get_default().get_property("gtk-decoration-layout") or ""
+        header.set_decoration_layout(":".join(",".join(b for b in side.split(",") if b != "icon") for side in layout.split(":")))
         buttons = {
             "back": button("go-previous-symbolic", "back", "start"),
             "add": button("list-add-symbolic", "add", "start"),
-            "settings": button("emblem-system-symbolic", "settings", "end"),
+            "settings": button("preferences-system-symbolic", "settings", "end"),
             "chapters": button("view-list-symbolic", "chapters", "end"),
             "download": button("folder-download-symbolic", "download", "end"),
             "info": button("help-about-symbolic", "info", "end"),
@@ -214,11 +244,15 @@ def run_gtk(data, splash):
                 title.set_title(message.get("title") or NAME)
                 title.set_subtitle(message.get("subtitle") or "")
                 shown = {"back": reader, "info": reader, "download": reader, "chapters": reader and message.get("chapters", False),
-                         "add": not reader and not empty, "search": not reader and not empty, "settings": not reader}
+                         "add": not reader and not empty, "search": not reader and not empty, "settings": True}
                 for name, visible in shown.items():
                     buttons[name].set_visible(visible)
+                run(f"shellTop({header.get_height()})")
+                logo.set_visible(not reader and logo.get_paintable() is not None)
+            if "side" in message:  # a panel stands at the left edge of the page: the header bar makes room for it
+                header.set_margin_start(max(0, int(message["side"])))
             if "theme" in message:
-                set_theme(message["theme"] == "dark")
+                set_theme(message["theme"] == "dark", message.get("accent"))
             if "open" in message and str(message["open"]).startswith(("http://", "https://")):
                 Gio.AppInfo.launch_default_for_uri(message["open"], None)
             if "highlight" in message:  # the tour points at one of these buttons
@@ -251,14 +285,15 @@ def run_gtk(data, splash):
                     number += 1
                     target = Path(folder) / f"{Path(name).stem} ({number}){Path(name).suffix}"
                 download.set_destination(str(target))
-                download.connect("finished", lambda *_: toasts.add_toast(Adw.Toast(title=words["saved"].format(target.name))))
+                download.connect("finished", lambda *_: toasts.add_toast(Adw.Toast(title=WORDS["saved"].format(target.name))))
                 return True
 
             download.connect("decide-destination", decide)
 
         session.connect("download-started", on_download)
 
-        view = Adw.ToolbarView(content=toasts)
+        # the page reaches up under the header bar, so that its side panel can stand the full height of the window
+        view = Adw.ToolbarView(content=toasts, extend_content_to_top_edge=True)
         view.add_top_bar(header)
         window = Adw.ApplicationWindow(application=application, title=NAME, default_width=1220, default_height=820, content=view)
         window.set_size_request(420, 560)
@@ -266,6 +301,9 @@ def run_gtk(data, splash):
         window.present()
         start_server(lambda url: GLib.idle_add(web.load_uri, url))
 
+    ensure_icon()
+    GLib.set_prgname(APP_ID)  # the window's class under X11, which is matched against the launcher too
+    Gtk.Window.set_default_icon_name(APP_ID)
     application = Adw.Application(application_id=APP_ID, flags=Gio.ApplicationFlags.NON_UNIQUE)
     application.connect("activate", activate)
     application.run(None)

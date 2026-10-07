@@ -14,6 +14,11 @@ Endpoints:
     GET    /api/books                          the library
     POST   /api/books?name=kitap.epub          add a file (the body is the file)
     POST   /api/books                          add an article: {"url": "https://..."}
+                                               with ?preview=1 (or "preview": true) nothing is added yet: the answer
+                                               describes what was found and carries a token
+    POST   /api/pending/TOKEN                  add what was previewed
+    DELETE /api/pending/TOKEN                  forget it
+    GET    /api/pending/TOKEN/cover            its cover picture, if it has one
     GET    /api/books/ID                       one book with its text
     DELETE /api/books/ID
     PUT    /api/books/ID/progress              {"chapter": 0, "sentence": 12}
@@ -23,6 +28,8 @@ Endpoints:
     GET    /api/exports/JOB/file               the finished file
     DELETE /api/exports/JOB                    cancel
     GET    /api/books/ID/chapters/N/audio      a chapter as one WAV file
+    GET    /api/update                         {"current", "latest", "newer", "notes", "page", "download", "packaged", "job"}; ?fresh=1 asks again
+    POST   /api/update                         install the newer version and start again (from this computer only)
     GET    /tts, POST /tts                     text, speed, seed, sample_rate, stream
 """
 
@@ -45,6 +52,7 @@ from urllib.parse import parse_qsl, urlparse
 import numpy as np
 
 import export
+import update
 from extract import extract_file, extract_url
 
 VERSION = "1.0.0"
@@ -54,6 +62,7 @@ LIBRARY = Path(os.environ.get("EMA_READER_LIBRARY") or ROOT / "library")
 MAX_UPLOAD = 200 * 1024 * 1024
 BOOK = re.compile(r"/api/books/([0-9a-f]{12})(/progress|/cover|/export|/chapters/(\d+)/audio)?")
 EXPORT = re.compile(r"/api/exports/([0-9a-f]{12})(/file)?")
+PENDING = re.compile(r"/api/pending/([0-9a-f]{12})(/cover)?")
 
 # exported chapters: sentences are generated in batches and joined with short pauses
 EXPORT_RATE = 24000
@@ -64,6 +73,7 @@ PARAGRAPH_PAUSE = 0.5
 tts = None
 default_speed = 1.0
 library_lock = threading.Lock()
+pending = {}  # what has been read and shown to the reader, but not added yet: token -> (book, source)
 
 
 def pcm16(audio):
@@ -74,7 +84,7 @@ def parse(params):
     """Convert request parameters to the types EMA expects."""
     text = params.get("text")
     if not isinstance(text, str) or not text.strip():
-        raise ValueError("text is required")
+        raise ValueError("text zorunlu")
     opts = {"speed": default_speed}
     if params.get("speed") is not None:
         opts["speed"] = float(params["speed"])
@@ -117,6 +127,31 @@ def store(book, source):
     return book
 
 
+def preview(book, source):
+    """Keep a freshly extracted book aside and describe it, so the reader can look before it is added."""
+    token = uuid.uuid4().hex[:12]
+    while len(pending) >= 4:  # previews nobody answered
+        pending.pop(next(iter(pending)))
+    pending[token] = (book, source)
+    sentences = [s for c in book["chapters"] for p in c["paragraphs"] for s in p]
+    excerpt = ""
+    for sentence in sentences:
+        if excerpt and len(excerpt) + len(sentence) > 320:
+            break
+        excerpt = f"{excerpt} {sentence}".strip()
+    return {
+        "token": token,
+        "title": book["title"],
+        "author": book["author"],
+        "article": source.startswith(("http://", "https://")),
+        "cover": bool(book.get("cover")),
+        "chapters": len(book["chapters"]),
+        "contents": [c["title"] for c in book["chapters"][:6]],
+        "size": sum(map(len, sentences)),
+        "excerpt": excerpt[:480],
+    }
+
+
 def summary(book):
     """What the library shows for a book; sizes are in characters, to estimate listening time."""
     sizes = [[len(s) for p in c["paragraphs"] for s in p] for c in book["chapters"]]
@@ -131,6 +166,7 @@ def summary(book):
         "added": book["added"],
         "opened": book.get("opened", 0),
         "chapter": progress["chapter"],
+        "chapter_title": book["chapters"][progress["chapter"]]["title"],
         "chapters": len(sizes),
         "size": sum(map(sum, sizes)),
         "done": done,
@@ -173,6 +209,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, {"status": "ok", "version": VERSION})
         elif url.path == "/tts":
             self.tts(query)
+        elif url.path == "/api/update":
+            self.send_json(200, update.check(VERSION, fresh=query.get("fresh") == "1"))
         elif url.path == "/api/books":
             self.list_books()
         elif book and not book.group(2):
@@ -181,10 +219,15 @@ class Handler(BaseHTTPRequestHandler):
             self.with_book(book.group(1), self.cover)
         elif EXPORT.fullmatch(url.path):
             self.export_get(*EXPORT.fullmatch(url.path).groups())
+        elif PENDING.fullmatch(url.path) and PENDING.fullmatch(url.path).group(2):
+            picture = (pending.get(PENDING.fullmatch(url.path).group(1)) or ({},))[0].get("cover")
+            if not picture:
+                return self.send_json(404, {"error": "Bulunamadı."})
+            self.send(200, picture[1] or "application/octet-stream", picture[0])
         elif book and book.group(3):
             self.with_book(book.group(1), lambda b: self.chapter_audio(b, int(book.group(3)), query))
         else:
-            self.send_json(404, {"error": "not found"})
+            self.send_json(404, {"error": "Bulunamadı."})
 
     def do_POST(self):
         url = urlparse(self.path)
@@ -192,25 +235,35 @@ class Handler(BaseHTTPRequestHandler):
             params = self.read_json()
             if params is not None:
                 self.tts(params)
+        elif url.path == "/api/update":
+            self.update()
         elif url.path == "/api/books":
             self.add_book(dict(parse_qsl(url.query)))
+        elif PENDING.fullmatch(url.path) and not PENDING.fullmatch(url.path).group(2):
+            found = pending.pop(PENDING.fullmatch(url.path).group(1), None)
+            if not found:
+                return self.send_json(404, {"error": "Bu önizlemenin süresi dolmuş. Dosyayı yeniden seç."})
+            self.send_json(201, summary(store(*found)))
         elif BOOK.fullmatch(url.path) and BOOK.fullmatch(url.path).group(2) == "/export":
             params = self.read_json()
             if params is not None:
                 self.with_book(BOOK.fullmatch(url.path).group(1), lambda b: self.export_start(b, params))
         else:
-            self.send_json(404, {"error": "not found"})
+            self.send_json(404, {"error": "Bulunamadı."})
 
     def do_PUT(self):
         book = BOOK.fullmatch(urlparse(self.path).path)
         if not book or book.group(2) != "/progress":
-            return self.send_json(404, {"error": "not found"})
+            return self.send_json(404, {"error": "Bulunamadı."})
         params = self.read_json()
         if params is not None:
             self.with_book(book.group(1), lambda b: self.set_progress(b, params))
 
     def do_DELETE(self):
         path = urlparse(self.path).path
+        if PENDING.fullmatch(path) and not PENDING.fullmatch(path).group(2):
+            pending.pop(PENDING.fullmatch(path).group(1), None)
+            return self.send_json(200, {"forgotten": PENDING.fullmatch(path).group(1)})
         job = EXPORT.fullmatch(path)
         if job and not job.group(2):
             found = export.jobs.get(job.group(1))
@@ -221,7 +274,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(200, {"cancelled": job.group(1)})
         book = BOOK.fullmatch(path)
         if not book or book.group(2):
-            return self.send_json(404, {"error": "not found"})
+            return self.send_json(404, {"error": "Bulunamadı."})
         with library_lock:
             book_path(book.group(1)).unlink(missing_ok=True)
             cover_path(book.group(1)).unlink(missing_ok=True)
@@ -243,25 +296,29 @@ class Handler(BaseHTTPRequestHandler):
         try:
             length = int(self.headers.get("Content-Length", 0))
             if length > MAX_UPLOAD:
-                raise ValueError("the file is too large")
+                raise ValueError("Dosya çok büyük.")
             body = self.rfile.read(length)
+            look = query.get("preview") in ("1", "true")
             if query.get("name"):
                 source = query["name"]
                 book = extract_file(source, body)
             else:
-                source = json.loads(body).get("url", "")
+                asked = json.loads(body)
+                source, look = asked.get("url", ""), look or asked.get("preview") is True
                 book = extract_url(source)
         except ValueError as e:
-            return self.send_json(400, {"error": str(e) or "could not read the request"})
-        except Exception as e:  # a damaged file should not take the server down
-            return self.send_json(400, {"error": f"could not read it: {e}"})
+            return self.send_json(400, {"error": str(e) or "İstek okunamadı."})
+        except Exception:  # a damaged file should not take the server down
+            return self.send_json(400, {"error": "Bu dosya okunamadı; bozuk olabilir."})
+        if look:
+            return self.send_json(200, preview(book, source))
         self.send_json(201, summary(store(book, source)))
 
     def with_book(self, book_id, action):
         try:
             book = read_book(book_id)
         except FileNotFoundError:
-            return self.send_json(404, {"error": "no such book"})
+            return self.send_json(404, {"error": "Böyle bir kitap yok."})
         action(book)
 
     def set_progress(self, book, params):
@@ -270,7 +327,7 @@ class Handler(BaseHTTPRequestHandler):
             if not 0 <= chapter < len(book["chapters"]) or sentence < 0:
                 raise ValueError
         except (KeyError, TypeError, ValueError):
-            return self.send_json(400, {"error": "chapter and sentence must be valid positions"})
+            return self.send_json(400, {"error": "chapter ve sentence geçerli konumlar olmalı"})
         with library_lock:
             book["progress"] = {"chapter": chapter, "sentence": sentence}
             book["opened"] = time.time()
@@ -282,7 +339,17 @@ class Handler(BaseHTTPRequestHandler):
             self.send(200, book.get("cover") or "application/octet-stream", cover_path(book["id"]).read_bytes(),
                       {"Cache-Control": "max-age=31536000, immutable"})
         except FileNotFoundError:
-            self.send_json(404, {"error": "this book has no cover"})
+            self.send_json(404, {"error": "Bu kitabın kapağı yok."})
+
+    def update(self):
+        # replacing the program is for the reader at this computer only: not for others on the network, and not for
+        # a web page open in the browser, which cannot send this header to another site
+        if self.client_address[0] not in ("127.0.0.1", "::1") or self.headers.get("X-EMA-Reader") != "update":
+            return self.send_json(403, {"error": "Güncelleme yalnızca uygulamanın içinden başlatılabilir."})
+        try:
+            self.send_json(202, update.start(VERSION))
+        except ValueError as e:
+            self.send_json(400, {"error": str(e)})
 
     # keeping: a chapter or a book as audio or text files
 
@@ -298,11 +365,11 @@ class Handler(BaseHTTPRequestHandler):
     def export_get(self, job_id, wants_file):
         job = export.jobs.get(job_id)
         if not job:
-            return self.send_json(404, {"error": "no such export"})
+            return self.send_json(404, {"error": "Böyle bir dışa aktarım yok."})
         if not wants_file:
             return self.send_json(200, {"state": job.state, "progress": round(job.progress, 3), "name": job.name, "error": job.error})
         if job.state != "ready":
-            return self.send_json(409, {"error": "the export is not ready"})
+            return self.send_json(409, {"error": "Dışa aktarım henüz hazır değil."})
         self.send_download(job.path, job.name)
         job.clean()
 
@@ -324,7 +391,7 @@ class Handler(BaseHTTPRequestHandler):
     def chapter_audio(self, book, number, query):
         try:
             if not 0 <= number < len(book["chapters"]):
-                raise ValueError("no such chapter")
+                raise ValueError("Böyle bir bölüm yok.")
             speed = float(query.get("speed", default_speed))
             wav = chapter_wav(book["chapters"][number], speed)
         except ValueError as e:
@@ -333,7 +400,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "audio/wav")
             self.send_header("Content-Length", str(os.fstat(wav.fileno()).st_size))
-            self.send_header("Content-Disposition", f'attachment; filename="chapter-{number + 1}.wav"')
+            self.send_header("Content-Disposition", f'attachment; filename="bolum-{number + 1}.wav"')
             self.end_headers()
             try:
                 while data := wav.read(1 << 16):
@@ -385,12 +452,12 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError
             return params
         except ValueError:
-            self.send_json(400, {"error": "body must be a JSON object"})
+            self.send_json(400, {"error": "Gövde bir JSON nesnesi olmalı."})
 
     def send_file(self, path):
         path = path.resolve()
         if STATIC.resolve() not in path.parents or not path.is_file():
-            return self.send_json(404, {"error": "not found"})
+            return self.send_json(404, {"error": "Bulunamadı."})
         content_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
         if content_type.startswith("text/"):
             content_type += "; charset=utf-8"
@@ -421,21 +488,21 @@ def start(host="127.0.0.1", port=8000, speed=1.0, cpu=False, lightning=False):
 
 
 def main():
-    p = argparse.ArgumentParser(description="EMA Reader: a book and article reader for EMA Lightning")
-    p.add_argument("--host", default="127.0.0.1", help="0.0.0.0 to expose it to the network")
-    p.add_argument("--port", type=int, default=8000)
+    p = argparse.ArgumentParser(description="EMA Reader: EMA Lightning ile kitap ve makale okuyucu")
+    p.add_argument("--host", default="127.0.0.1", help="ağa açmak için 0.0.0.0")
+    p.add_argument("--port", type=int, default=8000, help="port (varsayılan 8000)")
     p.add_argument("--speed", type=float, default=os.environ.get("EMA_SPEED", "1.0"),
-                   help="speed for requests that do not set one (default 1.0, or set EMA_SPEED)")
-    p.add_argument("--cpu", action="store_true", help="use the CPU instead of the GPU")
-    p.add_argument("--lightning", action="store_true", help="NVIDIA fast path (startup takes minutes)")
-    p.add_argument("--no-browser", action="store_true", help="do not open the reader in the browser")
+                   help="hız belirtmeyen istekler için hız (varsayılan 1.0, ya da EMA_SPEED)")
+    p.add_argument("--cpu", action="store_true", help="GPU yerine CPU kullan")
+    p.add_argument("--lightning", action="store_true", help="NVIDIA hızlı yolu (açılış dakikalar sürer)")
+    p.add_argument("--no-browser", action="store_true", help="okuyucuyu tarayıcıda açma")
     args = p.parse_args()
     if not 0.25 <= args.speed <= 4:
-        p.error("--speed must be from 0.25 to 4")
+        p.error("--speed 0.25 ile 4 arasında olmalı")
 
     server = start(args.host, args.port, args.speed, args.cpu, args.lightning)
     url = f"http://{args.host}:{args.port}"
-    print(f"ready: {url}", flush=True)
+    print(f"hazır: {url}", flush=True)
     if not args.no_browser:
         webbrowser.open(url)
     try:
