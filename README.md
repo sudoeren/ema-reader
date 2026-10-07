@@ -5,7 +5,7 @@
 <p align="center"><b>Kitaplarını ve makalelerini Türkçe dinle.</b><br>
 Bir kitap ekle, oynat düğmesine bas; EMA Reader onu sana kendi bilgisayarında okusun.</p>
 
-![Kitaplık](docs/screenshots/library.png)
+![Kitaplık](docs/screenshots/kitaplik.png)
 
 ## Neler yapar
 
@@ -16,7 +16,7 @@ Bir kitap ekle, oynat düğmesine bas; EMA Reader onu sana kendi bilgisayarında
 - **Yanında götürmeni sağlar.** Bir bölümü ya da kitabın tamamını telefonun veya araban için MP3 olarak kaydet.
 - **Gizli kalır.** Her şey kendi bilgisayarında olur. Hesap yok, abonelik yok; okudukların hiçbir yere gönderilmez.
 
-![Bir kitabı dinlerken](docs/screenshots/reader.png)
+![Bir kitabı dinlerken](docs/screenshots/okuma.png)
 
 ## EMA Reader'ı edin
 
@@ -52,27 +52,27 @@ Bundan sonra EMA Reader uygulamalar menünde durur.
 
 EMA Reader'ı ilk açtığında sana etrafı gezdirir. Kısa bir karşılama metni hazır bekler; oynat düğmesine basıp hemen dinleyebilirsin. Tanıtım da sesli anlatılır; sonradan Ayarlar'dan yeniden izleyebilirsin.
 
-![İlk açılıştaki tanıtım](docs/screenshots/tour.png)
+![İlk açılıştaki tanıtım](docs/screenshots/tanitim.png)
 
 ## Nasıl kullanılır
 
 **Dinleyecek bir şey ekle.** "Kitap ya da makale ekle"yi seç; sonra pencereye bir dosya bırak, bir dosya seç ya da bir web adresi yapıştır. Eklenmeden önce ne bulunduğunu görürsün: kapağı, kaç bölüm olduğu, ne kadar süreceği ve nasıl başladığı. Beğenirsen "Kitaplığa ekle"ye bas.
 
-![Eklemeden önce önizleme](docs/screenshots/add.png)
+![Eklemeden önce önizleme](docs/screenshots/ekleme.png)
 
 **Dinle.** Oynat düğmesine bas. Yanındaki iki okla bir cümle geri ya da ileri git, sağdaki sayıyla hızı değiştir.
 
 **Kitabın ne anlattığına bak.** Her kitabın kapağını, tanıtımını ve içindekileri gösteren bir ayrıntı sayfası vardır.
 
-![Bir kitabın ayrıntıları](docs/screenshots/details.png)
+![Bir kitabın ayrıntıları](docs/screenshots/ayrintilar.png)
 
 **Sonrası için kaydet.** Tek bir bölümü ya da kitabın tamamını indir. MP3 her yerde çalar; daha küçük dosya ya da daha yüksek kalite istersen öbür seçenekler de orada.
 
-![İndirme seçenekleri](docs/screenshots/download.png)
+![İndirme seçenekleri](docs/screenshots/indirme.png)
 
 **Kendine göre ayarla.** Ayarlar'da koyu temaya geçebilir, bir renk seçebilir ve yazıyı büyütebilirsin.
 
-![Koyu tema](docs/screenshots/dark.png)
+![Koyu tema](docs/screenshots/koyu-tema.png)
 
 ## Bilmekte fayda var
 
