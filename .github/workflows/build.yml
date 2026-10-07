@@ -1,4 +1,4 @@
-# Builds the desktop app for Windows and macOS (on Linux it runs from source with the system's GTK).
+# Builds the desktop app: for Windows and macOS a self-contained build, for Linux a .deb or .rpm per system.
 # Runs on every version tag (v1.0.0) and attaches the installers to a release;
 # it can also be started by hand from the Actions tab, which only produces downloadable artifacts.
 name: build
@@ -68,3 +68,56 @@ jobs:
           files: |
             dist/EMA-Reader-Setup.exe
             dist/EMA-Reader.dmg
+
+  # one package per system, each built in a container of that system (see packaging/linux.py)
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { system: ubuntu-24.04, image: "ubuntu:24.04" }
+          - { system: ubuntu-26.04, image: "ubuntu:26.04" }
+          - { system: debian-13, image: "debian:13" }
+          - { system: fedora-44, image: "fedora:44" }
+    runs-on: ubuntu-latest
+    container: ${{ matrix.image }}
+    steps:
+      - name: Build tools
+        run: |
+          if command -v apt-get >/dev/null; then
+            apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y python3 ca-certificates
+          else
+            dnf install -y python3 rpm-build
+          fi
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Release notes
+        if: github.ref_type == 'tag'
+        run: python3 update.py "$GITHUB_REF_NAME" > release-notes.md
+
+      - name: Build
+        run: python3 packaging/linux.py ${{ matrix.system }}
+
+      # installed the way a reader installs it, then started without a window by an ordinary user
+      - name: Install and check
+        run: |
+          if command -v apt-get >/dev/null; then
+            DEBIAN_FRONTEND=noninteractive apt-get install -y ./dist/EMA-Reader-${{ matrix.system }}.deb
+          else
+            dnf install -y ./dist/EMA-Reader-${{ matrix.system }}.rpm
+          fi
+          useradd -m okur
+          runuser -u okur -- ema-reader --check
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ema-reader-${{ matrix.system }}
+          path: dist/EMA-Reader-${{ matrix.system }}.*
+
+      - name: Attach to the release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release-notes.md
+          files: dist/EMA-Reader-${{ matrix.system }}.*

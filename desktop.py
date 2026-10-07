@@ -8,7 +8,8 @@ On Linux it is a GTK 4 / libadwaita window whose header bar holds the app's cont
 Windows and macOS it is the system's web view.
 
 On Linux, `--install` adds EMA Reader to the applications menu with its icon and offers it
-for opening EPUB and PDF files; `--uninstall` removes that again.
+for opening EPUB and PDF files; `--uninstall` removes that again. A copy installed from a .deb or
+.rpm package (packaging/linux.py) needs neither: the package brings the launcher and the icon.
 Books are kept in the user's data folder. `--check` starts everything without a window, makes
 one sentence of audio and exits, which is how a packaged build is tested.
 """
@@ -80,6 +81,14 @@ def check():
     page = urlopen(f"http://127.0.0.1:{port}/").read()
     wav = urlopen(f"http://127.0.0.1:{port}/tts?text=Merhaba").read()
     assert b"EMA Reader" in page and wav[:4] == b"RIFF", "uygulama beklendiği gibi yanıt vermedi"
+    if sys.platform == "linux":
+        # what the window needs from the system; loading it needs no screen
+        import gi
+
+        gi.require_version("Gtk", "4.0")
+        gi.require_version("Adw", "1")
+        gi.require_version("WebKit", "6.0")
+        from gi.repository import Adw, Gtk, WebKit  # noqa: F401
     print(f"tamam: sayfa {len(page)} bayt, ses {len(wav)} bayt")
 
 
@@ -129,6 +138,8 @@ def install_launcher():
 def ensure_icon():
     """The desktop finds a window's icon through its launcher. Without `--install` there is none and
     the window gets a placeholder, so a launcher that stays out of the menu is written for it."""
+    if (ROOT / "package").exists():
+        return  # installed from a package, whose launcher this one would hide
     entry, icon = launcher_paths()
     try:
         if not entry.exists():

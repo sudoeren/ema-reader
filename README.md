@@ -24,7 +24,25 @@ Bir kitap ekle, oynat düğmesine bas; EMA Reader onu sana kendi bilgisayarında
 
 Uygulama yeni ve ücretsiz olduğu için Windows ya da macOS ilk açılışta seni uyarabilir. Windows'ta "Ek bilgi"yi, ardından "Yine de çalıştır"ı seç; macOS'te uygulamaya sağ tıklayıp "Aç"ı seç.
 
-**Linux:** [uv](https://docs.astral.sh/uv/) kur, sonra:
+**Linux:** [Sürümler](../../releases) sayfasından sistemine uyan paketi indir:
+
+| Sistem | Paket |
+|---|---|
+| Ubuntu 24.04 ve ona dayananlar (Linux Mint 22, Pop!_OS 24.04, Zorin OS 18…) | `EMA-Reader-ubuntu-24.04.deb` |
+| Ubuntu 26.04 | `EMA-Reader-ubuntu-26.04.deb` |
+| Debian 13 | `EMA-Reader-debian-13.deb` |
+| Fedora 44 | `EMA-Reader-fedora-44.rpm` |
+
+Sonra dosyayı çift tıklayıp yazılım merkeziyle kur ya da uçbirimden kur:
+
+```bash
+sudo apt install ./EMA-Reader-ubuntu-24.04.deb     # Ubuntu ve Debian
+sudo dnf install ./EMA-Reader-fedora-44.rpm        # Fedora
+```
+
+Bundan sonra EMA Reader uygulamalar menünde durur. Yeni bir sürüm çıktığında uygulama onu kendisi kurar; yalnızca parolanı sorar.
+
+Başka bir dağıtım kullanıyorsan EMA Reader'ı kaynaktan çalıştırabilirsin. [uv](https://docs.astral.sh/uv/) kur, sonra:
 
 ```bash
 git clone https://github.com/sudoeren/ema-reader
@@ -32,21 +50,19 @@ cd ema-reader
 uv run --extra desktop desktop.py --install
 ```
 
-Bundan sonra EMA Reader uygulamalar menünde durur.
-
 ### En düşük sistem gereksinimleri
 
 | | Windows | macOS | Linux |
 |---|---|---|---|
-| **Sistem** | Windows 10 ya da 11, 64 bit | Apple silicon'lu (M1 ve sonrası) bir Mac | 64 bit; GTK 4, libadwaita ve WebKitGTK 6.0 kurulu bir masaüstü |
+| **Sistem** | Windows 10 ya da 11, 64 bit | Apple silicon'lu (M1 ve sonrası) bir Mac | 64 bit (x86_64); paketler için yukarıdaki sistemlerden biri, kaynaktan çalıştırmak için GTK 4, libadwaita ve WebKitGTK 6.0 kurulu bir masaüstü |
 | **Bellek** | 4 GB | 4 GB | 4 GB |
-| **Boş disk alanı** | yaklaşık 2 GB | yaklaşık 2 GB | yaklaşık 6 GB |
-| **Ekran kartı** | gerekmez | gerekmez | gerekmez; NVIDIA kart varsa kullanılır |
+| **Boş disk alanı** | yaklaşık 2 GB | yaklaşık 2 GB | yaklaşık 2 GB; kaynaktan yaklaşık 6 GB |
+| **Ekran kartı** | gerekmez | gerekmez | gerekmez; kaynaktan çalışırken NVIDIA kart varsa kullanılır |
 
 - Uygulama çalışırken yaklaşık 1 GB bellek kullanır.
 - Ekran kartı olmadan da akıcı okur: bir cümlenin sesi, sıradan bir işlemcide cümlenin kendisinden çok daha kısa sürede hazırlanır.
-- Dinlemek için internet gerekmez. İnternet yalnızca web'den makale eklerken, yeni sürüm denetiminde ve Linux'ta ilk kurulumda (ses modeli ve gerekli paketler indirilirken) kullanılır.
-- Linux'taki disk ihtiyacının çoğu, ekran kartı desteğiyle birlikte gelen PyTorch paketleridir.
+- Dinlemek için internet gerekmez. İnternet yalnızca web'den makale eklerken, yeni sürüm denetiminde ve Linux'ta kaynaktan ilk kurulumda (ses modeli ve gerekli paketler indirilirken) kullanılır.
+- Linux'ta kaynaktan kurulumdaki disk ihtiyacının çoğu, ekran kartı desteğiyle birlikte gelen PyTorch paketleridir. Hazır paketler yalnızca işlemciyle çalışan, çok daha küçük PyTorch'u kullanır.
 
 ## İlk dakikan
 

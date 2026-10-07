@@ -12,6 +12,8 @@ RELEASE = {
     "assets": [
         {"name": "EMA-Reader-Setup.exe", "browser_download_url": "https://github.com/sudoeren/ema-reader/releases/download/v1.10.0/EMA-Reader-Setup.exe"},
         {"name": "EMA-Reader.dmg", "browser_download_url": "https://github.com/sudoeren/ema-reader/releases/download/v1.10.0/EMA-Reader.dmg"},
+        {"name": "EMA-Reader-debian-13.deb", "browser_download_url": "https://github.com/sudoeren/ema-reader/releases/download/v1.10.0/EMA-Reader-debian-13.deb"},
+        {"name": "EMA-Reader-ubuntu-24.04.deb", "browser_download_url": "https://github.com/sudoeren/ema-reader/releases/download/v1.10.0/EMA-Reader-ubuntu-24.04.deb"},
     ],
 }
 
@@ -21,11 +23,20 @@ def test_versions_compare_as_numbers():
     assert update.number("1.0.0") == update.number("v1.0.0")
 
 
-def test_release_gives_the_installer_for_the_system():
+def test_release_gives_the_installer_for_the_system(monkeypatch, tmp_path):
+    monkeypatch.setattr(update, "PACKAGE", tmp_path / "package")
     assert update.release(RELEASE, "win32")["download"].endswith("EMA-Reader-Setup.exe")
     assert update.release(RELEASE, "darwin")["download"].endswith("EMA-Reader.dmg")
     assert update.release(RELEASE, "linux")["download"] is None  # updated with git instead
     assert update.release(RELEASE, "linux")["latest"] == "1.10.0"
+
+
+def test_a_linux_package_is_updated_with_the_package_for_the_same_system(monkeypatch, tmp_path):
+    monkeypatch.setattr(update, "PACKAGE", tmp_path / "package")
+    (tmp_path / "package").write_text("EMA-Reader-ubuntu-24.04.deb\n", encoding="utf-8")
+    assert update.release(RELEASE, "linux")["download"].endswith("/EMA-Reader-ubuntu-24.04.deb")
+    (tmp_path / "package").write_text("EMA-Reader-fedora-44.rpm\n", encoding="utf-8")
+    assert update.release(RELEASE, "linux")["download"] is None  # not published for this system
 
 
 def test_release_notes_lose_their_markdown():

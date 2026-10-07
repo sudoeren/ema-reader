@@ -13,8 +13,9 @@ or a release, `latest` is None and `newer` is False.
 
 Installing needs nothing from the reader. A copy that runs from source (Linux) pulls the new code
 with git and syncs its packages with uv. The Windows build downloads the new installer and runs
-it quietly; the macOS build downloads the disk image and swaps the application. Each then starts
-the app again.
+it quietly; the macOS build downloads the disk image and swaps the application. A Linux package
+downloads the new package for the same system and installs it with the system's package manager,
+which asks for the password. Each then starts the app again.
 """
 
 import json
@@ -33,9 +34,11 @@ REPO = "sudoeren/ema-reader"
 URL = os.environ.get("EMA_READER_UPDATE_URL") or f"https://api.github.com/repos/{REPO}/releases/latest"
 FRESH = 6 * 3600  # how long an answer is kept
 RETRY = 600  # how soon to ask again after a failure
-INSTALLERS = {"win32": ".exe", "darwin": ".dmg"}  # on Linux the app runs from source and is updated with git
+INSTALLERS = {"win32": "EMA-Reader-Setup.exe", "darwin": "EMA-Reader.dmg"}
 
 ROOT = Path(__file__).parent
+# written by packaging/linux.py: the release file this copy was installed from, such as EMA-Reader-ubuntu-24.04.deb
+PACKAGE = ROOT / "package"
 
 cache = {"until": 0, "release": None}
 job = {"state": "idle", "step": None, "progress": 0, "error": None}
@@ -56,13 +59,26 @@ def tidy(notes):
     return "\n".join(lines)
 
 
+def package():
+    """The Linux package this copy was installed from; None for a copy that runs from source."""
+    try:
+        return PACKAGE.read_text(encoding="utf-8").strip() or None
+    except OSError:
+        return None
+
+
+def installer(platform=sys.platform):
+    """The file in a release that updates this copy; None when it is updated with git."""
+    return package() if platform == "linux" else INSTALLERS.get(platform)
+
+
 def release(data, platform=sys.platform):
     """What the reader needs from GitHub's description of a release."""
     def link(url):
         return url if isinstance(url, str) and url.startswith("https://github.com/") else None
 
-    suffix = INSTALLERS.get(platform)
-    installers = (a.get("browser_download_url") for a in data.get("assets") or [] if suffix and str(a.get("name", "")).endswith(suffix))
+    wanted = installer(platform)
+    installers = (a.get("browser_download_url") for a in data.get("assets") or [] if wanted and a.get("name") == wanted)
     return {"latest": ".".join(map(str, number(data["tag_name"]))), "notes": tidy(data.get("body")),
             "page": link(data.get("html_url")), "download": link(next(installers, None))}
 
@@ -85,7 +101,7 @@ def check(current, fresh=False):
             cache["until"] = now + RETRY
     found = cache["release"] or {"latest": None, "notes": "", "page": None, "download": None}
     return {"current": current, **found, "newer": bool(found["latest"]) and number(found["latest"]) > number(current),
-            "packaged": bool(getattr(sys, "frozen", False)), "job": dict(job)}
+            "packaged": bool(getattr(sys, "frozen", False) or package()), "job": dict(job)}
 
 
 class Failed(Exception):
@@ -106,7 +122,9 @@ def start(current):
 
 def install(found):
     try:
-        if not getattr(sys, "frozen", False):
+        if package():
+            with_package(found)
+        elif not getattr(sys, "frozen", False):
             from_source()
         elif sys.platform == "win32":
             with_installer(found)
@@ -139,6 +157,10 @@ def from_source():
         synced = subprocess.run(["uv", "sync", *(["--extra", "desktop"] if desktop else [])], cwd=ROOT, capture_output=True, text=True)
         if synced.returncode:
             raise Failed(f"Kod güncellendi ama gerekli paketler kurulamadı: {last_line(synced.stderr)}")
+    restart()
+
+
+def restart():
     job["step"] = "restarting"
     time.sleep(1.5)  # long enough for the page to hear that the app is about to start again
     os.execv(sys.executable, [sys.executable, *sys.argv])
@@ -170,6 +192,25 @@ def with_installer(found):
     flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
     subprocess.Popen([str(setup), "/SILENT", "/SUPPRESSMSGBOXES", "/NORESTART"], close_fds=True, creationflags=flags)
     os._exit(0)  # the installer cannot replace a program that is running
+
+
+def with_package(found):
+    """A Linux package: install the new one with the system's package manager, which asks for the password."""
+    name = package()
+    manager = ["apt-get", "install", "-y"] if name.endswith(".deb") else ["dnf", "install", "-y"]
+    if not shutil.which("pkexec") or not shutil.which(manager[0]):
+        raise Failed("Bu sistemde uygulama kendini kuramıyor. Yeni sürümü sürüm sayfasından indirip kurabilirsin.")
+    path = download(found, name)
+    job["step"] = "installing"
+    try:
+        done = subprocess.run(["pkexec", *manager, str(path)], capture_output=True, text=True)
+    finally:
+        shutil.rmtree(path.parent, ignore_errors=True)
+    if done.returncode in (126, 127):  # pkexec: the password was not given, or nothing could ask for it
+        raise Failed("Yönetici izni alınamadı, yeni sürüm kurulmadı. Yeniden dene ya da sürüm sayfasından indirip kur.")
+    if done.returncode:
+        raise Failed(f"Yeni sürüm kurulamadı: {last_line(done.stderr) or last_line(done.stdout)}")
+    restart()
 
 
 SWAP = """#!/bin/sh

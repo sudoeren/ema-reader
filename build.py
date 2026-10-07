@@ -5,7 +5,7 @@
 The result is `dist/EMA Reader/`, a folder that contains everything the app needs, including
 Python, a CPU-only PyTorch and the model weights; nothing has to be installed to run it.
 A build only works on the kind of system it was made on: build on Windows for Windows and
-on macOS for macOS. On Linux the app runs from source, with the system's GTK.
+on macOS for macOS. Linux packages are made by packaging/linux.py, around the system's GTK.
 """
 
 import os
@@ -36,7 +36,7 @@ def run(*command, **kwargs):
 def main():
     if sys.platform == "linux":
         # the Linux window is GTK from the system, which a self-contained folder cannot carry along
-        sys.exit("Linux'ta EMA Reader kaynaktan çalışır: uv run --extra desktop desktop.py --install")
+        sys.exit("Linux paketleri packaging/linux.py ile üretilir; kaynaktan çalıştırmak için: uv run --extra desktop desktop.py --install")
     python = VENV / ("Scripts/python.exe" if sys.platform == "win32" else "bin/python")
     if not python.exists():
         run("uv", "venv", VENV, "--python", "3.12")

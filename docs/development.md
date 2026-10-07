@@ -13,6 +13,7 @@ EMA Reader'ın teknik tarafı: nasıl kurulduğu, kaynaktan nasıl çalıştır�
 | `update.py` | GitHub'daki son sürüme bakar; yeni sürüm varsa uygulama bunu haber verir |
 | `desktop.py` | Sunucunun çevresindeki masaüstü penceresi |
 | `build.py` | Windows ve macOS için kendi kendine yeten uygulamayı üretir |
+| `packaging/linux.py` | Linux için `.deb` ve `.rpm` paketlerini üretir |
 | `static/index.html` | Arayüzün tamamı: tek sayfa, derleme adımı yok |
 | `CHANGELOG.md` | Her sürümün yenilikleri; sürüm sayfasına ve uygulamadaki "Yeni sürüm" penceresine buradan yazılır |
 | `tests/` | Model gerektirmeyen kısımların testleri |
@@ -59,7 +60,7 @@ uv run --extra desktop desktop.py --install      # Linux: uygulamalar menüsüne
 uv run --extra desktop desktop.py --check        # penceresiz başlat, bir cümle üret, çık
 ```
 
-Linux'ta masaüstü, bir pencerenin simgesini uygulama kimliğiyle aynı adı taşıyan başlatıcı dosyasından bulur. `--install` yapılmamışsa uygulama ilk açılışta menüde görünmeyen bir başlatıcı (`NoDisplay=true`) ve simgeyi kendisi yazar; yoksa pencere masaüstünün yer tutucu simgesiyle görünürdü.
+Linux'ta masaüstü, bir pencerenin simgesini uygulama kimliğiyle aynı adı taşıyan başlatıcı dosyasından bulur. `--install` yapılmamışsa uygulama ilk açılışta menüde görünmeyen bir başlatıcı (`NoDisplay=true`) ve simgeyi kendisi yazar; yoksa pencere masaüstünün yer tutucu simgesiyle görünürdü. Paketten kurulan kopya bunu yapmaz: başlatıcıyı paket getirir ve kullanıcının klasöründeki aynı adlı bir başlatıcı onu menüden gizlerdi.
 
 ## Kurulum dosyalarını üretme
 
@@ -69,9 +70,21 @@ uv run build.py        # Windows ya da macOS'te; dist/EMA Reader/ klasörünü y
 
 Çıktı; içinde Python, yalnızca CPU'lu bir PyTorch ve model ağırlıkları bulunan bir PyInstaller klasörüdür, bu yüzden uygulama indirme yapmadan açılır. PyTorch'un GPU'lu sürümü birkaç gigabayt eklerdi; model CPU'da da yeterince hızlıdır.
 
-`.github/workflows/build.yml`, `v1.0.0` gibi bir sürüm etiketi gönderildiğinde derlemeyi Windows ve macOS'te çalıştırır, bir kurulum dosyasına (`EMA-Reader-Setup.exe`, `packaging/windows.iss` ile üretilir) ve bir disk görüntüsüne (`EMA-Reader.dmg`) sarar, ikisini de sürüme ekler. Actions sekmesinden elle de başlatılabilir.
+`.github/workflows/build.yml`, `v1.0.0` gibi bir sürüm etiketi gönderildiğinde derlemeyi Windows ve macOS'te çalıştırır (Linux paketleri için aşağıya bak), bir kurulum dosyasına (`EMA-Reader-Setup.exe`, `packaging/windows.iss` ile üretilir) ve bir disk görüntüsüne (`EMA-Reader.dmg`) sarar, ikisini de sürüme ekler. Actions sekmesinden elle de başlatılabilir.
 
 Kurulum dosyaları kod imzalı değildir; bu yüzden Windows SmartScreen ve macOS Gatekeeper ilk açılıştan önce uyarır.
+
+### Linux paketleri
+
+```bash
+sudo python3 packaging/linux.py ubuntu-24.04     # o sistemin kendisinde; dist/EMA-Reader-ubuntu-24.04.deb yazar
+```
+
+Linux penceresi GTK 4, libadwaita ve WebKitGTK'yı sistemden aldığı için, Windows ve macOS'teki gibi her şeyi içeren tek bir klasör olamaz. Paket bunun yerine uygulamayı `/opt/ema-reader` altına, sistemin kendi Python'uyla kurulmuş bir ortamla birlikte koyar. Bu ortamda yalnızca CPU'lu bir PyTorch, model ağırlıkları ve öbür paketler bulunur; GTK'nın Python bağları (`python3-gi` ya da `python3-gobject`) sistemden gelir. Ortam yalnızca kurulduğu Python sürümüyle çalıştığı için her sistemin kendi paketi vardır ve paket tam o Python sürümünü ister. Betik `dpkg-deb` bulursa `.deb`, `rpmbuild` bulursa `.rpm` üretir. Root olarak çalışır, çünkü ortamı kurulacağı yerde, `/opt/ema-reader` içinde hazırlar.
+
+Paket ayrıca `/usr/bin/ema-reader` komutunu, uygulamalar menüsündeki başlatıcıyı, simgeyi ve yazılım merkezleri için bir AppStream açıklamasını kurar.
+
+`build.yml` her sürümde Ubuntu 24.04, Ubuntu 26.04, Debian 13 ve Fedora 44 için birer paket üretir. Her biri o sistemin kabında derlenir, sonra kurulup sıradan bir kullanıcıyla `ema-reader --check` ile denenir. Yeni bir sistem eklemek için iş akışındaki listeye bir satır eklemek yeterlidir; adı `EMA-Reader-<sistem>.deb` ya da `.rpm` olur.
 
 ## Sürüm yayınlama
 
@@ -93,6 +106,7 @@ Uygulama açılışta `update.py` aracılığıyla GitHub'daki son sürüme baka
 - **Kaynaktan çalışan kopya (Linux):** `git pull --ff-only` ile yeni kodu alır, Python ortamı projenin kendi `.venv` klasörüyse `uv sync` ile paketleri eşitler, sonra kendini yeniden başlatır.
 - **Windows:** yeni kurulum dosyasını indirir, sessizce çalıştırır ve kapanır; kurulum bitince uygulamayı yeniden açar.
 - **macOS:** yeni disk görüntüsünü indirir, uygulama kapanınca içindeki uygulamayı eskisinin yerine koyar ve yeniden açar. Eski uygulama, yenisi tümüyle kopyalanana kadar silinmez.
+- **Linux paketi:** aynı sistemin yeni paketini indirir (hangisi olduğunu paketin `/opt/ema-reader/package` dosyasına yazdığı addan bilir), `pkexec` ile `apt-get` ya da `dnf`'e kurdurur, sonra kendini yeniden başlatır. Sistem kullanıcının parolasını kendi penceresinde sorar. O sistem için paket yayınlanmamışsa uygulama güncellemeyi sunar ama kurulum dosyası olmadığını söyler.
 
 Güncellemeyi yalnızca aynı bilgisayardan gelen ve uygulamanın kendi sayfasının gönderdiği istek başlatabilir (`POST /api/update`, `X-EMA-Reader: update` başlığıyla). Kurulum dosyaları yalnızca `https://github.com/` adresinden indirilir.
 
