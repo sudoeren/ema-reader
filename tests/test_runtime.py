@@ -97,3 +97,29 @@ def test_nothing_is_removed_in_the_middle_of_a_download(monkeypatch, tmp_path):
     with pytest.raises(ValueError):
         runtime.remove()
     assert not (tmp_path / "remove").exists()
+
+
+def test_the_processor_needs_no_other_pytorch_than_the_one_that_is_there(monkeypatch, tmp_path):
+    monkeypatch.setenv("EMA_READER_RUNTIME", str(tmp_path))
+    monkeypatch.setattr(runtime, "leaving", False)
+    monkeypatch.setattr(runtime, "has_torch", lambda: True)
+    monkeypatch.setattr(runtime, "has_model", lambda: True)
+    monkeypatch.setattr(runtime, "job", dict(runtime.job))
+    downloaded, loaded = [], []
+    monkeypatch.setattr(runtime, "install_torch", lambda choice, target: downloaded.append((choice, target.name)))
+
+    runtime.remember(choice="cuda")
+    runtime.install("cpu", lambda: loaded.append("cpu"))
+    assert not downloaded and loaded == ["cpu"] and runtime.wants_cpu()
+    assert runtime.state() == {"choice": "cuda", "use": "cpu"} and runtime.status()["using"] == "cpu"
+
+    runtime.install("cuda", lambda: loaded.append("cuda"))  # and back to the card, which is still there
+    assert not downloaded and loaded == ["cpu", "cuda"] and not runtime.wants_cpu()
+
+    (tmp_path / "state.json").unlink()  # a copy run from source: its PyTorch came with it
+    runtime.install("cpu", lambda: loaded.append("cpu"))
+    assert not downloaded and runtime.wants_cpu()
+
+    runtime.remember(choice="cpu")  # only a card's PyTorch has to be fetched, for the next start
+    runtime.install("cuda", lambda: loaded.append("never"))
+    assert downloaded == [("cuda", "site.new")] and "never" not in loaded

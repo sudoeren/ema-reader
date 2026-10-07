@@ -82,6 +82,7 @@ tts = None
 loading = threading.Event()  # set when the model starts loading
 loaded = threading.Event()  # set when it is loaded, or could not be
 load_lock = threading.Lock()
+swap_lock = threading.Lock()  # one load at a time
 load_error = None
 options = {"cpu": False, "lightning": False}
 default_speed = 1.0
@@ -103,20 +104,27 @@ def model():
     return tts
 
 
-def load():
-    """Load the model; the first request then waits for it instead of failing."""
+def load(again=False):
+    """Load the model; the first request then waits for it instead of failing. `again` is for when the settings
+    changed what makes the speech (the processor or the card): the model is loaded anew and takes the place of
+    the one that is speaking, which goes on until then."""
     global tts, load_error
     with load_lock:
-        if loading.is_set():
+        if loading.is_set() and not again:
             return
         loading.set()
-    try:
-        from ema import load_model
+    with swap_lock:
+        cpu = options["cpu"] or runtime.wants_cpu()
+        if tts is None or (tts.device.type == "cpu") != cpu:
+            try:
+                from ema import load_model
 
-        tts = load_model(options["cpu"], options["lightning"])
-        tts.say("Merhaba.")  # warm-up: moves the first request's delay to startup
-    except Exception as e:
-        load_error = f"Ses modeli yüklenemedi: {e}"
+                fresh = load_model(cpu, options["lightning"])
+                fresh.say("Merhaba.")  # warm-up: moves the first request's delay to startup
+                tts, load_error = fresh, None
+            except Exception as e:
+                if tts is None:
+                    load_error = f"Ses modeli yüklenemedi: {e}"
     loaded.set()
 
 
@@ -410,7 +418,7 @@ class Handler(BaseHTTPRequestHandler):
         if params is None or not self.from_app():
             return
         try:
-            self.send_json(202, runtime.start(str(params.get("choice")), done=load))
+            self.send_json(202, runtime.start(str(params.get("choice")), done=lambda: load(again=True)))
         except ValueError as e:
             self.send_json(400, {"error": str(e)})
 

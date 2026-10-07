@@ -169,6 +169,16 @@ def state():
         return {}
 
 
+def remember(**values):
+    folder().mkdir(parents=True, exist_ok=True)
+    (folder() / "state.json").write_text(json.dumps({**state(), **values}), encoding="utf-8")
+
+
+def wants_cpu():
+    """Whether the reader chose the processor although the PyTorch that is there could use a card."""
+    return state().get("use") == "cpu"
+
+
 def has_torch():
     return importlib.util.find_spec("torch") is not None
 
@@ -188,7 +198,7 @@ def ready():
 def status():
     activate()
     torch = has_torch()
-    return {"ready": torch and has_model(), "torch": torch, "using": state().get("choice"), "choices": choices(),
+    return {"ready": torch and has_model(), "torch": torch, "using": state().get("use") or state().get("choice"), "choices": choices(),
             "restart": (folder() / "site.new").is_dir(), "job": dict(job)}
 
 
@@ -211,15 +221,18 @@ class Failed(Exception):
 def install(choice, done):
     try:
         activate()
-        switching = has_torch() and state().get("choice") not in (None, choice)
+        # another PyTorch is only needed for a card: the one for a card runs on the processor too, and so does
+        # whatever a copy run from source came with (which has no "choice")
+        switching = has_torch() and choice != "cpu" and state().get("choice") not in (None, choice)
         if not has_torch() or switching:
             install_torch(choice, folder() / ("site.new" if switching else "site"))
             activate()
         if not has_model():
             install_model()
+        remember(use=choice)
         job.update(state="done", step=None, progress=1)
         if done and not switching:
-            done()
+            done()  # loads the model, or loads it anew on what was chosen
     except Failed as e:
         job.update(state="failed", error=str(e))
     except Exception as e:
@@ -272,7 +285,7 @@ def install_torch(choice, target):
         line = next((l.strip() for l in reversed(error.splitlines()) if l.strip()), "")
         raise Failed(f"PyTorch indirilemedi. İnternet bağlantını kontrol edip yeniden dene. ({line})")
     shutil.rmtree(cache, ignore_errors=True)
-    (folder() / "state.json").write_text(json.dumps({"choice": choice}), encoding="utf-8")
+    remember(choice=choice)
 
 
 def measure(process, cache, expected):
