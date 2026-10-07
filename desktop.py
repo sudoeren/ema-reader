@@ -91,6 +91,7 @@ Comment=Kitapları ve makaleleri Türkçe dinle
 Exec={exec} %f
 Icon={id}
 Terminal=false
+NoDisplay={hidden}
 Categories=Office;Viewer;
 MimeType=application/epub+zip;application/pdf;text/plain;text/markdown;
 StartupWMClass={id}
@@ -102,8 +103,7 @@ def launcher_paths():
     return share / "applications" / f"{APP_ID}.desktop", share / "icons" / "hicolor" / "scalable" / "apps" / f"{APP_ID}.svg"
 
 
-def install_launcher():
-    """Add this copy of the app to the Linux applications menu, for the current user."""
+def write_launcher(hidden):
     import shlex
 
     entry, icon = launcher_paths()
@@ -111,9 +111,29 @@ def install_launcher():
     command = [sys.executable] if getattr(sys, "frozen", False) else [sys.executable, str(Path(__file__).resolve())]
     entry.parent.mkdir(parents=True, exist_ok=True)
     icon.parent.mkdir(parents=True, exist_ok=True)
-    entry.write_text(LAUNCHER.format(exec=" ".join(map(shlex.quote, command)), id=APP_ID), encoding="utf-8")
+    entry.write_text(LAUNCHER.format(exec=" ".join(map(shlex.quote, command)), id=APP_ID, hidden=str(hidden).lower()),
+                     encoding="utf-8")
     icon.write_bytes((ROOT / "static" / "logo.svg").read_bytes())
-    print(f"kuruldu: {entry}")
+    return entry
+
+
+def install_launcher():
+    """Add this copy of the app to the Linux applications menu, for the current user."""
+    print(f"kuruldu: {write_launcher(hidden=False)}")
+
+
+def ensure_icon():
+    """The desktop finds a window's icon through its launcher. Without `--install` there is none and
+    the window gets a placeholder, so a launcher that stays out of the menu is written for it."""
+    entry, icon = launcher_paths()
+    try:
+        if not entry.exists():
+            write_launcher(hidden=True)
+        elif not icon.exists() or icon.read_bytes() != (ROOT / "static" / "logo.svg").read_bytes():
+            icon.parent.mkdir(parents=True, exist_ok=True)
+            icon.write_bytes((ROOT / "static" / "logo.svg").read_bytes())  # the logo changed since it was installed
+    except OSError:
+        pass  # a read-only home: the app still works, with the placeholder icon
 
 
 def uninstall_launcher():
@@ -262,6 +282,9 @@ def run_gtk(data, splash):
         window.present()
         start_server(lambda url: GLib.idle_add(web.load_uri, url))
 
+    ensure_icon()
+    GLib.set_prgname(APP_ID)  # the window's class under X11, which is matched against the launcher too
+    Gtk.Window.set_default_icon_name(APP_ID)
     application = Adw.Application(application_id=APP_ID, flags=Gio.ApplicationFlags.NON_UNIQUE)
     application.connect("activate", activate)
     application.run(None)
