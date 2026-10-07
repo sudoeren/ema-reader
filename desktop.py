@@ -56,6 +56,13 @@ def prepare():
     os.environ.setdefault("EMA_READER_LIBRARY", str(data / "library"))
     # the model goes beside the downloaded PyTorch, so that all the app downloads is in one place
     os.environ.setdefault("HF_HOME", str(runtime.folder() / "hf"))
+    if (ROOT / "package").exists():
+        # an installed copy keeps to itself: its model in its own folder whatever the reader's settings say, and
+        # no packages from the reader's own Python, whose PyTorch it would otherwise find and use without asking
+        import site
+
+        os.environ["HF_HOME"] = str(runtime.folder() / "hf")
+        sys.path[:] = [path for path in sys.path if path != site.getusersitepackages()]
     runtime.activate()
     return data
 

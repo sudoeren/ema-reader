@@ -76,22 +76,11 @@ def activate():
         importlib.invalidate_caches()
 
 
-def model_folder():
-    """The model's weights, in the Hugging Face cache."""
-    from ema import REPO
-    from huggingface_hub import constants
-
-    return Path(constants.HF_HUB_CACHE) / ("models--" + REPO.replace("/", "--"))
-
-
 def downloads():
     """The folders of everything the app has downloaded for speech: PyTorch, what is left of fetching it, and
-    the model. A copy run from source may keep the model in the cache it shares with other programs; then only
-    the model's own folder there counts."""
-    found = [folder() / name for name in ("site", "site.new", "cache", "hf")]
-    if folder() not in model_folder().parents:
-        found.append(model_folder())
-    return [path for path in found if path.exists()]
+    the model. Only what is in the app's own folder: a PyTorch or a model that was on the computer before, in
+    the reader's own Python or in the Hugging Face cache other programs share, is not the app's to remove."""
+    return [path for path in (folder() / name for name in ("site", "site.new", "cache", "hf")) if path.exists()]
 
 
 def used():

@@ -70,11 +70,10 @@ def test_before_the_download_speech_asks_for_it_and_only_the_app_may_start_it(mo
 
 def test_removed_downloads_go_when_the_app_starts_again(monkeypatch, tmp_path):
     monkeypatch.setenv("EMA_READER_RUNTIME", str(tmp_path / "runtime"))
-    shared = tmp_path / "cache" / "models--ema"
-    monkeypatch.setattr(runtime, "model_folder", lambda: shared)
+    shared = tmp_path / "cache" / "models--ema"  # what other programs keep is not the app's to remove
     monkeypatch.setattr(runtime, "leaving", False)
     monkeypatch.setattr(sys, "path", list(sys.path))
-    for folder, size in ((tmp_path / "runtime" / "site" / "torch", 300), (shared / "blobs", 40)):
+    for folder, size in ((tmp_path / "runtime" / "site" / "torch", 300), (tmp_path / "runtime" / "hf" / "hub", 40), (shared, 7)):
         folder.mkdir(parents=True)
         (folder / "data").write_bytes(bytes(size))
     (tmp_path / "runtime" / "state.json").write_text('{"choice": "cpu"}')
@@ -87,7 +86,7 @@ def test_removed_downloads_go_when_the_app_starts_again(monkeypatch, tmp_path):
 
     monkeypatch.setattr(runtime, "leaving", False)  # the app that starts next
     runtime.activate()
-    assert runtime.used() == 0 and not shared.exists() and runtime.state() == {}
+    assert runtime.used() == 0 and (shared / "data").exists() and runtime.state() == {}
     assert (tmp_path / "runtime" / "library").is_dir() and not (tmp_path / "runtime" / "remove").exists()
 
 
