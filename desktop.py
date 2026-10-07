@@ -56,6 +56,13 @@ def prepare():
     os.environ.setdefault("EMA_READER_LIBRARY", str(data / "library"))
     # the model goes beside the downloaded PyTorch, so that all the app downloads is in one place
     os.environ.setdefault("HF_HOME", str(runtime.folder() / "hf"))
+    if (ROOT / "package").exists():
+        # an installed copy keeps to itself: its model in its own folder whatever the reader's settings say, and
+        # no packages from the reader's own Python, whose PyTorch it would otherwise find and use without asking
+        import site
+
+        os.environ["HF_HOME"] = str(runtime.folder() / "hf")
+        sys.path[:] = [path for path in sys.path if path != site.getusersitepackages()]
     runtime.activate()
     return data
 
@@ -77,6 +84,13 @@ def check():
         runtime.install(choice, None)
         if runtime.job["state"] == "failed":
             sys.exit(runtime.job["error"])
+        import torch
+
+        # that the kind asked for is the kind that came: a PyTorch for cards where the processor's was chosen
+        # is gigabytes too many, and the processor's where a card's was chosen never uses the card
+        build = torch.__version__.partition("+")[2]
+        if choice in ("cuda", "cpu") and not build.startswith("cu" if choice == "cuda" else "cpu"):
+            sys.exit(f"{choice} istendi ama inen PyTorch {torch.__version__}")
     app.load()
     from urllib.request import urlopen
 
@@ -92,6 +106,15 @@ def check():
         gi.require_version("Adw", "1")
         gi.require_version("WebKit", "6.0")
         from gi.repository import Adw, Gtk, WebKit  # noqa: F401
+    else:
+        # the same for the window everywhere else: pywebview and what it draws with
+        import webview  # noqa: F401
+
+        if sys.platform == "win32":
+            import clr  # noqa: F401
+        else:
+            import AppKit  # noqa: F401
+            import WebKit  # noqa: F401
     print(f"tamam: sayfa {len(page)} bayt, ses {len(wav)} bayt, {app.tts.device.type} ile")
 
 

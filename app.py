@@ -32,6 +32,8 @@ Endpoints:
     POST   /api/update                         install the newer version and start again (from this computer only)
     GET    /api/setup                          what the first start downloads: {"ready", "choices", "using", "device", "job", ...}
     POST   /api/setup                          {"choice": "cuda" | "mps" | "cpu"}: download it (from this computer only)
+    GET    /api/downloads                      {"bytes": 123}: how much room the downloaded PyTorch and model take
+    DELETE /api/downloads                      remove them and start again (from this computer only)
     POST   /api/restart                        start again, to use what was downloaded (from this computer only)
 
 Until the model is there, speech answers 503 with {"setup": true}; while it loads, requests wait for it.
@@ -73,13 +75,14 @@ PENDING = re.compile(r"/api/pending/([0-9a-f]{12})(/cover)?")
 # exported chapters: sentences are generated in batches and joined with short pauses
 EXPORT_RATE = 24000
 EXPORT_BATCH = 32
-SENTENCE_PAUSE = 0.15
-PARAGRAPH_PAUSE = 0.5
+SENTENCE_PAUSE = 0.25
+PARAGRAPH_PAUSE = 0.65
 
 tts = None
 loading = threading.Event()  # set when the model starts loading
 loaded = threading.Event()  # set when it is loaded, or could not be
 load_lock = threading.Lock()
+swap_lock = threading.Lock()  # one load at a time
 load_error = None
 options = {"cpu": False, "lightning": False}
 default_speed = 1.0
@@ -101,20 +104,27 @@ def model():
     return tts
 
 
-def load():
-    """Load the model; the first request then waits for it instead of failing."""
+def load(again=False):
+    """Load the model; the first request then waits for it instead of failing. `again` is for when the settings
+    changed what makes the speech (the processor or the card): the model is loaded anew and takes the place of
+    the one that is speaking, which goes on until then."""
     global tts, load_error
     with load_lock:
-        if loading.is_set():
+        if loading.is_set() and not again:
             return
         loading.set()
-    try:
-        from ema import load_model
+    with swap_lock:
+        cpu = options["cpu"] or runtime.wants_cpu()
+        if tts is None or (tts.device.type == "cpu") != cpu:
+            try:
+                from ema import load_model
 
-        tts = load_model(options["cpu"], options["lightning"])
-        tts.say("Merhaba.")  # warm-up: moves the first request's delay to startup
-    except Exception as e:
-        load_error = f"Ses modeli yüklenemedi: {e}"
+                fresh = load_model(cpu, options["lightning"])
+                fresh.say("Merhaba.")  # warm-up: moves the first request's delay to startup
+                tts, load_error = fresh, None
+            except Exception as e:
+                if tts is None:
+                    load_error = f"Ses modeli yüklenemedi: {e}"
     loaded.set()
 
 
@@ -251,6 +261,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, {"status": "ok", "version": VERSION})
         elif url.path == "/tts":
             self.tts(query)
+        elif url.path == "/api/downloads":
+            self.send_json(200, {"bytes": runtime.used()})
         elif url.path == "/api/update":
             self.send_json(200, update.check(VERSION, fresh=query.get("fresh") == "1"))
         elif url.path == "/api/setup":
@@ -311,6 +323,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_DELETE(self):
         path = urlparse(self.path).path
+        if path == "/api/downloads":
+            return self.remove_downloads()
         if PENDING.fullmatch(path) and not PENDING.fullmatch(path).group(2):
             pending.pop(PENDING.fullmatch(path).group(1), None)
             return self.send_json(200, {"forgotten": PENDING.fullmatch(path).group(1)})
@@ -404,7 +418,7 @@ class Handler(BaseHTTPRequestHandler):
         if params is None or not self.from_app():
             return
         try:
-            self.send_json(202, runtime.start(str(params.get("choice")), done=load))
+            self.send_json(202, runtime.start(str(params.get("choice")), done=lambda: load(again=True)))
         except ValueError as e:
             self.send_json(400, {"error": str(e)})
 
@@ -412,6 +426,17 @@ class Handler(BaseHTTPRequestHandler):
         if self.from_app():
             self.send_json(202, {})
             threading.Thread(target=update.restart, daemon=True).start()
+
+    def remove_downloads(self):
+        """What the first start downloaded goes when the app starts again, so it is started again at once."""
+        if not self.from_app():
+            return
+        try:
+            runtime.remove()
+        except ValueError as e:
+            return self.send_json(409, {"error": str(e)})
+        self.send_json(202, {})
+        threading.Thread(target=update.restart, daemon=True).start()
 
     def update(self):
         if not self.from_app():

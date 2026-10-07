@@ -11,4 +11,5 @@ Her sürümün yenilikleri burada durur. Bir sürüm yayınlandığında o sür�
 - Kaldığın yeri hatırlar, okuma hızını değiştirmene izin verir.
 - Bir bölümü ya da kitabın tamamını MP3, OGG, Opus, FLAC, WAV veya metin olarak indirir.
 - Açık ve koyu tema, vurgu rengi ve yazı boyutu ayarları.
+- Sesi üretecek parçaları ilk açılışta bilgisayarına göre indirir; Ayarlar'dan yeniden kaldırabilirsin.
 - Yeni bir sürüm çıktığında açılışta haber verir ve tek tıkla kendini günceller.

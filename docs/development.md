@@ -14,7 +14,7 @@ EMA Reader'ın teknik tarafı: nasıl kurulduğu, kaynaktan nasıl çalıştır�
 | `desktop.py` | Sunucunun çevresindeki masaüstü penceresi |
 | `build.py` | Windows ve macOS için uygulamayı üretir |
 | `runtime.py` | İlk açılışta bilgisayara uyan PyTorch'u ve modeli indirir |
-| `packaging/linux.py` | Linux için `.deb`, `.rpm` ve pacman paketlerini üretir |
+| `packaging/linux.py` | Linux için `.deb`, `.rpm` ve pacman paketlerini, öbür dağıtımlar için de `.tar.gz` klasörünü üretir |
 | `static/index.html` | Arayüzün tamamı: tek sayfa, derleme adımı yok |
 | `CHANGELOG.md` | Her sürümün yenilikleri; sürüm sayfasına ve uygulamadaki "Yeni sürüm" penceresine buradan yazılır |
 | `tests/` | Model gerektirmeyen kısımların testleri |
@@ -67,6 +67,8 @@ Linux'ta masaüstü, bir pencerenin simgesini uygulama kimliğiyle aynı adı ta
 
 Kurulum dosyaları PyTorch'u ve modeli içermez. NVIDIA kartları için PyTorch tek başına bir GitHub sürüm dosyasının sınırı olan 2 GB'tan büyüktür, ayrıca her bilgisayar başka bir sürümünü ister. Bunun yerine `runtime.py` ilk açılışta bilgisayara uyanı indirir:
 
+PyTorch kendi dizininden (`download.pytorch.org/whl/cpu`, `cu126`…) alınır, bağımlılıkları PyPI'dan. uv'ye PyTorch'un dizini `--extra-index-url` olarak verilir, çünkü uv önce ona bakar; tersi yapılırsa PyTorch PyPI'dan gelir, o da Linux'ta NVIDIA kartları için olan 5 GB'lık, Windows'ta ise yalnızca işlemciyi kullanan derlemedir.
+
 | Seçenek | Ne zaman sunulur | PyTorch nereden gelir |
 |---|---|---|
 | NVIDIA ekran kartı (`cuda`) | Windows ve Linux'ta NVIDIA sürücüsü kuruluysa (`nvidia-smi`, `nvcuda.dll` ya da `/proc/driver/nvidia`) | `download.pytorch.org/whl/cu126`, olmazsa `cu128`, `cu130` |
@@ -75,7 +77,9 @@ Kurulum dosyaları PyTorch'u ve modeli içermez. NVIDIA kartları için PyTorch 
 
 Sayfa sunucu açılır açılmaz gelir; model yoksa `/api/setup` hazır olmadığını söyler ve sayfa kütüphane yerine indirme ekranını gösterir. Seçilen PyTorch, uygulamayla gelen `uv` ile kullanıcının veri klasörüne (`.../EMA Reader/runtime/site`) kurulur ve `desktop.py` onu `sys.path`'in başına ekler. Model de masaüstü uygulamasında aynı klasöre (`runtime/hf`) iner. Bitince model yüklenir ve sayfa kütüphaneye geçer.
 
-Ayarlar'daki "Seslendirme" başka bir seçeneği indirir. Çalışan uygulama yüklediği PyTorch'u bırakamayacağı için yenisi `runtime/site.new`'e iner ve uygulama yeniden başlayınca eskisinin yerini alır.
+Ayarlar'daki "Seslendirme" işlemci ile ekran kartı arasında geçiş yapar. İşlemciye geçmek için bir şey indirilmez: ekran kartı için inen PyTorch (ve kaynaktan çalışan kopyanın kendi PyTorch'u) işlemcide de çalışır. Seçim `runtime/state.json` içine `use` olarak yazılır ve model yeniden başlatmadan, seçilenin üzerinde yeniden yüklenir; o ana kadar eski model okumayı sürdürür. Yalnızca işlemci için inmiş PyTorch'tan ekran kartına geçerken yeni bir indirme gerekir: çalışan uygulama yüklediği PyTorch'u bırakamayacağı için yenisi `runtime/site.new`'e iner ve uygulama yeniden başlayınca eskisinin yerini alır.
+
+Ayarlar'daki "İndirilenler" bunların hepsini kaldırır (`runtime/site`, `site.new`, `cache`, `hf`). Yalnızca uygulamanın kendi klasöründekiler silinir: bilgisayarda önceden bulunan bir PyTorch'a ya da başka programlarla paylaşılan Hugging Face önbelleğine dokunulmaz. Kurulu kopya da onları kullanmaz; kullanıcının kendi Python paketlerini görmez ve modeli hep kendi klasörüne indirir. Dosyalar uygulama çalışırken kullanımda olduğu için o anda silinmez: `runtime/remove` adında bir işaret yazılır, uygulama yeniden başlar ve yeni açılan uygulama her şeyden önce onları siler. Bu, paket kaldırıldığında kullanıcının klasöründe kalan gigabaytları geri almanın yoludur; Windows kaldırıcısı aynı klasörü kendisi de siler.
 
 Model hangi cihazda çalışacağını `ema.best_device()` ile seçer: NVIDIA kartı, yoksa Apple silicon'un ekran kartı (MPS), yoksa işlemci. EMA Lightning'in kendi "auto" seçimi yalnızca NVIDIA'yı tanıdığı için uygulama cihazı kendisi verir. MPS'te olmayan işlemler işlemciye düşer (`PYTORCH_ENABLE_MPS_FALLBACK`); model MPS'te hiç çalışmazsa işlemciyle yüklenir.
 
@@ -91,17 +95,20 @@ sudo python3 packaging/linux.py      # Linux'ta (Ubuntu 24.04); dist/EMA-Reader.
 - **Windows:** `dist/EMA Reader/python/` Python'dur; içindeki `EMA Reader.exe`, pencereli çalışan `pythonw.exe`'nin uygulamanın adı ve simgesiyle (rcedit varsa) bir kopyasıdır ve kısayollar onu `desktop.py` ile başlatır. `packaging/windows.iss` bunu kullanıcı başına kurulan bir kurulum dosyasına sarar. Kaldırınca indirilen PyTorch ve model de silinir, kitaplık ve ayarlar kalır.
 - **macOS:** Python `.app` paketinin `Contents` klasörüdür; `Contents/MacOS/python` onun bir kopyasıdır ve paketin ana programı olan küçük bir betik onu `desktop.py` ile başlatır. Python paketin içinden çalıştığı için Dock'ta uygulamanın adı ve simgesi görünür.
 - **Linux:** Uygulama `/opt/ema-reader` altına gider. GTK'nın Python bağları (PyGObject) uygulamanın Python'u için derlenir ve sistemin GTK 4, libadwaita, WebKitGTK, GLib ve cairo kitaplıklarını kullanır; bunların arayüzleri sabit olduğu için aynı derleme Ubuntu, Debian, Fedora ve Arch'ta çalışır. Derleme desteklenen en eski sistem olan Ubuntu 24.04'te yapılır, böylece yenilerinde de çalışır; `gcc`, `pkg-config`, `libgirepository-2.0-dev`, `libcairo2-dev`, `rpm` ve `libarchive-tools` gerekir. Aynı uygulama üç pakete sarılır; pacman paketi `makepkg` kullanılmadan, makepkg'nin de yazdığı `.PKGINFO` ve `.MTREE` açıklamalarıyla `bsdtar` ile yazılır. Paketler ayrıca `/usr/bin/ema-reader` komutunu, uygulamalar menüsündeki başlatıcıyı, simgeyi ve yazılım merkezleri için bir AppStream açıklamasını kurar.
+- **Linux, öbür dağıtımlar:** `EMA-Reader.tar.gz` tek bir `ema-reader/` klasörüdür ve Windows ile macOS derlemeleri gibi kurulur: paketler bir sanal ortama değil Python'un kendisine konur, bu yüzden klasör her yerde durabilir ve kök yetkisi istemez. İçindeki `install` pencerenin sistemden istediklerini (GTK 4, libadwaita, WebKitGTK 6.0) yoklar ve uygulamayı menüye ekler; `uninstall` menüden çıkarıp klasörü siler. Yalnızca bunu üretmek için: `python3 packaging/linux.py tar.gz` (kök yetkisi gerekmez).
 
 Her derleme, paketin adını uygulamanın `package` dosyasına yazar; `update.py` güncellemeyi buna bakarak yapar.
 
 `.github/workflows/build.yml` bir sürüm etiketi gönderildiğinde (ya da Actions sekmesinden elle) hepsini üretir ve dener:
 
-- Windows ve macOS derlemesi `desktop.py --check` ile açılır: ilk açılıştaki gibi PyTorch'u ve modeli indirir ve bir cümle seslendirir. Windows'ta NVIDIA'lı PyTorch da ayrıca indirilip yüklenir; makinede kart olmadığı için işlemcide çalışır, ama indirmenin ve paket deposunun doğru olduğu görülür.
-- Linux paketleri Ubuntu 24.04 ve 26.04, Debian 13, Fedora 44 ve Arch kaplarına okuyucunun kuracağı gibi kurulur ve sıradan bir kullanıcıyla `ema-reader --check` çalıştırılır. Ubuntu 24.04'te NVIDIA'lı PyTorch da denenir.
+- Windows ve macOS derlemesi `desktop.py --check` ile açılır: ilk açılıştaki gibi PyTorch'u ve modeli indirir ve bir cümle seslendirir. Windows'ta NVIDIA'lı PyTorch da ayrıca indirilip yüklenir; makinede kart olmadığı için işlemcide çalışır, ama indirmenin ve paket deposunun doğru olduğu görülür. Pencere açılmaz, ama pencerenin kitaplıkları (pywebview; Windows'ta pythonnet, macOS'te AppKit ve WebKit) yüklenir.
+- Linux paketleri Ubuntu 24.04 ve 26.04, Debian 13, Fedora 44 ve Arch kaplarına okuyucunun kuracağı gibi kurulur ve sıradan bir kullanıcıyla `ema-reader --check` çalıştırılır. Ubuntu 24.04'te NVIDIA'lı PyTorch da denenir. `.tar.gz` klasörü openSUSE Tumbleweed kabında bir kullanıcının ev klasörüne açılıp aynı biçimde denenir. Denetim, inen PyTorch'un istenen türde olduğuna da bakar (işlemci istenince `+cpu`, NVIDIA istenince `+cu…`).
 
 GitHub'ın makinelerinde ekran kartı olmadığından ekran kartıyla çalışmayı bu denemeler göstermez; onu gerçek bir NVIDIA'lı bilgisayarda ve bir Apple silicon Mac'te denemek gerekir.
 
 Kurulum dosyaları kod imzalı değildir; bu yüzden Windows SmartScreen ve macOS Gatekeeper ilk açılıştan önce uyarır.
+
+Windows kurulum dosyası, pencereyi çizen WebView2 bilgisayarda yoksa (bazı Windows 10'larda) Microsoft'un küçük kurucusunu çalıştırır; `build.yml` onu derleme sırasında indirir. macOS disk görüntüsünde uygulamanın yanında Uygulamalar klasörüne bir bağlantı durur.
 
 ## Sürüm yayınlama
 
@@ -124,6 +131,7 @@ Uygulama açılışta `update.py` aracılığıyla GitHub'daki son sürüme baka
 - **Windows:** yeni kurulum dosyasını indirir, sessizce çalıştırır ve kapanır; kurulum bitince uygulamayı yeniden açar.
 - **macOS:** yeni disk görüntüsünü indirir, uygulama kapanınca içindeki uygulamayı eskisinin yerine koyar ve yeniden açar. Eski uygulama, yenisi tümüyle kopyalanana kadar silinmez.
 - **Linux paketi:** aynı sistemin yeni paketini indirir (hangisi olduğunu paketin `/opt/ema-reader/package` dosyasına yazdığı addan bilir), `pkexec` ile `apt-get`, `dnf` ya da `pacman`'a kurdurur, sonra kendini yeniden başlatır. Sistem kullanıcının parolasını kendi penceresinde sorar. O sistem için paket yayınlanmamışsa uygulama güncellemeyi sunar ama kurulum dosyası olmadığını söyler.
+- **Linux klasörü (`.tar.gz`):** yenisini indirir, klasörün yanına açar, eskisiyle yer değiştirir ve kendini yeniden başlatır; parola gerekmez. Eski klasör, yenisi yerine oturana kadar silinmez.
 
 Güncellemeyi yalnızca aynı bilgisayardan gelen ve uygulamanın kendi sayfasının gönderdiği istek başlatabilir (`POST /api/update`, `X-EMA-Reader: update` başlığıyla). Kurulum dosyaları yalnızca `https://github.com/` adresinden indirilir.
 
@@ -164,6 +172,8 @@ Testler metin çıkarmayı, dışa aktarım adlandırmasını ve güncelleme den
 | `GET /api/update` | `{"current": "1.0.0", "latest": "1.1.0", "newer": true, "notes": "...", "page": "...", "download": "...", "job": {...}}`; `?fresh=1` yeniden sorar |
 | `POST /api/update` | Yeni sürümü kurar ve uygulamayı yeniden başlatır; yalnızca bu bilgisayardan |
 | `GET /tts`, `POST /tts` | Düz metinden sese |
+| `GET /api/downloads` | `{"bytes": 123}`: ilk açılışta indirilen PyTorch ve modelin diskte tuttuğu yer |
+| `DELETE /api/downloads` | Onları kaldırır ve uygulamayı yeniden başlatır; yalnızca bu bilgisayardan |
 | `GET /health` | `{"status": "ok", "version": "..."}` |
 
 Dışa aktarım şunları alır: `scope` (`chapter` ya da `book`), `chapter` (bölümün sırası), `format` (`mp3`, `ogg`, `opus`, `flac`, `wav` ya da `txt`), `split` (her bölüm için ayrı dosya içeren bir ZIP) ve `speed`. Kayıplı biçimler 24 kHz, kayıpsız olanlar 48 kHz olarak yazılır.

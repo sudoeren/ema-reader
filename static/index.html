@@ -125,22 +125,33 @@
   .sheet { padding: 26px; }
   .sheet > header { display: flex; align-items: center; margin-bottom: 18px; }
   .sheet h3 { flex: 1; margin: 0; font-size: 18px; font-weight: 700; }
-  .dropzone { border: 2px dashed var(--strong-line); border-radius: 14px; padding: 30px 20px; text-align: center; transition: border-color .15s, background .15s; }
-  body.dragging .dropzone { border-color: var(--accent); background: var(--accent-soft); }
-  .dropzone p { margin: 0 0 4px; font-weight: 600; }
-  .dropzone small { display: block; color: var(--faint); margin-bottom: 16px; }
+  .dropzone { border: 1.5px dashed var(--strong-line); border-radius: 16px; padding: 30px 20px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s, box-shadow .2s; }
+  .dropzone:hover { border-color: var(--accent); }
+  body.dragging .dropzone { border-style: solid; border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 4px var(--accent-soft); }
+  .dropzone p { margin: 0 0 4px; font-weight: 600; font-size: 15px; }
+  .dropzone small { display: block; color: var(--faint); font-size: 13px; margin-bottom: 18px; }
   .or { display: flex; align-items: center; gap: 12px; color: var(--faint); font-size: 13px; margin: 18px 0; }
   .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
   .urlrow { display: flex; gap: 8px; }
   .urlrow input { flex: 1; min-width: 0; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--strong-line); background: var(--bg); outline: 0; font-size: 14px; }
   .urlrow input:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
   .panel .dropzone { background: var(--surface); padding: 26px 16px; }
-  /* the little book bobs while a file is held over the window, or when the pointer is on it: not all the time,
-     an animation that never rests keeps the whole window redrawing */
-  .dropart { width: 84px; height: 84px; margin: 0 auto 10px; transition: transform .3s cubic-bezier(.2, 1.4, .4, 1); }
-  .dropzone:hover .dropart { transform: translateY(-4px) rotate(-3deg); }
-  body.dragging .dropart { animation: float .9s ease-in-out infinite; }
-  @keyframes float { 50% { transform: translateY(-7px) rotate(-4deg); } }
+  /* three pages in a hand: they fan out under the pointer and wider still while a file is held over the window,
+     when the front page's voice also starts to move. At rest nothing moves, so the window is not kept redrawing */
+  .dropart { position: relative; width: 132px; height: 88px; margin: 0 auto 16px; }
+  .dropart i { position: absolute; left: 41px; top: 10px; width: 50px; height: 66px; border-radius: 9px; background: linear-gradient(var(--line) 0 0) 9px 12px / 20px 3px no-repeat, linear-gradient(var(--line) 0 0) 9px 20px / 30px 3px no-repeat, linear-gradient(var(--line) 0 0) 9px 28px / 25px 3px no-repeat, var(--surface); box-shadow: 0 0 0 1px var(--strong-line), 0 8px 16px -10px var(--shade); transform-origin: 50% 130%; transition: transform .45s cubic-bezier(.2, 1.3, .35, 1), box-shadow .2s; }
+  .dropart i:nth-child(1) { transform: rotate(-10deg); }
+  .dropart i:nth-child(2) { transform: rotate(10deg); }
+  .dropart i:nth-child(3) { background: var(--surface); display: grid; place-items: center; }
+  .dropart rect { fill: var(--accent); transform-box: fill-box; transform-origin: center; }
+  .dropzone:hover .dropart i:nth-child(1) { transform: rotate(-18deg); }
+  .dropzone:hover .dropart i:nth-child(2) { transform: rotate(18deg); }
+  .dropzone:hover .dropart i:nth-child(3) { transform: translateY(-5px); }
+  body.dragging .dropzone .dropart i:nth-child(1) { transform: rotate(-25deg); }
+  body.dragging .dropzone .dropart i:nth-child(2) { transform: rotate(25deg); }
+  body.dragging .dropzone .dropart i:nth-child(3) { transform: translateY(-9px) scale(1.06); box-shadow: 0 0 0 1.5px var(--accent), 0 12px 20px -10px var(--shade); }
+  body.dragging .dropzone .dropart rect { animation: hum .9s ease-in-out infinite; }
+  .dropart rect:nth-child(2) { animation-delay: .12s; } .dropart rect:nth-child(3) { animation-delay: .24s; } .dropart rect:nth-child(4) { animation-delay: .36s; }
   .panel .urlrow { flex-direction: column; }
   .panel .urlrow input { background: var(--surface); padding: 11px 14px; }
   .addstate { text-align: center; padding: 70px 10px 0; color: var(--muted); font-size: 15px; }
@@ -150,6 +161,7 @@
   .wave i:nth-child(2) { animation-delay: .12s; } .wave i:nth-child(3) { animation-delay: .24s; }
   .wave i:nth-child(4) { animation-delay: .36s; } .wave i:nth-child(5) { animation-delay: .48s; }
   @keyframes wave { 50% { transform: scaleY(1); } }
+  @keyframes hum { 50% { transform: scaleY(.4); } }
   #add-preview .bookhead { flex-direction: column; align-items: center; text-align: center; gap: 14px; margin-bottom: 16px; }
   #add-preview .bookhead .cover { width: 124px; text-align: left; animation: pop .55s cubic-bezier(.2, 1.3, .4, 1) both; }
   #add-preview .bookhead .cover strong { font-size: 13px; }
@@ -163,7 +175,7 @@
   .tick { width: 76px; height: 76px; fill: none; stroke: var(--accent); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; animation: pop .5s cubic-bezier(.2, 1.4, .4, 1) both; }
   .tick path { stroke-dasharray: 40; stroke-dashoffset: 40; animation: draw .35s ease-out .25s forwards; }
   @keyframes draw { to { stroke-dashoffset: 0; } }
-  @media (prefers-reduced-motion: reduce) { .dropart, .wave i, #add-preview .bookhead .cover, .tick { animation: none; } .wave i { transform: scaleY(.7); } .tick path { animation: none; stroke-dashoffset: 0; } }
+  @media (prefers-reduced-motion: reduce) { .dropart i { transition: none; } .dropart rect, .wave i, #add-preview .bookhead .cover, .tick { animation: none; } .wave i { transform: scaleY(.7); } .tick path { animation: none; stroke-dashoffset: 0; } }
   .status { min-height: 20px; margin: 14px 0 0; font-size: 14px; color: var(--muted); }
   .status.error { color: var(--danger); }
 
@@ -326,7 +338,7 @@
   #time { font-size: 13px; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 84px; text-align: center; }
   #speed { font-size: 14px; font-weight: 600; padding: 7px 12px; border-radius: 8px; background: var(--accent-soft); font-variant-numeric: tabular-nums; }
   #speed:hover { opacity: .8; }
-  #speeds { position: fixed; bottom: 96px; left: 50%; background: var(--surface); border-radius: 14px; padding: 6px; box-shadow: 0 14px 40px -10px var(--shade), 0 0 0 1px var(--line); display: flex; flex-direction: column; min-width: 150px; }
+  #speeds { position: fixed; bottom: 96px; left: 50%; background: var(--surface); border-radius: 14px; padding: 6px; box-shadow: 0 14px 40px -10px var(--shade), 0 0 0 1px var(--line); display: flex; flex-direction: column; min-width: 150px; z-index: 51; }   /* above the tour's veil */
   #speeds button { display: flex; justify-content: space-between; gap: 18px; padding: 9px 12px; border-radius: 8px; font-size: 14px; text-align: left; }
   #speeds button:hover { background: var(--accent-soft); }
   #speeds button.on { font-weight: 700; color: var(--accent); }
@@ -373,6 +385,8 @@
   /* inside the desktop window, whose header bar has the title and these buttons */
   .shell { --top: 47px; }   /* the window's header bar lies over the top of the page; the window says how tall it is */
   .shell .top, .shell .rtop { display: none; }
+  /* a panel at the left reaches the top of the window, but the header bar takes the clicks there: its × sits below the bar */
+  .shell .panel.left .sheet > header { padding-top: calc(var(--top) - 6px); }
   .shell .top.searching { display: flex; justify-content: center; }
   .shell .top.searching > :not(.search) { display: none; }
   .shell .search { width: min(420px, 100%); }
@@ -496,7 +510,7 @@
     <div class="scroll">
       <div id="add-choose">
         <div class="dropzone">
-          <svg class="dropart" viewBox="0 0 96 96" aria-hidden="true"><rect x="24" y="16" width="48" height="64" rx="6" fill="var(--surface)" stroke="var(--strong-line)" stroke-width="2"/><path d="M33 16v64" stroke="var(--strong-line)" stroke-width="2"/><g stroke="var(--accent)" stroke-width="3.4" stroke-linecap="round"><path d="M43 44v8M49.5 38v20M56 33v30M62.5 40v16"/></g></svg>
+          <div class="dropart" aria-hidden="true"><i></i><i></i><i><svg width="26" height="26" viewBox="0 0 26 26"><rect x="2" y="9" width="3.4" height="8" rx="1.7"/><rect x="8.2" y="4" width="3.4" height="18" rx="1.7"/><rect x="14.4" y="1" width="3.4" height="24" rx="1.7"/><rect x="20.6" y="7" width="3.4" height="12" rx="1.7"/></svg></i></div>
           <p data-t="dropHere"></p><small data-t="formats"></small>
           <button class="btn" id="choose" data-t="chooseFile"></button>
           <input type="file" id="file" accept=".epub,.pdf,.txt,.md,.html,.htm" hidden>
@@ -539,6 +553,7 @@
       <div class="field tall"><span data-t="accent"></span><div class="swatches" id="set-accent"></div></div>
       <div class="field tall"><span data-t="textSize"></span><div class="choice" id="set-size"></div></div>
       <div class="field tall" id="set-device-row" hidden><span><span data-t="device"></span><small id="set-device-state"></small></span><div class="choice" id="set-device"></div></div>
+      <div class="field" id="set-downloads-row" hidden><span><span data-t="downloads"></span><small id="set-downloads-state"></small></span><button class="btn quiet" id="set-downloads"></button></div>
       <div class="field"><span><span id="set-version"></span><small id="set-version-state"></small></span><button class="btn quiet" id="set-version-action"></button></div>
       <div class="field"><span><span data-t="updates"></span><small data-t="updatesHint"></small></span><div class="choice" id="set-updates"></div></div>
       <div class="field"><span><span data-t="tourAgain"></span><small data-t="tourAgainHint"></small></span><button class="btn quiet" id="replay-tour" data-t="show"></button></div>
@@ -724,6 +739,9 @@ const WORDS = {
   setupStart: "İndir ve başla", setupRetry: "Yeniden dene", setupFailed: "İndirilemedi. İnternet bağlantını kontrol edip yeniden dene.",
   setupSteps: {preparing: "Hazırlanıyor…", torch: "PyTorch indiriliyor…", model: "Ses modeli indiriliyor…", loading: "Ses modeli yükleniyor…"},
   device: "Seslendirme", deviceNow: k => `Şu an: ${WORDS.kinds[k]?.[0] || k}`, deviceGetting: k => `${WORDS.kinds[k][0]} indiriliyor…`,
+  downloads: "İndirilenler", downloadsUse: s => `Seslendirme için indirilen parçalar ${s} yer tutuyor`, removeDownloads: "Kaldır",
+  downloadsWarn: "EMA Reader yeniden başlar ve okuyabilmek için bunları yeniden indirmen gerekir. Kitaplığın yerinde kalır.",
+  downloadsRemoving: "Kaldırılıyor, uygulama yeniden başlıyor…", downloadsFailed: "Kaldırılamadı.",
   deviceRestart: "İndirildi. Kullanmak için uygulamayı yeniden başlat.", restart: "Yeniden başlat",
   tourWelcome: "Hoş geldin!", tourIntro: "EMA Reader kitapları ve makaleleri sana Türkçe okur. Nasıl çalıştığını yarım dakikada gösterelim.",
   tourStart: "Göster", tourNext: "İleri", tourDone: "Başlayalım", tourSkip: "Geç", tourMute: "Sesli anlatımı kapat", tourUnmute: "Sesli anlatımı aç",
@@ -775,8 +793,9 @@ document.addEventListener("click", e => {
 
 /* state */
 
-const FIRST_PACE = 17, PACE_TRUST = 30;   // characters a second at speed 1: a first guess, worth this many seconds of listening
-const SENTENCE_PAUSE = 150, PARAGRAPH_PAUSE = 500;   // milliseconds
+const FIRST_PACE = 14.5, PACE_TRUST = 30;   // characters a second at speed 1: a first guess, worth this many seconds of listening
+const VOICE = 0.85;   // the voice's own pace is a hurried one for a book: "1×" asks it for this much of it
+const SENTENCE_PAUSE = 250, PARAGRAPH_PAUSE = 650;   // milliseconds
 const PREFETCH = 3, CACHE_LIMIT = 40;
 const SPEEDS = [[0.75, "slow"], [0.9], [1, "normal"], [1.1], [1.25, "fast"], [1.5]];
 const COVERS = ["#1f3a5f", "#8c2f39", "#2f5d50", "#b5852f", "#3b3355", "#7a4b2a", "#245a6b", "#5a2d4f"];
@@ -1035,7 +1054,7 @@ $("add-confirm").onclick = async () => {
 const addFile = file => look(() => api(`/api/books?preview=1&name=${encodeURIComponent(file.name)}`, {method: "POST", body: file}), file.name);
 const addUrl = url => look(() => api("/api/books", {method: "POST", body: JSON.stringify({url, preview: true})}), t("theArticle"));
 
-$("choose").onclick = () => $("file").click();
+document.querySelector(".dropzone").onclick = e => { if (e.target !== $("file")) $("file").click(); };   // the whole zone, not only its button
 $("file").onchange = () => { if ($("file").files[0]) addFile($("file").files[0]); $("file").value = ""; };
 $("add-url").onclick = () => { const url = $("url").value.trim(); if (url) { addUrl(url); $("url").value = ""; } };
 $("url").onkeydown = e => { if (e.key === "Enter") $("add-url").click(); };
@@ -1139,7 +1158,7 @@ $("start-download").onclick = async () => {
   $("download-bar").style.width = "0"; $("download-percent").textContent = ""; $("download-label").textContent = t("preparing");
   try {
     const split = scope === "book" && $("split").checked && b.chapters.length > 1;
-    const {job} = await api(`/api/books/${b.id}/export`, {method: "POST", body: JSON.stringify({scope, chapter: download.chapter, format, split, speed})});
+    const {job} = await api(`/api/books/${b.id}/export`, {method: "POST", body: JSON.stringify({scope, chapter: download.chapter, format, split, speed: speed * VOICE})});
     download.job = job;
     while (download.job === job) {
       const state = await api(`/api/exports/${job}`);
@@ -1185,7 +1204,7 @@ function showTab(name) {
   $("tab-settings").hidden = name !== "settings"; $("tab-about").hidden = name !== "about";
 }
 document.querySelectorAll("#settings-dialog [data-tab]").forEach(b => b.onclick = () => showTab(b.dataset.tab));
-function openSettings(tab = "settings") { drawSettings(); drawDevice(); showTab(tab); openPanel($("settings-dialog")); }
+function openSettings(tab = "settings") { drawSettings(); drawDevice(); drawDownloads(); showTab(tab); openPanel($("settings-dialog")); }
 const toggleSettings = () => togglePanel($("settings-dialog"), openSettings);
 $("open-settings").onclick = $("open-settings-reader").onclick = toggleSettings;
 $("replay-tour").onclick = () => showStep(0);   // which closes this panel
@@ -1372,11 +1391,48 @@ async function drawDevice() {
 
 async function restartApp() {
   try { await api("/api/restart", {method: "POST", headers: {"X-EMA-Reader": "update"}}); } catch {}
-  for (let tries = 0; tries < 100; tries++) {
+  comeBack();
+}
+// the app that is closing still answers for a moment: wait until it is gone, then until the new one is there
+async function comeBack() {
+  for (let tries = 0; tries < 12; tries++) {
+    await wait(500);
+    try { await api("/health"); } catch { break; }
+  }
+  for (let tries = 0; tries < 200; tries++) {
+    try { await api("/health"); return location.reload(); } catch {}
     await wait(700);
-    try { await api("/health"); await wait(800); return location.reload(); } catch {}
   }
 }
+
+/* settings: what the first start downloaded can be removed again; the app then starts again and asks for it anew */
+
+async function drawDownloads() {
+  const button = $("set-downloads");
+  let found;
+  try { found = await api("/api/downloads"); } catch { return; }
+  $("set-downloads-row").hidden = !found.bytes;
+  delete button.dataset.armed; button.disabled = false; button.textContent = t("removeDownloads");
+  $("set-downloads-state").textContent = t("downloadsUse", sizeText(found.bytes));
+}
+$("set-downloads").onclick = async () => {
+  const button = $("set-downloads");
+  if (!button.dataset.armed) {
+    button.dataset.armed = "1"; button.textContent = t("confirmRemove");
+    $("set-downloads-state").textContent = t("downloadsWarn");
+    return;
+  }
+  button.disabled = true;
+  try {
+    await api("/api/downloads", {method: "DELETE", headers: {"X-EMA-Reader": "update"}});
+  } catch (e) {
+    toast(e.told ? e.message : t("downloadsFailed"));
+    return drawDownloads();
+  }
+  stop();
+  $("set-downloads-state").textContent = t("downloadsRemoving");
+  comeBack();
+};
 
 /* reader */
 
@@ -1493,7 +1549,7 @@ function saveProgress(finished = false) {
 // a sentence as audio: {src, seconds}. The length is read from the WAV header, since not every engine
 // knows an audio element's duration before it has played
 async function speech(text, rate) {
-  const response = await fetch("/tts", {method: "POST", body: JSON.stringify({text, speed: rate})});
+  const response = await fetch("/tts", {method: "POST", body: JSON.stringify({text, speed: rate * VOICE})});
   if (!response.ok) throw new Error("no audio");
   const blob = await response.blob();
   const bytesPerSecond = new DataView(await blob.slice(0, 44).arrayBuffer()).getUint32(28, true);
@@ -1540,6 +1596,10 @@ async function play() {
       if (mine !== run) return;
       learnPace(sentences[index].text.length, seconds);
       loaded = null;
+      if (tour.step >= 0) {   // during the tour one sentence is enough to show how it sounds
+        if (index + 1 < sentences.length) select(index + 1);
+        break;
+      }
       heard = sentences[index].lasts; restSince = performance.now();
       await wait(pauseAfter(index) * 1000 || SENTENCE_PAUSE);
       if (mine !== run) return;
@@ -1641,20 +1701,17 @@ if ("mediaSession" in navigator) {
   navigator.mediaSession.setActionHandler("previoustrack", () => jump(index - 1));
 }
 
-/* onboarding: shown once, on a short welcome text that is added to the library, and read aloud */
+/* onboarding: shown once, over a short sample text that is added to the library; the guide speaks, and the
+   sample is a text of its own, so that what the reader tries out does not repeat what the guide has said */
 
 const WELCOME_NAME = "EMA Reader'a hoş geldin.md";
-const WELCOME_TEXT = `# Hoş geldin
+const WELCOME_TEXT = `# Sabah vapuru
 
-EMA Reader'a hoş geldin. Bu kısa metin, uygulamayı denemen için burada. Alttaki oynat düğmesine bastığında bu satırları sana yüksek sesle okurum.
+Vapur iskeleden ayrılırken martılar peşine takıldı. Çay bardağından yükselen buhar, serin havada yavaşça dağıldı.
 
-Okuduğum cümle her zaman işaretlenir, böylece gözünle de takip edebilirsin. Başka bir yerden devam etmek istersen o cümleye tıklaman yeterli.
+Karşı kıyı sisin içinden ağır ağır belirdi.
 
-# Kendi kitapların
-
-Kitaplığına EPUB, PDF ya da düz metin dosyaları ekleyebilirsin. İnternetteki bir yazıyı dinlemek istersen adresini yapıştırman yeter.
-
-Nerede kaldığını ben hatırlarım. Uygulamayı kapatıp yarın açtığında kaldığın cümleden devam ederiz. İyi dinlemeler!`;
+Kitabını açtı ve kaldığı satırı buldu. Şehir uyanırken o çoktan başka bir yerdeydi.`;
 
 // what the guide says aloud at each step; a little fuller than the note on screen
 const SPOKEN = {
@@ -1684,11 +1741,12 @@ const tour = {
   step: -1,
   steps: [
     {center: true, speak: "welcome"},
-    {target: () => $("play"), text: "tourPlay", from: [-250, -190], bend: 70,
+    {target: () => $("play"), text: "tourPlay", from: [-250, -190], bend: 70, open: () => [$("play")],
      before: async () => { await openWelcome(); }},
-    // the first line of a sentence, so the hole is one tidy strip
-    {target: () => sentences[2].el.getClientRects()[0], text: "tourSentence", from: [150, 250], bend: -90, pad: 5},
-    {target: () => $("speed"), text: "tourSpeed", from: [170, -200], bend: -70},
+    // a sentence that is a paragraph of its own, so the hole shows all of it
+    {target: () => sentences[2].el, text: "tourSentence", from: [150, 250], bend: -90, pad: 6, open: () => [sentences[2].el]},
+    // to the left, so that the list of speeds has room to open above the button
+    {target: () => $("speed"), text: "tourSpeed", from: [-330, -110], bend: 60, open: () => [$("speed"), $("speeds")]},
     // inside the desktop window the add button is in the header bar, just above the page
     {target: async () => {
        if (!shell) return $("add").getBoundingClientRect();
@@ -1700,9 +1758,17 @@ const tour = {
   ],
 };
 
+// a step lets through only the clicks on what it is about: the play button plays at its own step and nowhere else
+document.addEventListener("click", e => {
+  if (tour.step < 0 || e.target.closest("#tour-note")) return;
+  const open = tour.steps[tour.step].open?.() || [];
+  if (!open.some(node => node.contains(e.target))) { e.preventDefault(); e.stopPropagation(); }
+}, true);
+
 async function openWelcome() {
-  let welcome = books.find(b => b.title === WELCOME_NAME.replace(/\.md$/, ""));
-  if (!welcome) welcome = await api(`/api/books?name=${encodeURIComponent(WELCOME_NAME)}`, {method: "POST", body: WELCOME_TEXT});
+  // an earlier tour may have left its own, longer, welcome text behind
+  for (const old of books.filter(b => b.title === WELCOME_NAME.replace(/\.md$/, ""))) await api(`/api/books/${old.id}`, {method: "DELETE"}).catch(() => {});
+  const welcome = await api(`/api/books?name=${encodeURIComponent(WELCOME_NAME)}`, {method: "POST", body: WELCOME_TEXT});
   await openBook(welcome.id, false, 0, 0);
 }
 
@@ -1731,6 +1797,7 @@ function soundButton() {
 async function showStep(number) {
   const step = tour.steps[number];
   document.querySelectorAll("dialog[open]").forEach(d => d.close());
+  stop(); $("speeds").hidden = true;   // what was tried at one step does not carry on into the next
   tour.step = number;
   if (step.before) await step.before();
   $("tour").hidden = false;

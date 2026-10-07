@@ -20,9 +20,11 @@ Bir kitap ekle, oynat düğmesine bas; EMA Reader onu sana kendi bilgisayarında
 
 ## EMA Reader'ı edin
 
-**Windows ve macOS:** kurulum dosyasını [Sürümler](../../releases) sayfasından indir ve aç.
+**Windows:** [Sürümler](../../releases) sayfasından `EMA-Reader-Setup.exe` dosyasını indir ve aç. Yönetici parolası gerekmez.
 
-Uygulama yeni ve ücretsiz olduğu için Windows ya da macOS ilk açılışta seni uyarabilir. Windows'ta "Ek bilgi"yi, ardından "Yine de çalıştır"ı seç; macOS'te uygulamaya sağ tıklayıp "Aç"ı seç.
+**macOS:** [Sürümler](../../releases) sayfasından `EMA-Reader.dmg` dosyasını indir ve aç, sonra EMA Reader'ı yanındaki Uygulamalar klasörüne sürükle.
+
+Uygulama yeni ve ücretsiz olduğu için Windows ya da macOS ilk açılışta seni uyarabilir. Windows'ta "Ek bilgi"yi, ardından "Yine de çalıştır"ı seç. macOS'te uygulamayı bir kez açmayı dene, sonra Sistem Ayarları'nda "Gizlilik ve Güvenlik"e gidip en alttaki "Yine de Aç"ı seç; macOS 14 ve öncesinde uygulamaya sağ tıklayıp "Aç"ı seçmek de yeter.
 
 İlk açılışta EMA Reader, sesi üretecek parçaları bilgisayarına göre bir kez indirir: NVIDIA ekran kartın varsa onu, Mac'te Apple silicon'un ekran kartını, ikisi de yoksa işlemciyi kullanan sürümü. Hangisinin ineceğini ve ne kadar yer tutacağını indirmeden önce gösterir; sonradan Ayarlar'daki "Seslendirme"den değiştirebilirsin.
 
@@ -44,19 +46,33 @@ sudo pacman -U ./EMA-Reader.pkg.tar.zst         # Arch Linux
 
 Bundan sonra EMA Reader uygulamalar menünde durur. Yeni bir sürüm çıktığında uygulama onu kendisi kurar; yalnızca parolanı sorar.
 
-Başka bir dağıtım kullanıyorsan EMA Reader'ı kaynaktan çalıştırabilirsin. [uv](https://docs.astral.sh/uv/) kur, sonra:
+**Başka bir dağıtım** (openSUSE, Void, Solus…) kullanıyorsan `EMA-Reader.tar.gz` her yerde çalışan tek bir klasördür; yönetici parolası gerekmez. Uçbirime şunu yapıştırman yeter:
 
 ```bash
-git clone https://github.com/sudoeren/ema-reader
-cd ema-reader
-uv run --extra desktop desktop.py --install
+mkdir -p ~/.local/share && cd ~/.local/share
+curl -fsSL https://github.com/sudoeren/ema-reader/releases/latest/download/EMA-Reader.tar.gz | tar -xz
+./ema-reader/install
 ```
+
+Sistemde GTK 4, libadwaita ve WebKitGTK 6.0 kurulu olmalıdır (GNOME kullanan dağıtımlarda çoğu zaman hazırdır); eksikse `install` bunu söyler. Bu kopya da kendini uygulamanın içinden günceller. Kaldırmak için `~/.local/share/ema-reader/uninstall` komutunu çalıştır.
+
+### Kaldırma
+
+İlk açılışta indirilen parçalar birkaç gigabayt tutabilir. Onları Ayarlar'daki "İndirilenler" satırından kaldırabilirsin; kitaplığın yerinde kalır, uygulama yeniden açıldığında bunları yeniden indirmeyi önerir.
+
+EMA Reader'ı tümüyle kaldırmak için:
+
+- **Windows:** Ayarlar'daki "Uygulamalar"dan EMA Reader'ı kaldır. İndirilen parçalar da onunla birlikte gider.
+- **macOS:** önce uygulamadaki Ayarlar'dan indirilenleri kaldır, sonra EMA Reader'ı Çöp Sepeti'ne taşı.
+- **Linux:** önce uygulamadaki Ayarlar'dan indirilenleri kaldır, sonra paketi kaldır: `sudo apt remove ema-reader`, `sudo dnf remove ema-reader` ya da `sudo pacman -R ema-reader`. `EMA-Reader.tar.gz` ile kurduysan klasördeki `uninstall` komutunu çalıştır.
+
+Kitaplığın hiçbir durumda silinmez; kullanıcı klasöründeki "EMA Reader" veri klasöründe durur.
 
 ### En düşük sistem gereksinimleri
 
 | | Windows | macOS | Linux |
 |---|---|---|---|
-| **Sistem** | Windows 10 ya da 11, 64 bit | Apple silicon'lu (M1 ve sonrası) bir Mac | 64 bit (x86_64); paketler için yukarıdaki sistemlerden biri, kaynaktan çalıştırmak için GTK 4, libadwaita ve WebKitGTK 6.0 kurulu bir masaüstü |
+| **Sistem** | Windows 10 ya da 11, 64 bit | Apple silicon'lu (M1 ve sonrası) bir Mac | 64 bit (x86_64); paketler için yukarıdaki sistemlerden biri, öbür dağıtımlarda GTK 4, libadwaita ve WebKitGTK 6.0 kurulu güncel bir masaüstü (glib 2.80 ve sonrası) |
 | **Bellek** | 4 GB | 4 GB | 4 GB |
 | **Boş disk alanı** | işlemciyle yaklaşık 1 GB, NVIDIA kartıyla yaklaşık 5 GB | yaklaşık 1 GB | işlemciyle yaklaşık 1 GB, NVIDIA kartıyla yaklaşık 6 GB |
 | **Ekran kartı** | gerekmez; NVIDIA kart varsa kullanılır | gerekmez; Apple silicon'un ekran kartı kullanılır | gerekmez; NVIDIA kart varsa kullanılır |

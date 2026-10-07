@@ -2,6 +2,8 @@
 
     status()          # {"ready": False, "choices": [...], "job": {...}, ...}
     start("cuda")     # download in the background; `job` says how far it is
+    used()            # how many bytes the downloads take
+    remove()          # take them away again, when the app next starts
 
 The installers carry the app and a Python of their own, but not PyTorch: the build for NVIDIA
 cards alone is larger than a GitHub release file may be, and most computers need another one
@@ -11,6 +13,10 @@ folder with uv, which ships with the app. The model weights follow from Hugging 
 
 A copy run from source usually has PyTorch already, from its own environment; then only the
 model is fetched.
+
+What was downloaded can be removed from the settings, to free the room or before the app itself is
+uninstalled: no uninstaller reaches into the user's data folder on every system. The files are in
+use while the app runs, so they are only marked, and the app that starts next deletes them first.
 """
 
 import importlib.util
@@ -34,6 +40,7 @@ CUDA = ("cu126", "cu128", "cu130")
 
 job = {"state": "idle", "step": None, "progress": 0, "error": None, "choice": None}
 lock = threading.Lock()
+leaving = False  # the downloads are marked for removal: the app that starts next deletes them, not this one
 
 
 def data_dir():
@@ -59,6 +66,7 @@ def site():
 
 def activate():
     """Make the downloaded PyTorch importable; called before anything imports torch."""
+    clear()
     pending = folder() / "site.new"
     if pending.is_dir():  # a switch to another kind, downloaded while the app ran
         shutil.rmtree(site(), ignore_errors=True)
@@ -66,6 +74,54 @@ def activate():
     if site().is_dir() and str(site()) not in sys.path:
         sys.path.insert(0, str(site()))
         importlib.invalidate_caches()
+
+
+def downloads():
+    """The folders of everything the app has downloaded for speech: PyTorch, what is left of fetching it, and
+    the model. Only what is in the app's own folder: a PyTorch or a model that was on the computer before, in
+    the reader's own Python or in the Hugging Face cache other programs share, is not the app's to remove."""
+    return [path for path in (folder() / name for name in ("site", "site.new", "cache", "hf")) if path.exists()]
+
+
+def used():
+    """How many bytes the downloads take on the disk."""
+    total = 0
+    for path in downloads():
+        for file in path.rglob("*"):
+            try:
+                if not file.is_symlink() and file.is_file():  # the model's cache links to its files
+                    total += file.stat().st_size
+            except OSError:
+                pass
+    return total
+
+
+def remove():
+    """Mark the downloads for removal; they go when the app starts again, which the caller sees to."""
+    global leaving
+    with lock:
+        if job["state"] == "working":
+            raise ValueError("İndirme sürerken kaldırılamaz. Bitmesini bekleyip yeniden dene.")
+        folder().mkdir(parents=True, exist_ok=True)
+        (folder() / "remove").write_text("", encoding="utf-8")
+        leaving = True
+
+
+def clear():
+    """Delete the downloads if the app that ran before marked them."""
+    marker = folder() / "remove"
+    if leaving or not marker.exists():
+        return
+    for _ in range(20):
+        for path in downloads():
+            shutil.rmtree(path, ignore_errors=True)
+        if not downloads():
+            break
+        time.sleep(0.25)  # on Windows the app that has just closed may still hold a file
+    else:
+        return  # something would not go: the mark stays, for the next start
+    (folder() / "state.json").unlink(missing_ok=True)
+    marker.unlink(missing_ok=True)
 
 
 def nvidia():
@@ -102,6 +158,16 @@ def state():
         return {}
 
 
+def remember(**values):
+    folder().mkdir(parents=True, exist_ok=True)
+    (folder() / "state.json").write_text(json.dumps({**state(), **values}), encoding="utf-8")
+
+
+def wants_cpu():
+    """Whether the reader chose the processor although the PyTorch that is there could use a card."""
+    return state().get("use") == "cpu"
+
+
 def has_torch():
     return importlib.util.find_spec("torch") is not None
 
@@ -121,7 +187,7 @@ def ready():
 def status():
     activate()
     torch = has_torch()
-    return {"ready": torch and has_model(), "torch": torch, "using": state().get("choice"), "choices": choices(),
+    return {"ready": torch and has_model(), "torch": torch, "using": state().get("use") or state().get("choice"), "choices": choices(),
             "restart": (folder() / "site.new").is_dir(), "job": dict(job)}
 
 
@@ -144,15 +210,18 @@ class Failed(Exception):
 def install(choice, done):
     try:
         activate()
-        switching = has_torch() and state().get("choice") not in (None, choice)
+        # another PyTorch is only needed for a card: the one for a card runs on the processor too, and so does
+        # whatever a copy run from source came with (which has no "choice")
+        switching = has_torch() and choice != "cpu" and state().get("choice") not in (None, choice)
         if not has_torch() or switching:
             install_torch(choice, folder() / ("site.new" if switching else "site"))
             activate()
         if not has_model():
             install_model()
+        remember(use=choice)
         job.update(state="done", step=None, progress=1)
         if done and not switching:
-            done()
+            done()  # loads the model, or loads it anew on what was chosen
     except Failed as e:
         job.update(state="failed", error=str(e))
     except Exception as e:
@@ -190,7 +259,9 @@ def install_torch(choice, target):
         shutil.rmtree(target, ignore_errors=True)
         command = [uv(), "pip", "install", "--target", str(target), "--python", python(), "--no-progress", TORCH]
         if index:
-            command += ["--index-url", index, "--extra-index-url", PYPI]
+            # PyTorch's own index goes in as the extra one, which uv asks first: the other way round PyTorch
+            # would come from PyPI, whose build is the one for NVIDIA cards on Linux and the processor's on Windows
+            command += ["--index-url", PYPI, "--extra-index-url", index]
         env = {**os.environ, "UV_CACHE_DIR": str(cache), "UV_PYTHON_DOWNLOADS": "never"}
         process = subprocess.Popen(command, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
                                    **({"creationflags": subprocess.CREATE_NO_WINDOW} if sys.platform == "win32" else {}))
@@ -205,7 +276,7 @@ def install_torch(choice, target):
         line = next((l.strip() for l in reversed(error.splitlines()) if l.strip()), "")
         raise Failed(f"PyTorch indirilemedi. İnternet bağlantını kontrol edip yeniden dene. ({line})")
     shutil.rmtree(cache, ignore_errors=True)
-    (folder() / "state.json").write_text(json.dumps({"choice": choice}), encoding="utf-8")
+    remember(choice=choice)
 
 
 def measure(process, cache, expected):

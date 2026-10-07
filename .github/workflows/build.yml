@@ -1,5 +1,5 @@
 # Builds the desktop app: for Windows and macOS a self-contained build, for Linux a .deb, .rpm or pacman
-# package per system.
+# package per system and a .tar.gz for the others.
 # Runs on every version tag (v1.0.0) and attaches the installers to a release;
 # it can also be started by hand from the Actions tab, which only produces downloadable artifacts.
 name: build
@@ -64,17 +64,25 @@ jobs:
             EMA_READER_RUNTIME="$RUNNER_TEMP/cuda" EMA_READER_CHECK=cuda "$python" "$app/desktop.py" --check
           fi
 
+      # the window is drawn by Microsoft's WebView2, which Windows 11 has and a Windows 10 may lack:
+      # the installer carries Microsoft's small setup for it and runs it where it is missing (see windows.iss)
       - name: Windows installer
         if: runner.os == 'Windows'
         shell: bash
         run: |
+          curl -fsSL -o packaging/MicrosoftEdgeWebview2Setup.exe "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
           version="${GITHUB_REF_NAME#v}"
           [[ "$GITHUB_REF_TYPE" == "tag" ]] || version="0.0.0"
           iscc "//DVersion=$version" packaging/windows.iss
 
       - name: macOS disk image
         if: runner.os == 'macOS'
-        run: hdiutil create -volname "EMA Reader" -srcfolder "dist/EMA Reader.app" -ov -format UDZO dist/EMA-Reader.dmg
+        # the app next to a link to the Applications folder, so that installing is dragging one onto the other
+        run: |
+          mkdir dist/dmg
+          ditto "dist/EMA Reader.app" "dist/dmg/EMA Reader.app"
+          ln -s /Applications dist/dmg/Applications
+          hdiutil create -volname "EMA Reader" -srcfolder dist/dmg -ov -format UDZO dist/EMA-Reader.dmg
 
       - uses: actions/upload-artifact@v4
         with:
@@ -138,6 +146,7 @@ jobs:
           - { image: "debian:13", package: deb }
           - { image: "fedora:44", package: rpm }
           - { image: "archlinux:latest", package: pkg.tar.zst }
+          - { image: "opensuse/tumbleweed", package: tar.gz }   # a system without a package of its own
     runs-on: ubuntu-latest
     container: ${{ matrix.image }}
     steps:
@@ -149,9 +158,17 @@ jobs:
           case ${{ matrix.package }} in
             deb) apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ./EMA-Reader.deb ;;
             rpm) dnf install -y ./EMA-Reader.rpm ;;
+            # nothing to install but what the window needs from the system; the folder is unpacked by the user below
+            tar.gz) zypper --non-interactive install tar gzip shadow util-linux typelib-1_0-Gtk-4_0 typelib-1_0-Adw-1 typelib-1_0-WebKit-6_0 libgirepository-2_0-0 ;;
             *) pacman -Syu --noconfirm && pacman -U --noconfirm ./EMA-Reader.pkg.tar.zst ;;
           esac
       - name: Check
         run: |
           useradd -m okur
-          runuser -u okur -- env EMA_READER_CHECK=${{ matrix.kind }} ema-reader --check
+          if [ "${{ matrix.package }}" = tar.gz ]; then
+            cp EMA-Reader.tar.gz /home/okur/
+            runuser -u okur -- sh -c 'cd /home/okur && tar -xzf EMA-Reader.tar.gz && HOME=/home/okur ./ema-reader/install &&
+              HOME=/home/okur ./ema-reader/python/bin/python3.13 ./ema-reader/desktop.py --check'
+          else
+            runuser -u okur -- env EMA_READER_CHECK=${{ matrix.kind }} ema-reader --check
+          fi
