@@ -23,30 +23,25 @@ def test_versions_compare_as_numbers():
     assert update.number("1.0.0") == update.number("v1.0.0")
 
 
-def test_release_gives_the_installer_for_the_system(monkeypatch, tmp_path):
+def test_a_copy_is_updated_with_the_same_kind_of_file_it_came_in(monkeypatch, tmp_path):
     monkeypatch.setattr(update, "PACKAGE", tmp_path / "package")
-    assert update.release(RELEASE, "win32")["download"].endswith("EMA-Reader-Setup.exe")
-    assert update.release(RELEASE, "darwin")["download"].endswith("EMA-Reader.dmg")
-    assert update.release(RELEASE, "linux")["download"] is None  # updated with git instead
-    assert update.release(RELEASE, "linux")["latest"] == "1.10.0"
-
-
-def test_a_linux_package_is_updated_with_the_package_for_the_same_system(monkeypatch, tmp_path):
-    monkeypatch.setattr(update, "PACKAGE", tmp_path / "package")
-    (tmp_path / "package").write_text("EMA-Reader.deb\n", encoding="utf-8")
-    assert update.release(RELEASE, "linux")["download"].endswith("/EMA-Reader.deb")
-    (tmp_path / "package").write_text("EMA-Reader.pkg.tar.zst\n", encoding="utf-8")
-    assert update.release(RELEASE, "linux")["download"].endswith("/EMA-Reader.pkg.tar.zst")
+    assert update.release(RELEASE)["download"] is None  # from source: updated with git instead
+    assert update.release(RELEASE)["latest"] == "1.10.0"
+    for name in ("EMA-Reader-Setup.exe", "EMA-Reader.dmg", "EMA-Reader.deb", "EMA-Reader.pkg.tar.zst"):
+        (tmp_path / "package").write_text(name + "\n", encoding="utf-8")
+        assert update.release(RELEASE)["download"].endswith("/" + name)
     (tmp_path / "package").write_text("EMA-Reader.rpm\n", encoding="utf-8")
-    assert update.release(RELEASE, "linux")["download"] is None  # not published for this system
+    assert update.release(RELEASE)["download"] is None  # not published in this release
 
 
 def test_release_notes_lose_their_markdown():
     assert update.release(RELEASE)["notes"] == "Yenilikler\n\n• Daha hızlı açılış\n• Koyu tema"
 
 
-def test_links_that_do_not_point_at_github_are_dropped():
-    found = update.release({**RELEASE, "html_url": "javascript:alert(1)", "assets": [{"name": "x.exe", "browser_download_url": "http://kotu.example/x.exe"}]}, "win32")
+def test_links_that_do_not_point_at_github_are_dropped(monkeypatch, tmp_path):
+    monkeypatch.setattr(update, "PACKAGE", tmp_path / "package")
+    (tmp_path / "package").write_text("x.exe\n", encoding="utf-8")
+    found = update.release({**RELEASE, "html_url": "javascript:alert(1)", "assets": [{"name": "x.exe", "browser_download_url": "http://kotu.example/x.exe"}]})
     assert found["page"] is None and found["download"] is None
 
 

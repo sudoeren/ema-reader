@@ -54,6 +54,8 @@ def free_port():
 def prepare():
     data = runtime.data_dir()
     os.environ.setdefault("EMA_READER_LIBRARY", str(data / "library"))
+    # the model goes beside the downloaded PyTorch, so that all the app downloads is in one place
+    os.environ.setdefault("HF_HOME", str(runtime.folder() / "hf"))
     runtime.activate()
     return data
 

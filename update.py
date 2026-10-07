@@ -34,10 +34,9 @@ REPO = "sudoeren/ema-reader"
 URL = os.environ.get("EMA_READER_UPDATE_URL") or f"https://api.github.com/repos/{REPO}/releases/latest"
 FRESH = 6 * 3600  # how long an answer is kept
 RETRY = 600  # how soon to ask again after a failure
-INSTALLERS = {"win32": "EMA-Reader-Setup.exe", "darwin": "EMA-Reader.dmg"}
-
 ROOT = Path(__file__).parent
-# written by packaging/linux.py: the release file this copy was installed from, such as EMA-Reader-ubuntu-24.04.deb
+# written by build.py and packaging/linux.py: the release file this copy was installed from, such as
+# EMA-Reader-Setup.exe or EMA-Reader.deb; a copy run from source has none
 PACKAGE = ROOT / "package"
 
 cache = {"until": 0, "release": None}
@@ -60,24 +59,19 @@ def tidy(notes):
 
 
 def package():
-    """The Linux package this copy was installed from; None for a copy that runs from source."""
+    """The release file this copy was installed from; None for a copy that runs from source."""
     try:
         return PACKAGE.read_text(encoding="utf-8").strip() or None
     except OSError:
         return None
 
 
-def installer(platform=sys.platform):
-    """The file in a release that updates this copy; None when it is updated with git."""
-    return package() if platform == "linux" else INSTALLERS.get(platform)
-
-
-def release(data, platform=sys.platform):
+def release(data):
     """What the reader needs from GitHub's description of a release."""
     def link(url):
         return url if isinstance(url, str) and url.startswith("https://github.com/") else None
 
-    wanted = installer(platform)
+    wanted = package()  # the same kind of file this copy came in; None when it is updated with git
     installers = (a.get("browser_download_url") for a in data.get("assets") or [] if wanted and a.get("name") == wanted)
     return {"latest": ".".join(map(str, number(data["tag_name"]))), "notes": tidy(data.get("body")),
             "page": link(data.get("html_url")), "download": link(next(installers, None))}
@@ -101,7 +95,7 @@ def check(current, fresh=False):
             cache["until"] = now + RETRY
     found = cache["release"] or {"latest": None, "notes": "", "page": None, "download": None}
     return {"current": current, **found, "newer": bool(found["latest"]) and number(found["latest"]) > number(current),
-            "packaged": bool(getattr(sys, "frozen", False) or package()), "job": dict(job)}
+            "packaged": bool(package()), "job": dict(job)}
 
 
 class Failed(Exception):
@@ -122,16 +116,15 @@ def start(current):
 
 def install(found):
     try:
-        if package():
-            with_package(found)
-        elif not getattr(sys, "frozen", False):
+        name = package()
+        if not name:
             from_source()
-        elif sys.platform == "win32":
+        elif name.endswith(".exe"):
             with_installer(found)
-        elif sys.platform == "darwin":
+        elif name.endswith(".dmg"):
             with_disk_image(found)
         else:
-            raise Failed("Bu kopya kendini güncelleyemiyor.")
+            with_package(found)
     except Failed as e:
         job.update(state="failed", error=str(e))
     except Exception as e:
@@ -236,7 +229,7 @@ open "$app"
 
 def with_disk_image(found):
     """macOS: swap the application for the one in the new disk image, once this one has quit."""
-    app = Path(sys.executable).resolve().parents[2]  # EMA Reader.app/Contents/MacOS/EMA Reader
+    app = Path(sys.executable).resolve().parents[2]  # EMA Reader.app/Contents/MacOS/python
     if app.suffix != ".app" or not os.access(app.parent, os.W_OK):
         raise Failed("Uygulama bulunduğu yerde değiştirilemiyor. Onu Uygulamalar klasörüne taşıyıp yeniden dene.")
     image = download(found, "EMA-Reader.dmg")

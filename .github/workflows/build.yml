@@ -39,8 +39,30 @@ jobs:
           done
           iconutil -c icns logo.iconset -o static/logo.icns
 
+      # gives the Windows program the app's icon (see build.py)
+      - name: rcedit
+        if: runner.os == 'Windows'
+        shell: bash
+        run: curl -fsSL -o rcedit.exe https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe
+
       - name: Build
-        run: uv run build.py
+        shell: bash
+        run: RCEDIT="$PWD/rcedit.exe" uv run --no-project --python 3.12 build.py
+
+      # the built app started without a window: it downloads PyTorch and the model as a first start does, and speaks
+      - name: Check
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = Windows ]; then
+            app="dist/EMA Reader"; python="$app/python/python.exe"
+          else
+            app="dist/EMA Reader.app/Contents/Resources/app"; python="dist/EMA Reader.app/Contents/MacOS/python"
+          fi
+          "$python" "$app/desktop.py" --check
+          # the NVIDIA download as well, kept apart; with no card here it loads on the processor
+          if [ "$RUNNER_OS" = Windows ]; then
+            EMA_READER_RUNTIME="$RUNNER_TEMP/cuda" EMA_READER_CHECK=cuda "$python" "$app/desktop.py" --check
+          fi
 
       - name: Windows installer
         if: runner.os == 'Windows'

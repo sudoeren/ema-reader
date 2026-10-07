@@ -169,10 +169,13 @@ def uv():
 
 
 def python():
-    """The interpreter PyTorch is installed for; uv wants python.exe, not the windowless pythonw.exe."""
-    path = Path(sys.executable)
-    windowed = path.with_name(path.name.replace("pythonw", "python"))
-    return str(windowed if windowed.exists() else path)
+    """The interpreter PyTorch is installed for. On Windows the app runs as "EMA Reader.exe", a windowless
+    Python that uv does not take for one; python.exe sits next to it."""
+    here = Path(sys.executable).parent
+    for name in ("python.exe", "python3", "python"):
+        if (here / name).is_file():
+            return str(here / name)
+    return sys.executable
 
 
 def install_torch(choice, target):
