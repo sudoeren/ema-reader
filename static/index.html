@@ -192,7 +192,7 @@
   #player .mini { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); }
   #player .mini:hover { background: var(--accent-soft); color: var(--accent); }
   #player .sep { width: 1px; height: 24px; background: var(--line); }
-  #time { font-size: 13px; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  #time { font-size: 13px; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 84px; text-align: center; }
   #speed { font-size: 14px; font-weight: 600; padding: 7px 12px; border-radius: 8px; background: var(--accent-soft); font-variant-numeric: tabular-nums; }
   #speed:hover { opacity: .8; }
   #speeds { position: fixed; bottom: 96px; left: 50%; background: var(--surface); border-radius: 14px; padding: 6px; box-shadow: 0 14px 40px -10px var(--shade), 0 0 0 1px var(--line); display: flex; flex-direction: column; min-width: 150px; }
@@ -549,7 +549,7 @@ document.addEventListener("click", e => {
 
 /* state */
 
-const CHARS_PER_SECOND = 17;          // how fast the voice reads at speed 1, to estimate times
+const FIRST_PACE = 17, PACE_TRUST = 30;   // characters a second at speed 1: a first guess, worth this many seconds of listening
 const SENTENCE_PAUSE = 150, PARAGRAPH_PAUSE = 500;   // milliseconds
 const PREFETCH = 3, CACHE_LIMIT = 40;
 const SPEEDS = [[0.75, "slow"], [0.9], [1, "normal"], [1.1], [1.25, "fast"], [1.5]];
@@ -567,6 +567,20 @@ const cache = new Map();
 
 let speed = 1;
 try { speed = Number(localStorage.getItem("speed")) || 1; } catch {}
+
+// how fast the voice really reads, measured from the sentences that have been played; times are estimated from it
+const pace = {chars: 0, seconds: 0};
+try {
+  const kept = JSON.parse(localStorage.getItem("pace") || "{}");
+  if (kept.chars > 0 && kept.seconds > 0) Object.assign(pace, {chars: kept.chars, seconds: kept.seconds});
+} catch {}
+const charsPerSecond = () => (pace.chars + FIRST_PACE * PACE_TRUST) / (pace.seconds + PACE_TRUST);
+function learnPace(chars, seconds) {
+  if (!Number.isFinite(seconds) || seconds < 0.3) return;
+  pace.chars += chars; pace.seconds += seconds * speed;
+  if (pace.seconds > 1800) { pace.chars /= 2; pace.seconds /= 2; }   // recent listening counts for more
+  try { localStorage.setItem("pace", JSON.stringify(pace)); } catch {}
+}
 
 async function api(path, options) {
   const response = await fetch(path, options);
@@ -630,7 +644,7 @@ function cover(b) {
 }
 
 const isFinished = b => b.done >= b.size;
-const remaining = b => duration((b.size - b.done) / CHARS_PER_SECOND / speed);
+const remaining = b => duration((b.size - b.done) / charsPerSecond() / speed);
 
 function statusOf(b) {
   if (isFinished(b)) return t("finished");
@@ -746,7 +760,7 @@ async function openInfo(id) {
   $("info-title").textContent = b.title;
   $("info-author").textContent = b.author || "";
   const published = [about.publisher, (about.date || "").slice(0, 4)].filter(Boolean).join(", ");
-  const facts = [published, `${t("chapterCount", b.chapters.length)}, ${t("listening", duration(total / CHARS_PER_SECOND / speed))}`,
+  const facts = [published, `${t("chapterCount", b.chapters.length)}, ${t("listening", duration(total / charsPerSecond() / speed))}`,
                  t("added", new Date(b.added * 1000).toLocaleDateString(lang))].filter(Boolean);
   $("info-facts").replaceChildren(...facts.flatMap((line, i) => i ? [el("br"), line] : [line]));
   $("info-description").textContent = about.description || ""; $("info-description").hidden = !about.description;
@@ -767,7 +781,7 @@ async function openInfo(id) {
   };
   $("info-contents").replaceChildren(...b.chapters.map((c, i) => {
     const row = el("button", i === b.progress.chapter && started ? "current" : "");
-    row.append(el("i", "", i + 1), el("span", "", chapterTitle(b, i)), el("small", "", duration(sizes[i] / CHARS_PER_SECOND / speed)));
+    row.append(el("i", "", i + 1), el("span", "", chapterTitle(b, i)), el("small", "", duration(sizes[i] / charsPerSecond() / speed)));
     row.onclick = () => open(i, 0, false);
     return row;
   }));
@@ -902,6 +916,7 @@ function openChapter(number, sentence, keepPlaying) {
     nodes.push(p);
   }
   sentences.total = before;
+  layTimeline();
   $("text").replaceChildren(...nodes);
   [...$("chapter-list").children].forEach((b, i) => b.classList.toggle("current", i === chapter));
   $("page").scrollTop = 0;
@@ -909,14 +924,33 @@ function openChapter(number, sentence, keepPlaying) {
   if (keepPlaying) play();
 }
 
-function showTime() {
-  const rate = CHARS_PER_SECOND * speed;
-  $("time").textContent = `${clock(sentences[index].before / rate)} / ${clock(sentences.total / rate)}`;
+// when each sentence starts and how long it lasts, in seconds; laid out once for a chapter and a speed,
+// so the clock does not shift while the pace is still being measured
+function layTimeline() {
+  const rate = charsPerSecond() * speed;
+  let at = 0;
+  sentences.forEach((s, i) => {
+    s.at = at; s.lasts = s.text.length / rate;
+    at += s.lasts + (i < sentences.length - 1 ? (s.endsParagraph ? PARAGRAPH_PAUSE : SENTENCE_PAUSE) / 1000 : 0);
+  });
+  sentences.seconds = at;
 }
+
+let heard = 0;   // how much of the current sentence has been spoken, from 0 to 1
+function showTime() {
+  const current = sentences[index];
+  $("time").textContent = `${clock(current.at + heard * current.lasts)} / ${clock(sentences.seconds)}`;
+}
+audio.addEventListener("timeupdate", () => {   // the clock runs with the voice instead of jumping from sentence to sentence
+  if (!book || loaded !== clipKey(index) || !(audio.duration > 0)) return;
+  heard = Math.min(1, audio.currentTime / audio.duration);
+  showTime();
+});
 
 function select(i, finished = false) {
   sentences[index]?.el.classList.remove("current");
   index = i;
+  heard = finished ? 1 : 0;
   const current = sentences[index];
   current.el.classList.add("current");
   const box = current.el.getBoundingClientRect(), page = $("page").getBoundingClientRect();
@@ -945,8 +979,9 @@ function speech(text, rate) {
     .then(blob => URL.createObjectURL(blob));
 }
 
+const clipKey = i => `${book.id}:${chapter}:${i}:${speed}`;
 function clip(i) {
-  const key = `${book.id}:${chapter}:${i}:${speed}`;
+  const key = clipKey(i);
   if (!cache.has(key)) {
     const url = speech(sentences[i].text, speed);
     url.catch(() => cache.delete(key));
@@ -979,6 +1014,7 @@ async function play() {
       await audio.play();
       await done;
       if (mine !== run) return;
+      learnPace(sentences[index].text.length, audio.duration);
       loaded = null;
       await wait(sentences[index].endsParagraph ? PARAGRAPH_PAUSE : SENTENCE_PAUSE);
       if (mine !== run) return;
@@ -1044,6 +1080,7 @@ function setSpeed(value) {
   speed = value;
   try { localStorage.setItem("speed", speed); } catch {}
   $("speeds").hidden = true;
+  layTimeline(); heard = 0;
   showSpeed(); showTime();
   if (playing) jump(index, true);   // re-read the current sentence at the new speed
   else loaded = null;
