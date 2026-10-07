@@ -20,7 +20,6 @@ import os
 import socket
 import sys
 import threading
-import time
 from pathlib import Path
 
 import runtime
@@ -66,11 +65,11 @@ def check():
     server = app.start(port=0)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     if not runtime.ready():
+        # any kind, also one this computer has no use for: the build workflow downloads the NVIDIA one
+        # on machines without a card, to see that it comes and loads (on the processor)
         choice = os.environ.get("EMA_READER_CHECK") or ("mps" if runtime.apple_silicon() else "cpu")
         print(f"indiriliyor: {choice}", flush=True)
-        runtime.start(choice)
-        while runtime.job["state"] == "working":
-            time.sleep(1)
+        runtime.install(choice, None)
         if runtime.job["state"] == "failed":
             sys.exit(runtime.job["error"])
     app.load()

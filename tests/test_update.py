@@ -12,9 +12,8 @@ RELEASE = {
     "assets": [
         {"name": "EMA-Reader-Setup.exe", "browser_download_url": "https://github.com/sudoeren/ema-reader/releases/download/v1.10.0/EMA-Reader-Setup.exe"},
         {"name": "EMA-Reader.dmg", "browser_download_url": "https://github.com/sudoeren/ema-reader/releases/download/v1.10.0/EMA-Reader.dmg"},
-        {"name": "EMA-Reader-debian-13.deb", "browser_download_url": "https://github.com/sudoeren/ema-reader/releases/download/v1.10.0/EMA-Reader-debian-13.deb"},
-        {"name": "EMA-Reader-ubuntu-24.04.deb", "browser_download_url": "https://github.com/sudoeren/ema-reader/releases/download/v1.10.0/EMA-Reader-ubuntu-24.04.deb"},
-        {"name": "EMA-Reader-arch.pkg.tar.zst", "browser_download_url": "https://github.com/sudoeren/ema-reader/releases/download/v1.10.0/EMA-Reader-arch.pkg.tar.zst"},
+        {"name": "EMA-Reader.deb", "browser_download_url": "https://github.com/sudoeren/ema-reader/releases/download/v1.10.0/EMA-Reader.deb"},
+        {"name": "EMA-Reader.pkg.tar.zst", "browser_download_url": "https://github.com/sudoeren/ema-reader/releases/download/v1.10.0/EMA-Reader.pkg.tar.zst"},
     ],
 }
 
@@ -34,11 +33,11 @@ def test_release_gives_the_installer_for_the_system(monkeypatch, tmp_path):
 
 def test_a_linux_package_is_updated_with_the_package_for_the_same_system(monkeypatch, tmp_path):
     monkeypatch.setattr(update, "PACKAGE", tmp_path / "package")
-    (tmp_path / "package").write_text("EMA-Reader-ubuntu-24.04.deb\n", encoding="utf-8")
-    assert update.release(RELEASE, "linux")["download"].endswith("/EMA-Reader-ubuntu-24.04.deb")
-    (tmp_path / "package").write_text("EMA-Reader-arch.pkg.tar.zst\n", encoding="utf-8")
-    assert update.release(RELEASE, "linux")["download"].endswith("/EMA-Reader-arch.pkg.tar.zst")
-    (tmp_path / "package").write_text("EMA-Reader-fedora-44.rpm\n", encoding="utf-8")
+    (tmp_path / "package").write_text("EMA-Reader.deb\n", encoding="utf-8")
+    assert update.release(RELEASE, "linux")["download"].endswith("/EMA-Reader.deb")
+    (tmp_path / "package").write_text("EMA-Reader.pkg.tar.zst\n", encoding="utf-8")
+    assert update.release(RELEASE, "linux")["download"].endswith("/EMA-Reader.pkg.tar.zst")
+    (tmp_path / "package").write_text("EMA-Reader.rpm\n", encoding="utf-8")
     assert update.release(RELEASE, "linux")["download"] is None  # not published for this system
 
 

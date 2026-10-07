@@ -179,7 +179,7 @@ def install_torch(choice, target):
     """PyTorch and what it needs, into `target`. uv says little while it downloads, so the progress is
     how much it has unpacked into its cache, against the size that comes to."""
     job["step"] = "torch"
-    expected = next(c["disk"] for c in choices() if c["id"] == choice)
+    expected = next((c["disk"] for c in choices() if c["id"] == choice), 3_000_000_000)
     cache = folder() / "cache"
     indexes = [None] if choice == "mps" else [WHEELS + "cpu"] if choice == "cpu" else [WHEELS + c for c in CUDA]
     error = ""

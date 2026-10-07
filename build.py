@@ -22,6 +22,12 @@ NAME = "EMA Reader"
 REPO = "canberkkkkkk/ema-lightning"
 FILES = ("config.json", "ema.pt", "decoder.pt")
 
+PYTHON = "3.13"  # the Python the app carries
+SOURCES = ["app.py", "ema.py", "extract.py", "export.py", "update.py", "desktop.py", "runtime.py", "static",
+           "LICENSE", "THIRD_PARTY.md", "CHANGELOG.md"]
+# what the app needs to start; PyTorch is downloaded on the first start for the computer's hardware (runtime.py)
+BASE = ["pypdf", "trafilatura", "soundfile", "huggingface-hub>=0.20", "normalizer-tr>=0.4,<0.5", "numpy>=1.24"]
+EMA = "ema-lightning>=1.0.1"  # installed without its dependencies, which would bring PyTorch along
 PACKAGES = ["ema-lightning>=1.0.1", "pypdf", "trafilatura", "soundfile", "pywebview>=5", "pyinstaller>=6"]
 # packages whose data files or lazily imported modules PyInstaller does not find by itself
 COLLECT = ["ema_lightning", "normalizer_tr", "trafilatura", "justext", "courlan", "htmldate", "tld", "dateparser", "webview",

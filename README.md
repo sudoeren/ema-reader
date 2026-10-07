@@ -28,18 +28,16 @@ Uygulama yeni ve ücretsiz olduğu için Windows ya da macOS ilk açılışta se
 
 | Sistem | Paket |
 |---|---|
-| Ubuntu 24.04 ve ona dayananlar (Linux Mint 22, Pop!_OS 24.04, Zorin OS 18…) | `EMA-Reader-ubuntu-24.04.deb` |
-| Ubuntu 26.04 | `EMA-Reader-ubuntu-26.04.deb` |
-| Debian 13 | `EMA-Reader-debian-13.deb` |
-| Fedora 44 | `EMA-Reader-fedora-44.rpm` |
-| Arch Linux ve ona dayananlar (Manjaro, EndeavourOS…) | `EMA-Reader-arch.pkg.tar.zst` |
+| Ubuntu 24.04 ve sonrası, Debian 13 ve onlara dayananlar (Linux Mint 22, Pop!_OS, Zorin OS…) | `EMA-Reader.deb` |
+| Fedora 41 ve sonrası | `EMA-Reader.rpm` |
+| Arch Linux ve ona dayananlar (Manjaro, EndeavourOS…) | `EMA-Reader.pkg.tar.zst` |
 
 Sonra dosyayı çift tıklayıp yazılım merkeziyle kur ya da uçbirimden kur:
 
 ```bash
-sudo apt install ./EMA-Reader-ubuntu-24.04.deb     # Ubuntu ve Debian
-sudo dnf install ./EMA-Reader-fedora-44.rpm        # Fedora
-sudo pacman -U ./EMA-Reader-arch.pkg.tar.zst       # Arch Linux
+sudo apt install ./EMA-Reader.deb               # Ubuntu ve Debian
+sudo dnf install ./EMA-Reader.rpm               # Fedora
+sudo pacman -U ./EMA-Reader.pkg.tar.zst         # Arch Linux
 ```
 
 Bundan sonra EMA Reader uygulamalar menünde durur. Yeni bir sürüm çıktığında uygulama onu kendisi kurar; yalnızca parolanı sorar.

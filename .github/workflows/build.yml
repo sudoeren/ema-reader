@@ -70,30 +70,16 @@ jobs:
             dist/EMA-Reader-Setup.exe
             dist/EMA-Reader.dmg
 
-  # one package per system, each built in a container of that system (see packaging/linux.py)
+  # the Linux packages: built once, on the oldest system they support (see packaging/linux.py)
   linux:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { system: ubuntu-24.04, image: "ubuntu:24.04" }
-          - { system: ubuntu-26.04, image: "ubuntu:26.04" }
-          - { system: debian-13, image: "debian:13" }
-          - { system: fedora-44, image: "fedora:44" }
-          - { system: arch, image: "archlinux:latest" }
     runs-on: ubuntu-latest
-    container: ${{ matrix.image }}
+    container: ubuntu:24.04
     steps:
       - name: Build tools
         run: |
-          if command -v apt-get >/dev/null; then
-            apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y python3 ca-certificates
-          elif command -v dnf >/dev/null; then
-            dnf install -y python3 rpm-build
-          else
-            # the package builds PyGObject for the Python it carries
-            pacman -Syu --noconfirm --needed python base-devel gobject-introspection cairo
-          fi
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y python3 ca-certificates gcc pkg-config \
+            libgirepository-2.0-dev libcairo2-dev rpm libarchive-tools
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
 
@@ -102,30 +88,48 @@ jobs:
         run: python3 update.py "$GITHUB_REF_NAME" > release-notes.md
 
       - name: Build
-        run: python3 packaging/linux.py ${{ matrix.system }}
-
-      # installed the way a reader installs it, then started without a window by an ordinary user
-      - name: Install and check
-        run: |
-          if command -v apt-get >/dev/null; then
-            DEBIAN_FRONTEND=noninteractive apt-get install -y ./dist/EMA-Reader-${{ matrix.system }}.deb
-          elif command -v dnf >/dev/null; then
-            dnf install -y ./dist/EMA-Reader-${{ matrix.system }}.rpm
-          else
-            pacman -U --noconfirm ./dist/EMA-Reader-${{ matrix.system }}.pkg.tar.zst
-          fi
-          useradd -m okur
-          runuser -u okur -- ema-reader --check
+        run: python3 packaging/linux.py
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ema-reader-${{ matrix.system }}
-          path: dist/EMA-Reader-${{ matrix.system }}.*
+          name: ema-reader-linux
+          path: dist/EMA-Reader.*
 
       - name: Attach to the release
         if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
           body_path: release-notes.md
-          files: dist/EMA-Reader-${{ matrix.system }}.*
+          files: dist/EMA-Reader.*
 
+  # each package installed the way a reader installs it on each system, then started without a window by an
+  # ordinary user: it downloads PyTorch and the model as a first start does, and speaks a sentence
+  linux-check:
+    needs: linux
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { image: "ubuntu:24.04", package: deb }
+          - { image: "ubuntu:24.04", package: deb, kind: cuda }   # the NVIDIA download, which loads on the processor here
+          - { image: "ubuntu:26.04", package: deb }
+          - { image: "debian:13", package: deb }
+          - { image: "fedora:44", package: rpm }
+          - { image: "archlinux:latest", package: pkg.tar.zst }
+    runs-on: ubuntu-latest
+    container: ${{ matrix.image }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ema-reader-linux
+      - name: Install
+        run: |
+          case ${{ matrix.package }} in
+            deb) apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ./EMA-Reader.deb ;;
+            rpm) dnf install -y ./EMA-Reader.rpm ;;
+            *) pacman -Syu --noconfirm && pacman -U --noconfirm ./EMA-Reader.pkg.tar.zst ;;
+          esac
+      - name: Check
+        run: |
+          useradd -m okur
+          runuser -u okur -- env EMA_READER_CHECK=${{ matrix.kind }} ema-reader --check
