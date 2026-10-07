@@ -10,9 +10,11 @@ EMA Reader'ın teknik tarafı: nasıl kurulduğu, kaynaktan nasıl çalıştır�
 | `extract.py` | EPUB, PDF, metin, Markdown ve web sayfalarını kapak ve ayrıntılarıyla birlikte cümlelerden oluşan bölümlere çevirir |
 | `export.py` | Bir bölümü ya da kitabı MP3, OGG, Opus, FLAC, WAV veya metin olarak yazar |
 | `ema.py` | Modeli yükler; ayrıca metni seslendiren bir komut satırı aracıdır |
+| `update.py` | GitHub'daki son sürüme bakar; yeni sürüm varsa uygulama bunu haber verir |
 | `desktop.py` | Sunucunun çevresindeki masaüstü penceresi |
 | `build.py` | Windows ve macOS için kendi kendine yeten uygulamayı üretir |
 | `static/index.html` | Arayüzün tamamı: tek sayfa, derleme adımı yok |
+| `CHANGELOG.md` | Her sürümün yenilikleri; sürüm sayfasına ve uygulamadaki "Yeni sürüm" penceresine buradan yazılır |
 | `tests/` | Model gerektirmeyen kısımların testleri |
 
 Model [EMA Lightning](https://huggingface.co/canberkkkkkk/ema-lightning)'dir: 8,6 milyon parametre, yaklaşık 34 MB, yalnızca Türkçe, tek ses. Ağırlıkları ilk çalıştırmada Hugging Face'ten indirilir. Sonrasında model ağa dokunmadan diskten yüklenir; günde bir kez arka planda yeni ağırlık olup olmadığına bakılır ve varsa bir sonraki açılışta kullanılır. Bu denetimi kapatmak için `HF_HUB_OFFLINE=1` ayarla.
@@ -57,6 +59,8 @@ uv run --extra desktop desktop.py --install      # Linux: uygulamalar menüsüne
 uv run --extra desktop desktop.py --check        # penceresiz başlat, bir cümle üret, çık
 ```
 
+Linux'ta masaüstü, bir pencerenin simgesini uygulama kimliğiyle aynı adı taşıyan başlatıcı dosyasından bulur. `--install` yapılmamışsa uygulama ilk açılışta menüde görünmeyen bir başlatıcı (`NoDisplay=true`) ve simgeyi kendisi yazar; yoksa pencere masaüstünün yer tutucu simgesiyle görünürdü.
+
 ## Kurulum dosyalarını üretme
 
 ```bash
@@ -69,13 +73,35 @@ uv run build.py        # Windows ya da macOS'te; dist/EMA Reader/ klasörünü y
 
 Kurulum dosyaları kod imzalı değildir; bu yüzden Windows SmartScreen ve macOS Gatekeeper ilk açılıştan önce uyarır.
 
+## Sürüm yayınlama
+
+1. `app.py` içindeki `VERSION` ile `pyproject.toml` içindeki `version` değerini yükselt (ikisi aynı olmalı).
+2. `CHANGELOG.md` dosyasının başına `## 1.1.0` gibi bir bölüm ekle ve yenilikleri kullanıcının anlayacağı dille yaz.
+3. Değişiklikleri gönder, sonra sürümü etiketle:
+
+```bash
+git tag v1.1.0
+git push origin v1.1.0
+```
+
+Etiket gelince `build.yml` kurulum dosyalarını üretir ve `CHANGELOG.md` içindeki o bölümü not olarak koyduğu bir GitHub sürümü açar. Etiket, `VERSION` ve `CHANGELOG.md` birbirini tutmuyorsa derleme durur; aynı şeyi testler de denetler.
+
+Uygulama açılışta `update.py` aracılığıyla GitHub'daki son sürüme bakar (yanıt altı saat saklanır). Kendi sürümünden yenisini bulursa kitaplığın üstünde "EMA Reader 1.1.0 yayınlandı" çubuğunu gösterir; "Güncelle" o sürümün notlarını açar. Windows ve macOS'te kurulum dosyasının bağlantısını, kaynaktan çalışan kopyada (Linux) `git pull` komutunu verir. Denetim Ayarlar'dan kapatılabilir. Ön sürümler ve taslaklar haber verilmez.
+
+Yayınlamadan denemek için `EMA_READER_UPDATE_URL` ile GitHub'ın sürüm yanıtı biçiminde bir dosya gösterilebilir:
+
+```bash
+echo '{"tag_name": "v9.0.0", "body": "- Deneme"}' > /tmp/surum.json
+EMA_READER_UPDATE_URL=file:///tmp/surum.json uv run app.py
+```
+
 ## Testler
 
 ```bash
 uv run --with pytest pytest
 ```
 
-Testler metin çıkarmayı ve dışa aktarım adlandırmasını kapsar, modeli yüklemez. `.github/workflows/test.yml` onları her gönderimde çalıştırır.
+Testler metin çıkarmayı, dışa aktarım adlandırmasını ve güncelleme denetimini kapsar, modeli yüklemez. `.github/workflows/test.yml` onları her gönderimde çalıştırır.
 
 ## HTTP API
 
@@ -92,6 +118,7 @@ Testler metin çıkarmayı ve dışa aktarım adlandırmasını kapsar, modeli y
 | `GET /api/exports/JOB` | `{"state": "working", "progress": 0.4, "name": "..."}` |
 | `GET /api/exports/JOB/file` | Hazır dosya |
 | `DELETE /api/exports/JOB` | Dışa aktarımı iptal et |
+| `GET /api/update` | `{"current": "1.0.0", "latest": "1.1.0", "newer": true, "notes": "...", "page": "...", "download": "..."}` |
 | `GET /tts`, `POST /tts` | Düz metinden sese |
 | `GET /health` | `{"status": "ok", "version": "..."}` |
 

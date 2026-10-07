@@ -23,6 +23,7 @@ Endpoints:
     GET    /api/exports/JOB/file               the finished file
     DELETE /api/exports/JOB                    cancel
     GET    /api/books/ID/chapters/N/audio      a chapter as one WAV file
+    GET    /api/update                         {"current", "latest", "newer", "notes", "page", "download", "packaged"}
     GET    /tts, POST /tts                     text, speed, seed, sample_rate, stream
 """
 
@@ -45,6 +46,7 @@ from urllib.parse import parse_qsl, urlparse
 import numpy as np
 
 import export
+import update
 from extract import extract_file, extract_url
 
 VERSION = "1.0.0"
@@ -173,6 +175,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, {"status": "ok", "version": VERSION})
         elif url.path == "/tts":
             self.tts(query)
+        elif url.path == "/api/update":
+            self.send_json(200, update.check(VERSION))
         elif url.path == "/api/books":
             self.list_books()
         elif book and not book.group(2):

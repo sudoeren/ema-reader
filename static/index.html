@@ -80,6 +80,16 @@
   .item:hover .more, .item .more:focus-visible { opacity: 1; }
   .none { color: var(--faint); font-size: 14px; }
 
+  .update { display: flex; align-items: center; gap: 12px; margin-top: 18px; padding: 10px 10px 10px 18px; border-radius: 14px; background: var(--accent-soft); font-size: 14.5px; }
+  .update b { font-weight: 600; }
+  .update span { flex: 1; min-width: 0; }
+  .update .btn { padding: 8px 14px; }
+  a.btn { text-decoration: none; }
+  .notes { white-space: pre-wrap; font-size: 14.5px; line-height: 1.55; color: var(--text); max-height: 260px; overflow-y: auto; margin: 0 0 6px; }
+  .how { color: var(--muted); font-size: 14px; line-height: 1.5; margin: 14px 0 0; }
+  .how code { display: block; margin-top: 8px; padding: 9px 12px; border-radius: 8px; background: var(--soft); color: var(--ink); font: 13.5px ui-monospace, "SF Mono", Menlo, Consolas, monospace; user-select: all; }
+  .about .version button { color: var(--accent); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+
   .welcome { text-align: center; padding: 70px 20px 0; }
   .welcome h1 { font-family: var(--serif); font-weight: 500; font-size: 38px; letter-spacing: -.6px; margin: 0 0 10px; }
   .welcome p { color: var(--muted); margin: 0 0 30px; font-size: 16px; }
@@ -295,6 +305,12 @@
     <button class="icon" id="open-settings" data-label="settings"><svg width="20" height="20"><use href="#i-sliders"/></svg></button>
   </div>
 
+  <div class="update" id="update" hidden>
+    <span id="update-text"></span>
+    <button class="btn" id="update-open" data-t="updateSee"></button>
+    <button class="icon" id="update-later" data-label="updateLater"><svg width="18" height="18"><use href="#i-close"/></svg></button>
+  </div>
+
   <div class="welcome" id="welcome" hidden>
     <h1 data-t="welcomeTitle"></h1>
     <p data-t="welcomeText"></p>
@@ -363,12 +379,13 @@
       <div class="field"><span data-t="theme"></span><div class="choice" id="set-theme"></div></div>
       <div class="field"><span data-t="accent"></span><div class="swatches" id="set-accent"></div></div>
       <div class="field"><span data-t="textSize"></span><div class="choice" id="set-size"></div></div>
+      <div class="field"><span><span data-t="updates"></span><small data-t="updatesHint"></small></span><div class="choice" id="set-updates"></div></div>
       <div class="field"><span><span data-t="tourAgain"></span><small data-t="tourAgainHint"></small></span><button class="btn quiet" id="replay-tour" data-t="show"></button></div>
     </div>
     <div id="tab-about" class="about" hidden>
       <img src="/static/logo.svg" alt="">
       <h4>EMA Reader</h4>
-      <div class="version" id="version"></div>
+      <div class="version"><span id="version"></span><span id="version-state"></span></div>
       <p data-t="aboutText"></p>
       <dl>
         <div><dt data-t="madeBy"></dt><dd>Eren Çakar · <a href="https://erencakar.com" target="_blank" rel="noopener">erencakar.com</a></dd></div>
@@ -420,6 +437,19 @@
   </div>
 </dialog>
 
+<dialog id="update-dialog">
+  <div class="sheet">
+    <header><h3 id="update-title"></h3><button class="icon" data-close data-label="close"><svg width="20" height="20"><use href="#i-close"/></svg></button></header>
+    <h5 data-t="whatsNew"></h5>
+    <p class="notes" id="update-notes"></p>
+    <p class="how" id="update-how"></p>
+    <div class="footer">
+      <a class="btn quiet" id="update-page" target="_blank" rel="noopener" data-t="updatePage"></a>
+      <a class="btn" id="update-download" target="_blank" rel="noopener"><svg width="16" height="16"><use href="#i-down"/></svg><span data-t="updateDownload"></span></a>
+    </div>
+  </div>
+</dialog>
+
 <div id="tour" hidden>
   <svg aria-hidden="true">
     <defs>
@@ -450,7 +480,7 @@ const ACCENTS = {   // name: [light, light soft, dark, dark soft]
   graphite: ["#3a3a44", "#e9e9ee", "#c9c9d2", "#34343c"],
 };
 const SIZES = {small: 19, medium: 22, large: 25, huge: 29};
-const settings = {theme: "light", accent: "blue", size: "medium"};
+const settings = {theme: "light", accent: "blue", size: "medium", updates: true};
 try { Object.assign(settings, JSON.parse(localStorage.getItem("settings") || "{}")); } catch {}
 const darkQuery = matchMedia("(prefers-color-scheme: dark)");
 const shell = window.emaShell ? window.webkit?.messageHandlers?.shell : null;   // the desktop window, if the page is inside it
@@ -503,6 +533,13 @@ const WORDS = {
   aboutText: "EMA Reader, kitapları ve makaleleri sana Türkçe sesli okuyan açık kaynaklı bir uygulamadır. Her şey kendi bilgisayarında çalışır; okudukların hiçbir yere gönderilmez.",
   madeBy: "Geliştiren", voice: "Ses modeli", source: "Kaynak kod", notice: "Not", noticeText: "Duyduğun ses yapay zekâ ile üretilmiştir.",
   version: v => `Sürüm ${v}`,
+  updates: "Güncellemeleri denetle", updatesHint: "Açılışta yeni bir sürüm çıkmış mı diye GitHub'a bakar", on: "Açık", off: "Kapalı",
+  updateFound: v => `EMA Reader ${v} yayınlandı.`, updateSee: "Güncelle", updateLater: "Şimdi değil",
+  updateTitle: v => `Yeni sürüm: ${v}`, whatsNew: "Yenilikler", noNotes: "Bu sürüm için not yazılmamış.",
+  updateDownload: "İndir ve kur", updatePage: "Sürüm sayfası",
+  updateHowInstaller: v => `Sende ${v} sürümü var. İndirdiğin dosyayı açıp kur; kitaplığın ve ayarların yerinde kalır.`,
+  updateHowSource: v => `Sende ${v} sürümü var. Güncellemek için uygulamanın klasöründe şunu çalıştır, sonra uygulamayı yeniden aç:`,
+  upToDate: " · güncel", newerVersion: v => `${v} sürümü çıktı`,
   addFailed: "Eklenemedi.",
   tourWelcome: "Hoş geldin!", tourIntro: "EMA Reader kitapları ve makaleleri sana Türkçe okur. Nasıl çalıştığını yarım dakikada gösterelim.",
   tourStart: "Göster", tourNext: "İleri", tourDone: "Başlayalım", tourSkip: "Geç", tourMute: "Sesli anlatımı kapat", tourUnmute: "Sesli anlatımı aç",
@@ -859,6 +896,7 @@ $("download-dialog").addEventListener("close", () => {
 function drawSettings() {
   pick("set-theme", ["light", "dark", "system"], settings.theme, v => t(v), v => { settings.theme = v; saveSettings(); drawSettings(); });
   pick("set-size", Object.keys(SIZES), settings.size, v => t("sizes")[v], v => { settings.size = v; saveSettings(); drawSettings(); });
+  pick("set-updates", [true, false], settings.updates, v => t(v ? "on" : "off"), v => { settings.updates = v; saveSettings(); drawSettings(); checkUpdate(); });
   const dark = document.documentElement.dataset.theme === "dark";
   $("set-accent").replaceChildren(...Object.entries(ACCENTS).map(([name, colours]) => {
     const b = el("button", name === settings.accent ? "on" : "");
@@ -876,6 +914,34 @@ function openSettings(tab = "settings") { drawSettings(); showTab(tab); $("setti
 $("open-settings").onclick = $("open-settings-reader").onclick = () => openSettings();
 $("replay-tour").onclick = () => { $("settings-dialog").close(); showStep(0); };
 fetch("/health").then(r => r.json()).then(d => { if (d.version) $("version").textContent = t("version", d.version); }).catch(() => {});
+
+/* updates: the server asks GitHub for the latest release; a newer one is offered in the library and under "about" */
+
+let update = null;   // the latest answer: {current, latest, newer, notes, page, download, packaged}
+async function checkUpdate() {
+  update = null;
+  if (settings.updates) try { update = await api("/api/update"); } catch {}
+  let later = null;
+  try { later = localStorage.getItem("later"); } catch {}
+  const newer = Boolean(update?.newer);
+  $("update").hidden = !newer || later === update.latest;   // "not now" hides the bar for that version only
+  if (newer) $("update-text").replaceChildren(el("b", "", t("updateFound", update.latest)));
+  const state = newer ? el("button", "", t("newerVersion", update.latest)) : update?.latest ? t("upToDate") : "";
+  if (newer) { state.onclick = openUpdate; $("version-state").replaceChildren(" · ", state); } else $("version-state").replaceChildren(state);
+}
+function openUpdate() {
+  document.querySelectorAll("dialog[open]").forEach(d => d.close());
+  $("update-title").textContent = t("updateTitle", update.latest);
+  $("update-notes").textContent = update.notes || t("noNotes");
+  const installer = update.packaged && update.download;
+  $("update-how").replaceChildren(t(installer ? "updateHowInstaller" : "updateHowSource", update.current), ...(installer ? [] : [el("code", "", "git pull")]));
+  $("update-download").hidden = !installer; if (installer) $("update-download").href = update.download;
+  $("update-page").hidden = !update.page; if (update.page) $("update-page").href = update.page;
+  $("update-dialog").showModal();
+}
+$("update-open").onclick = openUpdate;
+$("update-later").onclick = () => { try { localStorage.setItem("later", update.latest); } catch {} $("update").hidden = true; };
+checkUpdate();
 
 /* reader */
 

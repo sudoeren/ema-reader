@@ -58,9 +58,10 @@ def main():
         "--paths", ROOT,
         "--add-data", f"{ROOT / 'static'}{sep}static",
         "--add-data", f"{HF}{sep}hf",
-        "--hidden-import", "app", "--hidden-import", "ema", "--hidden-import", "extract", "--hidden-import", "export",
+        "--hidden-import", "app", "--hidden-import", "ema", "--hidden-import", "extract", "--hidden-import", "export", "--hidden-import", "update",
         "--add-data", f"{ROOT / 'LICENSE'}{sep}.",
         "--add-data", f"{ROOT / 'THIRD_PARTY.md'}{sep}.",
+        "--add-data", f"{ROOT / 'CHANGELOG.md'}{sep}.",
     ]
     if (ROOT / "static" / icon).exists():
         command += ["--icon", ROOT / "static" / icon]

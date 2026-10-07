@@ -64,6 +64,7 @@ EMA Reader'ı ilk açtığında sana etrafı gezdirir. Kısa bir karşılama met
 - Yalnızca sayfa resimlerinden oluşan taranmış bir PDF'te okunacak metin yoktur.
 - Ses yapay zekâ ile üretilir. Bir kaydı paylaşırsan bunu belirt.
 - Sayılar, tarihler ve kısaltmalar kendiliğinden okunur; ara sıra yanlış çıkabilir.
+- Yeni bir sürüm çıktığında uygulama açılışta haber verir. Bunun için yalnızca GitHub'a "son sürüm hangisi" diye sorar; istemezsen Ayarlar'dan kapatabilirsin.
 
 ## Emeği geçenler
 
