@@ -56,7 +56,9 @@ EMA Reader'ı ilk açtığında sana etrafı gezdirir. Kısa bir karşılama met
 
 ## Nasıl kullanılır
 
-**Dinleyecek bir şey ekle.** "Kitap ya da makale ekle"yi seç; sonra pencereye bir dosya bırak, bir dosya seç ya da bir web adresi yapıştır.
+**Dinleyecek bir şey ekle.** "Kitap ya da makale ekle"yi seç; sonra pencereye bir dosya bırak, bir dosya seç ya da bir web adresi yapıştır. Eklenmeden önce ne bulunduğunu görürsün: kapağı, kaç bölüm olduğu, ne kadar süreceği ve nasıl başladığı. Beğenirsen "Kitaplığa ekle"ye bas.
+
+![Eklemeden önce önizleme](docs/screenshots/add.png)
 
 **Dinle.** Oynat düğmesine bas. Yanındaki iki okla bir cümle geri ya da ileri git, sağdaki sayıyla hızı değiştir.
 

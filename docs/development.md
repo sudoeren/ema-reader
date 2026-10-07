@@ -118,6 +118,10 @@ Testler metin çıkarmayı, dışa aktarım adlandırmasını ve güncelleme den
 | `GET /api/books` | Kitaplık |
 | `POST /api/books?name=kitap.epub` | Dosya ekle; isteğin gövdesi dosyanın kendisidir |
 | `POST /api/books` | Makale ekle: `{"url": "https://..."}` |
+| `POST /api/books?preview=1…` | Eklemeden oku: bulunanı (başlık, bölüm sayısı, ilk cümleler) ve bir `token` döndürür; makalede `"preview": true` |
+| `POST /api/pending/TOKEN` | Önizlenen şeyi kitaplığa ekle |
+| `DELETE /api/pending/TOKEN` | Önizlemeyi unut |
+| `GET /api/pending/TOKEN/cover` | Önizlenen şeyin kapağı, varsa |
 | `GET /api/books/ID` | Metni ve ayrıntılarıyla tek bir kitap |
 | `DELETE /api/books/ID` | Kitabı kaldır |
 | `PUT /api/books/ID/progress` | `{"chapter": 0, "sentence": 12}` |

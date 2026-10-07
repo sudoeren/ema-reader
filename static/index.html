@@ -52,16 +52,27 @@
   .search:focus-within { box-shadow: 0 0 0 2px var(--accent); }
   h2.section { font-size: 13px; font-weight: 600; color: var(--faint); margin: 34px 0 14px; letter-spacing: .2px; }
 
-  .resume { display: flex; align-items: center; gap: 22px; padding: 18px 26px 18px 18px; border: 1px solid var(--line); border-radius: 16px; cursor: pointer; transition: border-color .15s, background .15s; }
-  .resume:hover { border-color: var(--accent); background: var(--soft); }
-  .resume .cover { width: 84px; padding: 10px 8px; flex: none; }
-  .resume .cover strong { font-size: 11px; }
+  /* continue where you left off: the book last listened to, on a card lit by its own cover */
+  .resume { position: relative; overflow: hidden; display: flex; align-items: center; gap: 26px; margin-top: 26px; padding: 22px 28px 22px 22px; border-radius: 22px; background: var(--soft);
+            cursor: pointer; transition: transform .2s cubic-bezier(.2, .8, .2, 1), box-shadow .2s; }
+  .resume:hover, .resume:focus-visible { transform: translateY(-2px); box-shadow: 0 16px 34px -18px var(--shade); }
+  .resume .glow { position: absolute; inset: -40%; background: var(--glow) center / cover; filter: blur(60px) saturate(1.4); opacity: .26; pointer-events: none; }
+  :root[data-theme="dark"] .resume .glow { opacity: .34; }
+  .resume > :not(.glow) { position: relative; }
+  .resume .cover { width: 104px; padding: 11px 9px; flex: none; box-shadow: 0 14px 26px -10px rgba(0,0,0,.55); transition: transform .25s cubic-bezier(.2, .8, .2, 1); }
+  .resume:hover .cover { transform: rotate(-2.5deg) scale(1.03); }
+  .resume .cover strong { font-size: 12px; }
   .resume .cover small { display: none; }
   .resume .info { flex: 1; min-width: 0; }
-  .resume h3 { font-family: var(--serif); font-size: 27px; font-weight: 500; margin: 0 0 4px; letter-spacing: -.3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .resume p { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
-  .resume .go { width: 58px; height: 58px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; flex: none; transition: transform .15s; }
-  .resume:hover .go { transform: scale(1.06); }
+  .resume .kicker { font-size: 12px; font-weight: 600; letter-spacing: .9px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .resume h3 { font-family: var(--serif); font-size: 32px; font-weight: 500; line-height: 1.12; margin: 0 0 6px; letter-spacing: -.4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .resume p { margin: 0 0 18px; color: var(--muted); font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .resume .bar { display: flex; align-items: center; gap: 14px; font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .resume .bar .track { flex: 1; height: 6px; border-radius: 3px; background: var(--strong-line); }
+  .resume .bar .track i { border-radius: 3px; }
+  .resume .bar b { color: var(--ink); font-weight: 600; }
+  .resume .go { flex: none; gap: 10px; padding: 15px 26px 15px 22px; box-shadow: 0 10px 22px -12px var(--shade); transition: transform .2s cubic-bezier(.2, .8, .2, 1); }
+  .resume:hover .go { transform: scale(1.05); opacity: 1; }
   .track { height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
   .track i { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
 
@@ -110,6 +121,36 @@
   .urlrow { display: flex; gap: 8px; }
   .urlrow input { flex: 1; min-width: 0; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--strong-line); background: var(--bg); outline: 0; font-size: 14px; }
   .urlrow input:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .panel .dropzone { background: var(--surface); padding: 26px 16px; }
+  /* the little book bobs while a file is held over the window, or when the pointer is on it: not all the time,
+     an animation that never rests keeps the whole window redrawing */
+  .dropart { width: 84px; height: 84px; margin: 0 auto 10px; transition: transform .3s cubic-bezier(.2, 1.4, .4, 1); }
+  .dropzone:hover .dropart { transform: translateY(-4px) rotate(-3deg); }
+  body.dragging .dropart { animation: float .9s ease-in-out infinite; }
+  @keyframes float { 50% { transform: translateY(-7px) rotate(-4deg); } }
+  .panel .urlrow { flex-direction: column; }
+  .panel .urlrow input { background: var(--surface); padding: 11px 14px; }
+  .addstate { text-align: center; padding: 70px 10px 0; color: var(--muted); font-size: 15px; }
+  .addstate p { margin: 18px 0 0; overflow-wrap: anywhere; }
+  .wave { display: flex; align-items: center; justify-content: center; gap: 6px; height: 60px; }
+  .wave i { width: 7px; height: 52px; border-radius: 4px; background: var(--accent); transform: scaleY(.25); animation: wave 1s ease-in-out infinite; }
+  .wave i:nth-child(2) { animation-delay: .12s; } .wave i:nth-child(3) { animation-delay: .24s; }
+  .wave i:nth-child(4) { animation-delay: .36s; } .wave i:nth-child(5) { animation-delay: .48s; }
+  @keyframes wave { 50% { transform: scaleY(1); } }
+  #add-preview .bookhead { flex-direction: column; align-items: center; text-align: center; gap: 14px; margin-bottom: 16px; }
+  #add-preview .bookhead .cover { width: 124px; text-align: left; animation: pop .55s cubic-bezier(.2, 1.3, .4, 1) both; }
+  #add-preview .bookhead .cover strong { font-size: 13px; }
+  #add-preview .bookhead .meta { width: 100%; }
+  #add-preview .bookhead h3 { font-size: 23px; }
+  #add-preview .bookhead .facts { margin-bottom: 0; }
+  #add-preview h5 { padding-top: 14px; border-top: 1px solid var(--line); }
+  .excerpt { font-family: var(--serif); font-size: 15.5px; line-height: 1.55; color: var(--text); margin: 0 0 14px; }
+  #add-contents .more { padding: 6px 8px; color: var(--faint); font-size: 13px; }
+  @keyframes pop { from { opacity: 0; transform: scale(.7) rotate(-7deg); } }
+  .tick { width: 76px; height: 76px; fill: none; stroke: var(--accent); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; animation: pop .5s cubic-bezier(.2, 1.4, .4, 1) both; }
+  .tick path { stroke-dasharray: 40; stroke-dashoffset: 40; animation: draw .35s ease-out .25s forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  @media (prefers-reduced-motion: reduce) { .dropart, .wave i, #add-preview .bookhead .cover, .tick { animation: none; } .wave i { transform: scaleY(.7); } .tick path { animation: none; stroke-dashoffset: 0; } }
   .status { min-height: 20px; margin: 14px 0 0; font-size: 14px; color: var(--muted); }
   .status.error { color: var(--danger); }
 
@@ -154,18 +195,48 @@
   .contents small { color: var(--faint); font-size: 13px; white-space: nowrap; }
   .contents button.current span { font-weight: 600; color: var(--accent); }
 
-  /* about a book: not a window over the page but a side panel at the left edge, from the top of the window to the
-     bottom, and the page makes room for it. It appears at once: sliding it in while the page re-wraps beside it
-     stutters on long chapters. Its heading stays put and everything under it scrolls as one */
-  #info-dialog { position: fixed; z-index: 6; inset: 12px auto 12px 12px; margin: 0; width: min(348px, calc(100vw - 24px)); height: calc(100vh - 24px); max-height: none;
-                 overflow: hidden; border-radius: 18px; background: var(--soft); box-shadow: 0 0 0 1px var(--line); }
-  body { padding: var(--top, 0px) 0 0 var(--side, 0px); }
-  @media (min-width: 1000px) { body.with-info { --side: 364px; } }   /* a narrower window has no room to give: there the panel lies over the page */
-  #info-dialog:focus-visible { outline: 0; }
-  #info-dialog .sheet { display: flex; flex-direction: column; height: 100%; padding: 0; }
-  #info-dialog .sheet > header { margin: 0; padding: 12px 12px 8px 20px; }
-  #info-dialog .sheet > header h3 { font-size: 13px; font-weight: 600; color: var(--faint); letter-spacing: .2px; }
-  #info-dialog .scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 2px 20px 20px; margin-bottom: 10px; }
+  /* side panels: adding, a book's details and downloading at the left edge, the chapters and the settings at the right.
+     Not windows over the page: the page makes room at once, in one step, and only the panel itself moves, which
+     costs nothing however long the chapter beside it is. One panel is open at a time */
+  .panel { position: fixed; z-index: 6; top: 12px; bottom: 12px; margin: 0; width: min(348px, calc(100vw - 24px)); height: calc(100vh - 24px); max-height: none;
+           overflow: hidden; border-radius: 18px; background: var(--soft); box-shadow: 0 0 0 1px var(--line); }
+  .panel.left { left: 12px; right: auto; --from: -34px; transform-origin: left center; }
+  /* at the right it starts under the desktop window's header bar, whose close button must stay in reach */
+  .panel.right { right: 12px; left: auto; --from: 34px; transform-origin: right center; top: calc(12px + var(--top, 0px)); height: calc(100vh - 24px - var(--top, 0px)); }
+  .panel:focus-visible { outline: 0; }
+  .panel[open] { animation: panel-in .34s cubic-bezier(.2, .9, .25, 1.12) both; }
+  .panel.closing { animation: panel-out .17s ease-in both; pointer-events: none; }
+  .panel[open] .scroll > * { animation: rise .42s cubic-bezier(.2, .8, .2, 1) both; }
+  .panel[open] .scroll > :nth-child(2) { animation-delay: .05s; }
+  .panel[open] .scroll > :nth-child(3) { animation-delay: .1s; }
+  .panel[open] .scroll > :nth-child(4) { animation-delay: .15s; }
+  .panel[open] .scroll > :nth-child(n + 5) { animation-delay: .2s; }
+  @keyframes panel-in { from { opacity: 0; transform: translateX(var(--from)) scale(.96); } }
+  @keyframes panel-out { to { opacity: 0; transform: translateX(var(--from)) scale(.98); } }
+  @keyframes rise { from { opacity: 0; transform: translateY(12px); } }
+  @media (prefers-reduced-motion: reduce) { .panel[open], .panel.closing, .panel[open] .scroll > * { animation: none; } }
+  body { padding: var(--top, 0px) var(--side-right, 0px) 0 var(--side, 0px); }
+  /* a narrower window has no room to give: there the panel lies over the page */
+  @media (min-width: 1000px) { body.side-left { --side: 364px; } body.side-right { --side-right: 364px; } }
+  .panel .sheet { display: flex; flex-direction: column; height: 100%; padding: 0; }
+  .panel .sheet > header { margin: 0; padding: 12px 12px 8px 20px; }
+  .panel .sheet > header h3 { font-size: 13px; font-weight: 600; color: var(--faint); letter-spacing: .2px; }
+  .panel .scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 2px 20px 20px; margin-bottom: 10px; }
+  .panel .options { grid-template-columns: repeat(2, 1fr); }
+  .panel .options button { background: var(--surface); border-color: transparent; box-shadow: inset 0 0 0 1px var(--line); }
+  .panel .options button.on { background: var(--surface); border-color: var(--accent); box-shadow: none; }
+  .panel .choice { background: var(--line); }
+  .panel .btn.quiet { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+  .panel .footer { margin-top: 18px; }
+  .panel .footer .btn { flex: 1; padding: 12px 18px; }
+  .panel .field.tall { flex-direction: column; align-items: stretch; gap: 10px; }
+  .panel .field.tall .choice { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; }
+  .panel .field.tall .choice button { padding: 7px 2px; font-size: 13px; white-space: nowrap; }
+  .panel .tabs button.on { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+  .panel .about dl div { flex-direction: column; gap: 2px; }
+  .panel .about dt { width: auto; font-size: 13px; }
+
+  /* about a book */
   #info-dialog .bookhead { flex-direction: column; align-items: center; text-align: center; gap: 14px; margin-bottom: 16px; }
   #info-dialog .bookhead .cover { width: 112px; text-align: left; }
   #info-dialog .bookhead .cover strong { font-size: 12px; }
@@ -175,11 +246,11 @@
   #info-dialog .bookhead .facts { margin-bottom: 14px; }
   #info-dialog .bookhead .actions { justify-content: center; }
   #info-dialog #info-listen { flex: 1 0 100%; padding: 12px 18px; }
-  #info-dialog #info-download { flex: 1; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+  #info-dialog #info-download { flex: 1; }
   #info-dialog .describe { font-size: 15px; line-height: 1.5; max-height: none; overflow: visible; margin-bottom: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
   #info-dialog h5 { padding-top: 14px; border-top: 1px solid var(--line); }
-  #info-dialog .contents { max-height: none; overflow: visible; }
-  #info-dialog .contents button:hover { background: var(--surface); }
+  .panel .contents { max-height: none; overflow: visible; }
+  .panel .contents button:hover, .panel #chapter-list button:hover { background: var(--surface); }
 
   /* scrollbars inside panels and dialogs: a thin rounded thumb that keeps clear of the edge, and no track */
   .scroll::-webkit-scrollbar, .contents::-webkit-scrollbar, .describe::-webkit-scrollbar, .notes::-webkit-scrollbar, #chapter-list::-webkit-scrollbar { width: 12px; }
@@ -207,6 +278,12 @@
   .progress .track i { transition: width .3s; border-radius: 3px; }
   .progress p { display: flex; justify-content: space-between; gap: 12px; margin: 10px 0 0; font-size: 14px; color: var(--muted); }
   .footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
+  .downhead { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+  .downhead .cover { width: 54px; padding: 6px 5px; border-radius: 4px; flex: none; }
+  .downhead .cover strong { font-size: 7.5px; }
+  .downhead .cover small { display: none; }
+  .downhead b { display: block; font-family: var(--serif); font-size: 19px; font-weight: 500; line-height: 1.2; overflow-wrap: anywhere; }
+  .downhead small { color: var(--muted); font-size: 13.5px; }
 
   /* reader */
   #reader { height: 100%; display: flex; flex-direction: column; }
@@ -224,7 +301,7 @@
   #text span:hover { background: var(--soft); }
   #text span.current { background: var(--accent-soft); color: var(--ink); }
 
-  #player { position: fixed; left: calc(50% + var(--side, 0px) / 2); bottom: 26px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; padding: 10px 14px 10px 12px; border-radius: 999px; background: var(--surface); box-shadow: 0 14px 40px -10px var(--shade), 0 0 0 1px var(--line); }
+  #player { position: fixed; left: calc(50% + (var(--side, 0px) - var(--side-right, 0px)) / 2); bottom: 26px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; padding: 10px 14px 10px 12px; border-radius: 999px; background: var(--surface); box-shadow: 0 14px 40px -10px var(--shade), 0 0 0 1px var(--line); }
   #play { width: 48px; height: 48px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
   #play:hover { opacity: .88; }
   #player .mini { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); }
@@ -239,14 +316,10 @@
   #speeds button.on { font-weight: 700; color: var(--accent); }
   #speeds small { color: var(--faint); font-weight: 400; }
 
-  #chapters { position: fixed; top: var(--top, 0px); right: 0; bottom: 0; width: min(340px, 100vw); background: var(--surface); box-shadow: -20px 0 60px -20px var(--shade), 0 0 0 1px var(--line); display: flex; flex-direction: column; transform: translateX(105%); visibility: hidden; transition: transform .2s, visibility .2s; z-index: 5; }
-  #chapters.open { transform: none; visibility: visible; }
-  #chapters header { display: flex; align-items: center; padding: 14px 14px 10px 22px; }
-  #chapters h3 { flex: 1; margin: 0; font-size: 16px; font-weight: 700; }
-  #chapter-list { overflow-y: auto; padding: 0 10px 20px; }
+  #chapter-list { margin: 0 -10px; }
   #chapter-list button { display: flex; gap: 12px; width: 100%; text-align: left; padding: 10px 12px; border-radius: 10px; font-size: 14px; color: var(--muted); }
   #chapter-list button:hover { background: var(--accent-soft); }
-  #chapter-list button.current { color: var(--ink); font-weight: 600; background: var(--accent-soft); }
+  #chapter-list button.current { color: var(--ink); font-weight: 600; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
   #chapter-list i { font-style: normal; color: var(--faint); font-variant-numeric: tabular-nums; min-width: 22px; }
   #chapter-list span { overflow-wrap: anywhere; }
 
@@ -288,15 +361,17 @@
   .shell .top.searching > :not(.search) { display: none; }
   .shell .search { width: min(420px, 100%); }
   .shell #library { padding-top: 6px; }
-  .shell #resume-box h2.section, .shell #shelf > h2.section:first-child { margin-top: 20px; }
+  .shell .resume { margin-top: 14px; }
+  .shell #shelf > h2.section:first-child { margin-top: 20px; }
 
   @media (max-width: 720px) {
     #library { padding: 16px 18px 60px; }
     .top { flex-wrap: wrap; }
     .search { order: 3; width: 100%; }
-    .resume { padding-right: 18px; gap: 14px; }
-    .resume .cover { width: 60px; }
-    .resume h3 { font-size: 21px; }
+    .resume { flex-wrap: wrap; padding: 18px; gap: 16px; }
+    .resume .cover { width: 72px; }
+    .resume h3 { font-size: 23px; }
+    .resume .go { flex: 1 0 100%; }
     #page { padding: 28px 18px 160px; }
     #player { gap: 8px; bottom: 16px; }
     .rtop .by { display: none; }
@@ -348,7 +423,6 @@
 
   <div id="shelf" hidden>
     <div id="resume-box" hidden>
-      <h2 class="section" data-t="continue"></h2>
       <div class="resume" id="resume" tabindex="0"></div>
     </div>
     <h2 class="section" data-t="library"></h2>
@@ -378,36 +452,63 @@
   </div>
   <div id="speeds" hidden></div>
 
-  <aside id="chapters">
-    <header><h3 data-t="chapters"></h3><button class="icon" id="close-chapters" data-label="close"><svg width="20" height="20"><use href="#i-close"/></svg></button></header>
-    <div id="chapter-list"></div>
-  </aside>
 </main>
 
-<dialog id="add-dialog">
+<dialog id="chapters" class="panel right" tabindex="-1">
   <div class="sheet">
-    <header><h3 data-t="add"></h3><button class="icon" data-close data-label="close"><svg width="20" height="20"><use href="#i-close"/></svg></button></header>
-    <div class="dropzone">
-      <p data-t="dropHere"></p><small data-t="formats"></small>
-      <button class="btn" id="choose" data-t="chooseFile"></button>
-      <input type="file" id="file" accept=".epub,.pdf,.txt,.md,.html,.htm" hidden>
-    </div>
-    <div class="or" data-t="or"></div>
-    <div class="urlrow"><input type="url" id="url" placeholder="https://…" data-label="articleAddress"><button class="btn quiet" id="add-url" data-t="addArticle"></button></div>
-    <p class="status" id="status" role="status"></p>
+    <header><h3 data-t="chapters"></h3><button class="icon" data-close data-label="close"><svg width="20" height="20"><use href="#i-close"/></svg></button></header>
+    <div class="scroll"><div id="chapter-list"></div></div>
   </div>
 </dialog>
 
-<dialog id="settings-dialog">
+<dialog id="add-dialog" class="panel left" tabindex="-1">
+  <div class="sheet">
+    <header><h3 data-t="add"></h3><button class="icon" data-close data-label="close"><svg width="20" height="20"><use href="#i-close"/></svg></button></header>
+    <div class="scroll">
+      <div id="add-choose">
+        <div class="dropzone">
+          <svg class="dropart" viewBox="0 0 96 96" aria-hidden="true"><rect x="24" y="16" width="48" height="64" rx="6" fill="var(--surface)" stroke="var(--strong-line)" stroke-width="2"/><path d="M33 16v64" stroke="var(--strong-line)" stroke-width="2"/><g stroke="var(--accent)" stroke-width="3.4" stroke-linecap="round"><path d="M43 44v8M49.5 38v20M56 33v30M62.5 40v16"/></g></svg>
+          <p data-t="dropHere"></p><small data-t="formats"></small>
+          <button class="btn" id="choose" data-t="chooseFile"></button>
+          <input type="file" id="file" accept=".epub,.pdf,.txt,.md,.html,.htm" hidden>
+        </div>
+        <div class="or" data-t="or"></div>
+        <div class="urlrow"><input type="url" id="url" placeholder="https://…" data-label="articleAddress"><button class="btn quiet" id="add-url" data-t="addArticle"></button></div>
+        <p class="status" id="status" role="status"></p>
+      </div>
+      <div id="add-reading" class="addstate" hidden>
+        <div class="wave"><i></i><i></i><i></i><i></i><i></i></div>
+        <p id="add-reading-name"></p>
+      </div>
+      <div id="add-preview" hidden>
+        <div class="bookhead">
+          <div id="add-cover"></div>
+          <div class="meta"><h3 id="add-title"></h3><div class="by" id="add-author"></div><div class="facts" id="add-facts"></div></div>
+        </div>
+        <h5 data-t="begins"></h5>
+        <p class="excerpt" id="add-excerpt"></p>
+        <div id="add-contents-box"><h5 data-t="contents"></h5><div class="contents" id="add-contents"></div></div>
+        <div class="footer"><button class="btn quiet" id="add-cancel" data-t="addCancel"></button><button class="btn" id="add-confirm"><svg width="16" height="16"><use href="#i-plus"/></svg><span data-t="addConfirm"></span></button></div>
+      </div>
+      <div id="add-done" class="addstate" hidden>
+        <svg class="tick" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="28"/><path d="M20 33.5l8.5 8.5L45 24.5"/></svg>
+        <p data-t="addedDone"></p>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="settings-dialog" class="panel right" tabindex="-1">
   <div class="sheet">
     <header>
       <div class="tabs"><button data-tab="settings" data-t="settings" class="on"></button><button data-tab="about" data-t="about"></button></div>
       <button class="icon" data-close data-label="close"><svg width="20" height="20"><use href="#i-close"/></svg></button>
     </header>
+    <div class="scroll">
     <div id="tab-settings">
-      <div class="field"><span data-t="theme"></span><div class="choice" id="set-theme"></div></div>
-      <div class="field"><span data-t="accent"></span><div class="swatches" id="set-accent"></div></div>
-      <div class="field"><span data-t="textSize"></span><div class="choice" id="set-size"></div></div>
+      <div class="field tall"><span data-t="theme"></span><div class="choice" id="set-theme"></div></div>
+      <div class="field tall"><span data-t="accent"></span><div class="swatches" id="set-accent"></div></div>
+      <div class="field tall"><span data-t="textSize"></span><div class="choice" id="set-size"></div></div>
       <div class="field"><span><span id="set-version"></span><small id="set-version-state"></small></span><button class="btn quiet" id="set-version-action"></button></div>
       <div class="field"><span><span data-t="updates"></span><small data-t="updatesHint"></small></span><div class="choice" id="set-updates"></div></div>
       <div class="field"><span><span data-t="tourAgain"></span><small data-t="tourAgainHint"></small></span><button class="btn quiet" id="replay-tour" data-t="show"></button></div>
@@ -424,10 +525,11 @@
         <div><dt data-t="notice"></dt><dd data-t="noticeText"></dd></div>
       </dl>
     </div>
+    </div>
   </div>
 </dialog>
 
-<dialog id="info-dialog" tabindex="-1">
+<dialog id="info-dialog" class="panel left" tabindex="-1">
   <div class="sheet">
     <header><h3 data-t="aboutBook"></h3><button class="icon" data-close data-label="close"><svg width="20" height="20"><use href="#i-close"/></svg></button></header>
     <div class="scroll">
@@ -451,9 +553,11 @@
   </div>
 </dialog>
 
-<dialog id="download-dialog">
+<dialog id="download-dialog" class="panel left" tabindex="-1">
   <div class="sheet">
     <header><h3 data-t="downloadTitle"></h3><button class="icon" data-close data-label="close"><svg width="20" height="20"><use href="#i-close"/></svg></button></header>
+    <div class="scroll">
+    <div class="downhead"><div id="download-cover"></div><div><b id="download-book"></b><small id="download-by"></small></div></div>
     <div id="download-form">
       <div class="group" id="scope-group"><h5 data-t="what"></h5><div class="options two" id="set-scope"></div>
         <label class="check" id="split-row"><input type="checkbox" id="split"><span data-t="split"></span></label></div>
@@ -466,6 +570,7 @@
       <div class="footer"><button class="btn quiet" id="cancel-download" data-t="cancel"></button></div>
     </div>
     <p class="status" id="download-status" role="status"></p>
+    </div>
   </div>
 </dialog>
 
@@ -547,10 +652,11 @@ applySettings();
 const lang = "tr";
 const WORDS = {
   add: "Kitap ya da makale ekle", search: "Kitaplığında ara", continue: "Kaldığın yerden devam et", library: "Kitaplığın",
-  resume: "Dinlemeye devam et", listen: "Dinle", noMatch: "Aramana uyan bir şey yok.",
+  resume: "Dinlemeye devam et", resumeShort: "Devam et", listen: "Dinle", noMatch: "Aramana uyan bir şey yok.",
   welcomeTitle: "Kitaplarını dinlemeye başla", welcomeText: "Bir kitap ya da makale ekle, EMA Reader sana Türkçe okusun.",
   dropHere: "Dosyayı buraya bırak", formats: "EPUB, PDF, metin ya da Markdown", chooseFile: "Dosya seç", or: "ya da",
-  addArticle: "Makaleyi ekle", articleAddress: "Makale adresi", adding: n => `${n} ekleniyor…`, theArticle: "Makale",
+  addArticle: "Makaleyi getir", articleAddress: "Makale adresi", reading: n => `${n} okunuyor…`, theArticle: "Makale",
+  begins: "Şöyle başlıyor", addConfirm: "Kitaplığa ekle", addCancel: "Vazgeç", addedDone: "Kitaplığına eklendi", moreChapters: n => `ve ${n} bölüm daha`,
   chapters: "Bölümler", chapterOf: (n, total) => `Bölüm ${n} / ${total}`, chapterN: n => `${n}. bölüm`, chapterCount: n => `${n} bölüm`,
   fresh: "Yeni", finished: "Bitti", article: "Makale", percent: n => `%${n}`,
   minutes: n => `${n} dk`, hours: (h, m) => m ? `${h} sa ${m} dk` : `${h} sa`, left: s => `${s} kaldı`, listening: s => `yaklaşık ${s} dinleme`,
@@ -613,11 +719,11 @@ function askShell(question) {   // where is one of the window's own buttons?
 }
 window.shellAction = name => ({
   back: () => showLibrary(),
-  add: () => openAdd(),
-  chapters: () => $("chapters").classList.toggle("open"),
-  download: () => openDownload(book),
-  info: () => openInfo(book.id),
-  settings: () => openSettings(),
+  add: () => toggleAdd(),
+  chapters: () => toggleChapters(),
+  download: () => toggleDownload(book),
+  info: () => toggleInfo(book.id),
+  settings: () => toggleSettings(),
   search: () => { searching = !searching; if (!searching) $("search").value = ""; renderLibrary(); if (searching) $("search").focus(); },
 })[name]?.();
 // links leave the app: the desktop window hands them to the system's browser
@@ -697,12 +803,35 @@ function icon(name, size = 16) {
   return holder.firstChild;
 }
 
-// every dialog closes from its × and from a click outside it
+/* side panels: one open at a time; the page makes room for it and gets the room back when it has gone */
+
+const PANELS = [...document.querySelectorAll(".panel")];
+const isOpen = panel => panel.open && !panel.classList.contains("closing");
+function makeRoom() {
+  for (const side of ["left", "right"]) document.body.classList.toggle(`side-${side}`, PANELS.some(p => p.open && p.classList.contains(side)));
+  tellSide();
+}
+function openPanel(panel) {
+  for (const other of PANELS) if (other !== panel && other.open) other.close();   // the one it replaces goes at once
+  panel.classList.remove("closing");
+  if (!panel.open) panel.show();   // not modal: the page stays in use beside it
+  panel.focus({preventScroll: true});   // the panel itself, not its close button, which would show a focus ring
+  makeRoom();
+}
+function closePanel(panel) {   // it slides away first, then the page takes the room back
+  if (!isOpen(panel)) return;
+  panel.classList.add("closing");
+  setTimeout(() => { if (panel.classList.contains("closing")) panel.close(); }, 170);
+}
+const togglePanel = (panel, open) => isOpen(panel) ? closePanel(panel) : open();
+PANELS.forEach(panel => panel.addEventListener("close", () => { panel.classList.remove("closing"); makeRoom(); }));
+
+// a panel closes from its ×; a dialog over the page also from a click outside it
 document.querySelectorAll("dialog").forEach(dialog => {
-  dialog.querySelectorAll("[data-close]").forEach(b => b.onclick = () => dialog.close());
-  dialog.addEventListener("click", e => { if (e.target === dialog) dialog.close(); });
+  const panel = dialog.classList.contains("panel");
+  dialog.querySelectorAll("[data-close]").forEach(b => b.onclick = () => panel ? closePanel(dialog) : dialog.close());
+  if (!panel) dialog.addEventListener("click", e => { if (e.target === dialog) dialog.close(); });
 });
-$("info-dialog").addEventListener("close", () => { document.body.classList.remove("with-info"); tellSide(); });
 const chapterTitle = (b, n) => b.chapters[n].title || t("chapterN", n + 1);
 
 /* library */
@@ -716,7 +845,7 @@ function cover(b) {
   }
   box.append(el("strong", "", b.title), el("small", "", b.author || ""));
   if (b.cover) {   // the book's own picture, over the drawn one in case it fails to load
-    const picture = el("img"); picture.alt = ""; picture.loading = "lazy"; picture.src = `/api/books/${b.id}/cover`;
+    const picture = el("img"); picture.alt = ""; picture.loading = "lazy"; picture.src = b.coverUrl || `/api/books/${b.id}/cover`;
     picture.onerror = () => picture.remove();
     box.append(picture);
   }
@@ -736,7 +865,7 @@ function card(b) {
   const item = el("div", "item"); item.tabIndex = 0;
   const more = el("button", "more"); more.append(icon("info", 18));
   more.title = t("aboutBook"); more.setAttribute("aria-label", `${t("aboutBook")}: ${b.title}`);
-  more.onclick = e => { e.stopPropagation(); openInfo(b.id); };
+  more.onclick = e => { e.stopPropagation(); toggleInfo(b.id); };
   item.append(cover(b), el("h4", "", b.title), el("span", "", statusOf(b)), more);
   item.onclick = () => openBook(b.id);
   item.onkeydown = e => { if (e.key === "Enter" && e.target === item) openBook(b.id); };
@@ -759,12 +888,16 @@ function renderLibrary() {
   $("resume-box").hidden = !last || Boolean(query);
   if (!last) return;
   const info = el("div", "info");
-  const track = el("div", "track"); track.innerHTML = `<i style="width:${100 * last.done / last.size}%"></i>`;
-  const where = [last.author, last.chapters > 1 && t("chapterN", last.chapter + 1), t("left", remaining(last))].filter(Boolean).join(" · ");
-  info.append(el("h3", "", last.title), el("p", "", where), track);
-  const go = el("button", "go"); go.append(icon("play", 24));
-  go.title = t("resume"); go.setAttribute("aria-label", t("resume"));
-  $("resume").replaceChildren(cover(last), info, go);
+  const picture = cover(last);
+  const glow = el("div", "glow");   // the cover, blurred into the card's own light
+  glow.style.setProperty("--glow", last.cover ? `url(/api/books/${last.id}/cover)` : picture.style.background || "var(--strong-line)");
+  const chapterName = last.chapters > 1 && [t("chapterN", last.chapter + 1), last.chapter_title].filter(Boolean).join(": ");
+  const bar = el("div", "bar"), track = el("div", "track");
+  track.innerHTML = `<i style="width:${100 * last.done / last.size}%"></i>`;
+  bar.append(track, el("b", "", t("percent", Math.round(100 * last.done / last.size))), el("span", "", t("left", remaining(last))));
+  info.append(el("div", "kicker", t("continue")), el("h3", "", last.title), el("p", "", [last.author, chapterName].filter(Boolean).join(" · ")), bar);
+  const go = el("button", "btn big go"); go.append(icon("play", 18), el("span", "", t("resumeShort")));
+  $("resume").replaceChildren(glow, picture, info, go);
   $("resume").onclick = () => openBook(last.id, true);
   $("resume").onkeydown = e => { if (e.key === "Enter") openBook(last.id, true); };
 }
@@ -775,7 +908,7 @@ async function showLibrary() {
   clearTimeout(saveTimer);
   await pendingSave?.();   // so the library shows the position just left
   $("reader").hidden = true; $("library").hidden = false;
-  $("chapters").classList.remove("open"); $("speeds").hidden = true;
+  $("chapters").close(); $("speeds").hidden = true;
   document.title = "EMA Reader";
   books = await api("/api/books");
   renderLibrary();
@@ -786,28 +919,80 @@ $("search").oninput = renderLibrary;
 /* adding */
 
 const addDialog = $("add-dialog");
-function openAdd() { status(""); addDialog.showModal(); }
-$("add").onclick = openAdd; $("add-first").onclick = openAdd;
+let waiting = null;   // what has been read and is on show, waiting for a yes: {token, title, ...}
+let addTurn = 0;      // bumped whenever a reading is given up, so that its answer is dropped
+function addStep(name) { for (const step of ["choose", "reading", "preview", "done"]) $(`add-${step}`).hidden = step !== name; }
+function forget(token) { fetch(`/api/pending/${token}`, {method: "DELETE"}).catch(() => {}); }
+function giveUp() {
+  addTurn++;
+  if (waiting) forget(waiting.token);
+  waiting = null;
+}
+function openAdd() { giveUp(); status(""); addStep("choose"); openPanel(addDialog); }
+const toggleAdd = () => togglePanel(addDialog, openAdd);
+$("add").onclick = toggleAdd; $("add-first").onclick = toggleAdd;
+addDialog.addEventListener("close", giveUp);
 
 function status(message, error = false) {
   $("status").textContent = message;
   $("status").className = "status" + (error ? " error" : "");
 }
 
-async function add(request, label) {
-  if (!addDialog.open) addDialog.showModal();
-  status(t("adding", label));
+// nothing is added at once: the file or the page is read, shown, and added when the reader says so
+async function look(request, label) {
+  if (!isOpen(addDialog)) openAdd();
+  giveUp();
+  const mine = addTurn;
+  $("add-reading-name").textContent = t("reading", label);
+  addStep("reading");
   try {
-    const added = await request();
-    addDialog.close();
-    openBook(added.id);
+    const [found] = await Promise.all([request(), wait(700)]);   // long enough to see what is going on
+    if (mine !== addTurn) return forget(found.token);
+    waiting = found;
+    showPreview(found);
+    addStep("preview");
   } catch (e) {
+    if (mine !== addTurn) return;
+    addStep("choose");
     status(e.told ? e.message : t("addFailed"), true);
   }
 }
 
-const addFile = file => add(() => api(`/api/books?name=${encodeURIComponent(file.name)}`, {method: "POST", body: file}), file.name);
-const addUrl = url => add(() => api("/api/books", {method: "POST", body: JSON.stringify({url})}), t("theArticle"));
+function showPreview(found) {
+  $("add-cover").replaceChildren(cover({...found, coverUrl: `/api/pending/${found.token}/cover`}));
+  $("add-title").textContent = found.title;
+  $("add-author").textContent = found.author || "";
+  $("add-facts").textContent = `${found.article ? t("article") : t("chapterCount", found.chapters)}, ${t("listening", duration(found.size / charsPerSecond() / speed))}`;
+  $("add-excerpt").textContent = found.excerpt.length < found.size ? found.excerpt.replace(/[.…\s]+$/, "") + "…" : found.excerpt;
+  $("add-contents-box").hidden = found.chapters < 2;
+  const rows = found.contents.map((title, i) => {
+    const row = el("button"); row.disabled = true;
+    row.append(el("i", "", i + 1), el("span", "", title || t("chapterN", i + 1)));
+    return row;
+  });
+  if (found.chapters > found.contents.length) rows.push(el("div", "more", t("moreChapters", found.chapters - found.contents.length)));
+  $("add-contents").replaceChildren(...rows);
+}
+
+$("add-cancel").onclick = () => { giveUp(); addStep("choose"); };
+$("add-confirm").onclick = async () => {
+  if (!waiting) return;
+  const {token} = waiting;
+  waiting = null;   // it is the library's now, not something to forget
+  try {
+    const added = await api(`/api/pending/${token}`, {method: "POST"});
+    addStep("done");
+    await wait(1100);
+    if (isOpen(addDialog)) closePanel(addDialog);
+    openBook(added.id);
+  } catch (e) {
+    addStep("choose");
+    status(e.told ? e.message : t("addFailed"), true);
+  }
+};
+
+const addFile = file => look(() => api(`/api/books?preview=1&name=${encodeURIComponent(file.name)}`, {method: "POST", body: file}), file.name);
+const addUrl = url => look(() => api("/api/books", {method: "POST", body: JSON.stringify({url, preview: true})}), t("theArticle"));
 
 $("choose").onclick = () => $("file").click();
 $("file").onchange = () => { if ($("file").files[0]) addFile($("file").files[0]); $("file").value = ""; };
@@ -848,17 +1033,17 @@ async function openInfo(id) {
   $("info-description").textContent = about.description || ""; $("info-description").hidden = !about.description;
 
   const open = (number, sentence, start) => {
-    $("info-dialog").close();
+    closePanel($("info-dialog"));
     if (book?.id === id) openChapter(number, sentence, start); else openBook(id, start, number, sentence);
   };
   $("info-listen").lastElementChild.textContent = t(started ? "resume" : "listen");
   $("info-listen").onclick = () => open(b.progress.chapter, b.progress.sentence, true);
-  $("info-download").onclick = () => { $("info-dialog").close(); openDownload(b); };
+  $("info-download").onclick = () => openDownload(b);
   const remove = $("info-remove"); remove.textContent = t("remove"); remove.dataset.armed = "";
   remove.onclick = async () => {
     if (!remove.dataset.armed) { remove.dataset.armed = "1"; remove.textContent = t("confirmRemove"); return; }
     await api(`/api/books/${id}`, {method: "DELETE"});
-    $("info-dialog").close();
+    closePanel($("info-dialog"));
     showLibrary();
   };
   $("info-contents").replaceChildren(...b.chapters.map((c, i) => {
@@ -867,11 +1052,9 @@ async function openInfo(id) {
     row.onclick = () => open(i, 0, false);
     return row;
   }));
-  $("info-dialog").show();   // not modal: the page stays in use beside it
-  $("info-dialog").focus({preventScroll: true});   // the panel itself, not its close button, which would show a focus ring
-  document.body.classList.add("with-info");
-  tellSide();
+  openPanel($("info-dialog"));
 }
+const toggleInfo = id => isOpen($("info-dialog")) && infoOf === id ? closePanel($("info-dialog")) : openInfo(id);
 
 /* downloading: a chapter or the whole book, as audio or text */
 
@@ -902,9 +1085,12 @@ function drawDownload() {
 function openDownload(b) {
   Object.assign(download, {book: b, chapter: book?.id === b.id ? chapter : b.progress.chapter, job: null});
   $("download-form").hidden = false; $("download-progress").hidden = true; $("download-status").textContent = "";
+  $("download-cover").replaceChildren(cover({id: b.id, title: b.title, author: b.author, cover: Boolean(b.cover), article: /^https?:/.test(b.source)}));
+  $("download-book").textContent = b.title; $("download-by").textContent = b.author || "";
   drawDownload();
-  $("download-dialog").showModal();
+  openPanel($("download-dialog"));
 }
+const toggleDownload = b => togglePanel($("download-dialog"), () => openDownload(b));
 
 $("start-download").onclick = async () => {
   const {book: b, scope, format} = download;
@@ -924,7 +1110,7 @@ $("start-download").onclick = async () => {
       download.job = null;
       if (state.state !== "ready") throw new Error(state.error || "failed");
       location.href = `/api/exports/${job}/file`;   // an attachment: the page stays where it is
-      $("download-dialog").close();
+      closePanel($("download-dialog"));
       if (!shell) toast(t("downloaded"));
     }
   } catch (e) {
@@ -933,7 +1119,7 @@ $("start-download").onclick = async () => {
     $("download-status").textContent = t("downloadFailed"); $("download-status").className = "status error";
   }
 };
-$("cancel-download").onclick = () => $("download-dialog").close();
+$("cancel-download").onclick = () => closePanel($("download-dialog"));
 $("download-dialog").addEventListener("close", () => {
   if (download.job) fetch(`/api/exports/${download.job}`, {method: "DELETE"});
   download.job = null;
@@ -958,9 +1144,10 @@ function showTab(name) {
   $("tab-settings").hidden = name !== "settings"; $("tab-about").hidden = name !== "about";
 }
 document.querySelectorAll("#settings-dialog [data-tab]").forEach(b => b.onclick = () => showTab(b.dataset.tab));
-function openSettings(tab = "settings") { drawSettings(); showTab(tab); $("settings-dialog").showModal(); }
-$("open-settings").onclick = $("open-settings-reader").onclick = () => openSettings();
-$("replay-tour").onclick = () => { $("settings-dialog").close(); showStep(0); };
+function openSettings(tab = "settings") { drawSettings(); showTab(tab); openPanel($("settings-dialog")); }
+const toggleSettings = () => togglePanel($("settings-dialog"), openSettings);
+$("open-settings").onclick = $("open-settings-reader").onclick = toggleSettings;
+$("replay-tour").onclick = () => showStep(0);   // which closes this panel
 fetch("/health").then(r => r.json()).then(d => {
   if (!d.version) return;
   $("version").textContent = $("set-version").textContent = t("version", d.version);
@@ -1047,6 +1234,7 @@ checkUpdate();
 async function openBook(id, start = false, number = null, sentence = null) {
   book = await api(`/api/books/${id}`);
   if (infoOf !== id) $("info-dialog").close();   // the panel beside the page was about another book
+  if (download.book?.id !== id) $("download-dialog").close();
   $("library").hidden = true; $("reader").hidden = false;
   $("book-title").textContent = book.title; $("book-author").textContent = book.author || "";
   document.title = `${book.title} · EMA Reader`;
@@ -1055,7 +1243,7 @@ async function openBook(id, start = false, number = null, sentence = null) {
   $("chapter-list").replaceChildren(...book.chapters.map((c, i) => {
     const b = el("button");
     b.append(el("i", "", i + 1), el("span", "", chapterTitle(book, i)));
-    b.onclick = () => { $("chapters").classList.remove("open"); openChapter(i, 0, playing); };
+    b.onclick = () => openChapter(i, 0, playing);   // the list stays open beside the text
     return b;
   }));
   openChapter(number ?? book.progress.chapter, sentence ?? book.progress.sentence, start);
@@ -1247,10 +1435,13 @@ $("play").onclick = toggle;
 $("prev").onclick = () => jump(index - 1);
 $("next").onclick = () => jump(index + 1);
 $("back").onclick = () => showLibrary();
-$("open-chapters").onclick = () => $("chapters").classList.toggle("open");
-$("close-chapters").onclick = () => $("chapters").classList.remove("open");
-$("open-download").onclick = () => openDownload(book);
-$("open-info").onclick = () => openInfo(book.id);
+const toggleChapters = () => togglePanel($("chapters"), () => {
+  openPanel($("chapters"));
+  $("chapter-list").children[chapter]?.scrollIntoView({block: "center"});
+});
+$("open-chapters").onclick = toggleChapters;
+$("open-download").onclick = () => toggleDownload(book);
+$("open-info").onclick = () => toggleInfo(book.id);
 
 /* speed */
 
@@ -1281,13 +1472,12 @@ $("speed").onclick = e => {
 };
 document.addEventListener("click", e => {
   if (!e.target.closest("#speeds")) $("speeds").hidden = true;
-  if (!e.target.closest("#chapters, #open-chapters")) $("chapters").classList.remove("open");
 });
 showSpeed();
 
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") { $("speeds").hidden = true; $("chapters").classList.remove("open"); }
-  if (e.key === "Escape" && !document.querySelector("dialog:modal")) $("info-dialog").close();
+  if (e.key === "Escape") $("speeds").hidden = true;
+  if (e.key === "Escape" && !document.querySelector("dialog:modal")) PANELS.forEach(closePanel);
   if (!book || document.querySelector("dialog:modal") || tour.step >= 0 || e.target.matches("input")) return;
   if (e.key === " " && e.target.matches("button")) return;   // the focused button handles it
   if (e.key === " ") { e.preventDefault(); toggle(); }

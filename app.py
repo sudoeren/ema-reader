@@ -14,6 +14,11 @@ Endpoints:
     GET    /api/books                          the library
     POST   /api/books?name=kitap.epub          add a file (the body is the file)
     POST   /api/books                          add an article: {"url": "https://..."}
+                                               with ?preview=1 (or "preview": true) nothing is added yet: the answer
+                                               describes what was found and carries a token
+    POST   /api/pending/TOKEN                  add what was previewed
+    DELETE /api/pending/TOKEN                  forget it
+    GET    /api/pending/TOKEN/cover            its cover picture, if it has one
     GET    /api/books/ID                       one book with its text
     DELETE /api/books/ID
     PUT    /api/books/ID/progress              {"chapter": 0, "sentence": 12}
@@ -57,6 +62,7 @@ LIBRARY = Path(os.environ.get("EMA_READER_LIBRARY") or ROOT / "library")
 MAX_UPLOAD = 200 * 1024 * 1024
 BOOK = re.compile(r"/api/books/([0-9a-f]{12})(/progress|/cover|/export|/chapters/(\d+)/audio)?")
 EXPORT = re.compile(r"/api/exports/([0-9a-f]{12})(/file)?")
+PENDING = re.compile(r"/api/pending/([0-9a-f]{12})(/cover)?")
 
 # exported chapters: sentences are generated in batches and joined with short pauses
 EXPORT_RATE = 24000
@@ -67,6 +73,7 @@ PARAGRAPH_PAUSE = 0.5
 tts = None
 default_speed = 1.0
 library_lock = threading.Lock()
+pending = {}  # what has been read and shown to the reader, but not added yet: token -> (book, source)
 
 
 def pcm16(audio):
@@ -120,6 +127,31 @@ def store(book, source):
     return book
 
 
+def preview(book, source):
+    """Keep a freshly extracted book aside and describe it, so the reader can look before it is added."""
+    token = uuid.uuid4().hex[:12]
+    while len(pending) >= 4:  # previews nobody answered
+        pending.pop(next(iter(pending)))
+    pending[token] = (book, source)
+    sentences = [s for c in book["chapters"] for p in c["paragraphs"] for s in p]
+    excerpt = ""
+    for sentence in sentences:
+        if excerpt and len(excerpt) + len(sentence) > 320:
+            break
+        excerpt = f"{excerpt} {sentence}".strip()
+    return {
+        "token": token,
+        "title": book["title"],
+        "author": book["author"],
+        "article": source.startswith(("http://", "https://")),
+        "cover": bool(book.get("cover")),
+        "chapters": len(book["chapters"]),
+        "contents": [c["title"] for c in book["chapters"][:6]],
+        "size": sum(map(len, sentences)),
+        "excerpt": excerpt[:480],
+    }
+
+
 def summary(book):
     """What the library shows for a book; sizes are in characters, to estimate listening time."""
     sizes = [[len(s) for p in c["paragraphs"] for s in p] for c in book["chapters"]]
@@ -134,6 +166,7 @@ def summary(book):
         "added": book["added"],
         "opened": book.get("opened", 0),
         "chapter": progress["chapter"],
+        "chapter_title": book["chapters"][progress["chapter"]]["title"],
         "chapters": len(sizes),
         "size": sum(map(sum, sizes)),
         "done": done,
@@ -186,6 +219,11 @@ class Handler(BaseHTTPRequestHandler):
             self.with_book(book.group(1), self.cover)
         elif EXPORT.fullmatch(url.path):
             self.export_get(*EXPORT.fullmatch(url.path).groups())
+        elif PENDING.fullmatch(url.path) and PENDING.fullmatch(url.path).group(2):
+            picture = (pending.get(PENDING.fullmatch(url.path).group(1)) or ({},))[0].get("cover")
+            if not picture:
+                return self.send_json(404, {"error": "Bulunamadı."})
+            self.send(200, picture[1] or "application/octet-stream", picture[0])
         elif book and book.group(3):
             self.with_book(book.group(1), lambda b: self.chapter_audio(b, int(book.group(3)), query))
         else:
@@ -201,6 +239,11 @@ class Handler(BaseHTTPRequestHandler):
             self.update()
         elif url.path == "/api/books":
             self.add_book(dict(parse_qsl(url.query)))
+        elif PENDING.fullmatch(url.path) and not PENDING.fullmatch(url.path).group(2):
+            found = pending.pop(PENDING.fullmatch(url.path).group(1), None)
+            if not found:
+                return self.send_json(404, {"error": "Bu önizlemenin süresi dolmuş. Dosyayı yeniden seç."})
+            self.send_json(201, summary(store(*found)))
         elif BOOK.fullmatch(url.path) and BOOK.fullmatch(url.path).group(2) == "/export":
             params = self.read_json()
             if params is not None:
@@ -218,6 +261,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_DELETE(self):
         path = urlparse(self.path).path
+        if PENDING.fullmatch(path) and not PENDING.fullmatch(path).group(2):
+            pending.pop(PENDING.fullmatch(path).group(1), None)
+            return self.send_json(200, {"forgotten": PENDING.fullmatch(path).group(1)})
         job = EXPORT.fullmatch(path)
         if job and not job.group(2):
             found = export.jobs.get(job.group(1))
@@ -252,16 +298,20 @@ class Handler(BaseHTTPRequestHandler):
             if length > MAX_UPLOAD:
                 raise ValueError("Dosya çok büyük.")
             body = self.rfile.read(length)
+            look = query.get("preview") in ("1", "true")
             if query.get("name"):
                 source = query["name"]
                 book = extract_file(source, body)
             else:
-                source = json.loads(body).get("url", "")
+                asked = json.loads(body)
+                source, look = asked.get("url", ""), look or asked.get("preview") is True
                 book = extract_url(source)
         except ValueError as e:
             return self.send_json(400, {"error": str(e) or "İstek okunamadı."})
         except Exception:  # a damaged file should not take the server down
             return self.send_json(400, {"error": "Bu dosya okunamadı; bozuk olabilir."})
+        if look:
+            return self.send_json(200, preview(book, source))
         self.send_json(201, summary(store(book, source)))
 
     def with_book(self, book_id, action):
