@@ -154,18 +154,29 @@
   .contents small { color: var(--faint); font-size: 13px; white-space: nowrap; }
   .contents button.current span { font-weight: 600; color: var(--accent); }
 
-  /* about a book: not a window over the page but a panel that floats in at the left edge, and the page makes room for it */
-  #info-dialog { position: fixed; z-index: 6; inset: 16px auto 16px 16px; margin: 0; width: min(460px, calc(100vw - 32px)); height: calc(100vh - 32px); max-height: none; overflow-y: auto; animation: panel-in .22s ease-out;
-                 box-shadow: 0 20px 60px -20px var(--shade), 0 0 0 1px var(--line); }
-  body { padding-left: var(--side, 0px); transition: padding-left .22s ease-out; }
-  @media (min-width: 1000px) { body.with-info { --side: 484px; } }   /* a narrower window has no room to give: there the panel lies over the page */
-  #info-dialog .sheet { display: flex; flex-direction: column; min-height: 100%; }
-  #info-dialog .bookhead .cover { width: 108px; }
-  #info-dialog .bookhead h3 { font-size: 24px; }
-  #info-dialog .describe { flex: none; }
+  /* about a book: not a window over the page but a side panel at the left edge, and the page makes room for it.
+     It appears at once: sliding it in while the page re-wraps beside it stutters on long chapters */
+  #info-dialog { position: fixed; z-index: 6; inset: 12px auto 12px 12px; margin: 0; width: min(348px, calc(100vw - 24px)); height: calc(100vh - 24px); max-height: none;
+                 overflow-y: auto; border-radius: 18px; background: var(--soft); box-shadow: 0 0 0 1px var(--line); }
+  body { padding-left: var(--side, 0px); }
+  @media (min-width: 1000px) { body.with-info { --side: 364px; } }   /* a narrower window has no room to give: there the panel lies over the page */
+  #info-dialog .sheet { display: flex; flex-direction: column; min-height: 100%; padding: 14px 20px 20px; }
+  #info-dialog .sheet > header { margin: 0 -8px 6px 0; }
+  #info-dialog .sheet > header h3 { font-size: 13px; font-weight: 600; color: var(--faint); letter-spacing: .2px; }
+  #info-dialog .bookhead { flex-direction: column; align-items: center; text-align: center; gap: 14px; margin-bottom: 16px; }
+  #info-dialog .bookhead .cover { width: 112px; text-align: left; }
+  #info-dialog .bookhead .meta { width: 100%; }
+  #info-dialog .bookhead h3 { font-size: 23px; }
+  #info-dialog .bookhead .by { margin-bottom: 6px; }
+  #info-dialog .bookhead .facts { margin-bottom: 14px; }
+  #info-dialog .bookhead .cover strong { font-size: 12px; }
+  #info-dialog .bookhead .actions { justify-content: center; }
+  #info-dialog #info-listen { flex: 1 0 100%; padding: 12px 18px; }
+  #info-dialog #info-download { flex: 1; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+  #info-dialog .describe { flex: none; font-size: 15px; line-height: 1.5; max-height: 106px; margin-bottom: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+  #info-dialog h5 { padding-top: 14px; border-top: 1px solid var(--line); }
   #info-dialog .contents { flex: 1 1 0; min-height: 150px; max-height: none; }
-  @keyframes panel-in { from { opacity: 0; transform: translateX(-28px); } }
-  @media (prefers-reduced-motion: reduce) { #info-dialog { animation: none; } body { transition: none; } }
+  #info-dialog .contents button:hover { background: var(--surface); }
 
   .options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .options button { text-align: left; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--line); min-width: 0; }
