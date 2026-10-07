@@ -253,12 +253,13 @@ def run_gtk(data, splash):
 
         def on_message(_manager, value):
             message = json.loads(value.to_json(0))
-            if "view" in message:  # {"view": "library" | "reader", "title", "subtitle", "empty", "chapters"}
+            if "view" in message:  # {"view": "setup" | "library" | "reader", "title", "subtitle", "empty", "chapters"}
                 reader, empty = message["view"] == "reader", message.get("empty", False)
                 title.set_title(message.get("title") or NAME)
                 title.set_subtitle(message.get("subtitle") or "")
                 shown = {"back": reader, "info": reader, "download": reader, "chapters": reader and message.get("chapters", False),
-                         "add": not reader and not empty, "search": not reader and not empty, "settings": True}
+                         "add": not reader and not empty, "search": not reader and not empty,
+                         "settings": message["view"] != "setup"}  # the first start's download comes first
                 for name, visible in shown.items():
                     buttons[name].set_visible(visible)
                 run(f"shellTop({header.get_height()})")
