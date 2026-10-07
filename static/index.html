@@ -385,6 +385,8 @@
   /* inside the desktop window, whose header bar has the title and these buttons */
   .shell { --top: 47px; }   /* the window's header bar lies over the top of the page; the window says how tall it is */
   .shell .top, .shell .rtop { display: none; }
+  /* a panel at the left reaches the top of the window, but the header bar takes the clicks there: its × sits below the bar */
+  .shell .panel.left .sheet > header { padding-top: calc(var(--top) - 6px); }
   .shell .top.searching { display: flex; justify-content: center; }
   .shell .top.searching > :not(.search) { display: none; }
   .shell .search { width: min(420px, 100%); }
@@ -1658,14 +1660,17 @@ if ("mediaSession" in navigator) {
   navigator.mediaSession.setActionHandler("previoustrack", () => jump(index - 1));
 }
 
-/* onboarding: shown once, on a short welcome text that is added to the library, and read aloud */
+/* onboarding: shown once, over a short sample text that is added to the library; the guide speaks, and the
+   sample is a text of its own, so that what the reader tries out does not repeat what the guide has said */
 
 const WELCOME_NAME = "EMA Reader'a hoş geldin.md";
-const WELCOME_TEXT = `# Hoş geldin
+const WELCOME_TEXT = `# Sabah vapuru
 
-Merhaba, ben EMA. Kitapları ve makaleleri sana sesli okurum. Bir cümleye tıklarsan oradan devam ederim.
+Vapur iskeleden ayrılırken martılar peşine takıldı. Çay bardağından yükselen buhar, serin havada yavaşça dağıldı.
 
-Kaldığın yeri de hatırlarım. İyi dinlemeler!`;
+Karşı kıyı sisin içinden ağır ağır belirdi.
+
+Kitabını açtı ve kaldığı satırı buldu. Şehir uyanırken o çoktan başka bir yerdeydi.`;
 
 // what the guide says aloud at each step; a little fuller than the note on screen
 const SPOKEN = {
@@ -1695,12 +1700,12 @@ const tour = {
   step: -1,
   steps: [
     {center: true, speak: "welcome"},
-    {target: () => $("play"), text: "tourPlay", from: [-250, -190], bend: 70,
+    {target: () => $("play"), text: "tourPlay", from: [-250, -190], bend: 70, open: () => [$("play")],
      before: async () => { await openWelcome(); }},
-    // the first line of a sentence, so the hole is one tidy strip
-    {target: () => sentences[2].el.getClientRects()[0], text: "tourSentence", from: [150, 250], bend: -90, pad: 5},
+    // a sentence that is a paragraph of its own, so the hole shows all of it
+    {target: () => sentences[2].el, text: "tourSentence", from: [150, 250], bend: -90, pad: 6, open: () => [sentences[2].el]},
     // to the left, so that the list of speeds has room to open above the button
-    {target: () => $("speed"), text: "tourSpeed", from: [-330, -110], bend: 60},
+    {target: () => $("speed"), text: "tourSpeed", from: [-330, -110], bend: 60, open: () => [$("speed"), $("speeds")]},
     // inside the desktop window the add button is in the header bar, just above the page
     {target: async () => {
        if (!shell) return $("add").getBoundingClientRect();
@@ -1711,6 +1716,13 @@ const tour = {
      before: async () => { await showLibrary(); tell({highlight: "add"}); }},
   ],
 };
+
+// a step lets through only the clicks on what it is about: the play button plays at its own step and nowhere else
+document.addEventListener("click", e => {
+  if (tour.step < 0 || e.target.closest("#tour-note")) return;
+  const open = tour.steps[tour.step].open?.() || [];
+  if (!open.some(node => node.contains(e.target))) { e.preventDefault(); e.stopPropagation(); }
+}, true);
 
 async function openWelcome() {
   // an earlier tour may have left its own, longer, welcome text behind
