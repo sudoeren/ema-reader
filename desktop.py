@@ -247,7 +247,10 @@ def run_gtk(data, splash):
                          "add": not reader and not empty, "search": not reader and not empty, "settings": True}
                 for name, visible in shown.items():
                     buttons[name].set_visible(visible)
+                run(f"shellTop({header.get_height()})")
                 logo.set_visible(not reader and logo.get_paintable() is not None)
+            if "side" in message:  # a panel stands at the left edge of the page: the header bar makes room for it
+                header.set_margin_start(max(0, int(message["side"])))
             if "theme" in message:
                 set_theme(message["theme"] == "dark", message.get("accent"))
             if "open" in message and str(message["open"]).startswith(("http://", "https://")):
@@ -289,7 +292,8 @@ def run_gtk(data, splash):
 
         session.connect("download-started", on_download)
 
-        view = Adw.ToolbarView(content=toasts)
+        # the page reaches up under the header bar, so that its side panel can stand the full height of the window
+        view = Adw.ToolbarView(content=toasts, extend_content_to_top_edge=True)
         view.add_top_bar(header)
         window = Adw.ApplicationWindow(application=application, title=NAME, default_width=1220, default_height=820, content=view)
         window.set_size_request(420, 560)

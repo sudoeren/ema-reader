@@ -154,29 +154,42 @@
   .contents small { color: var(--faint); font-size: 13px; white-space: nowrap; }
   .contents button.current span { font-weight: 600; color: var(--accent); }
 
-  /* about a book: not a window over the page but a side panel at the left edge, and the page makes room for it.
-     It appears at once: sliding it in while the page re-wraps beside it stutters on long chapters */
+  /* about a book: not a window over the page but a side panel at the left edge, from the top of the window to the
+     bottom, and the page makes room for it. It appears at once: sliding it in while the page re-wraps beside it
+     stutters on long chapters. Its heading stays put and everything under it scrolls as one */
   #info-dialog { position: fixed; z-index: 6; inset: 12px auto 12px 12px; margin: 0; width: min(348px, calc(100vw - 24px)); height: calc(100vh - 24px); max-height: none;
-                 overflow-y: auto; border-radius: 18px; background: var(--soft); box-shadow: 0 0 0 1px var(--line); }
-  body { padding-left: var(--side, 0px); }
+                 overflow: hidden; border-radius: 18px; background: var(--soft); box-shadow: 0 0 0 1px var(--line); }
+  body { padding: var(--top, 0px) 0 0 var(--side, 0px); }
   @media (min-width: 1000px) { body.with-info { --side: 364px; } }   /* a narrower window has no room to give: there the panel lies over the page */
-  #info-dialog .sheet { display: flex; flex-direction: column; min-height: 100%; padding: 14px 20px 20px; }
-  #info-dialog .sheet > header { margin: 0 -8px 6px 0; }
+  #info-dialog:focus-visible { outline: 0; }
+  #info-dialog .sheet { display: flex; flex-direction: column; height: 100%; padding: 0; }
+  #info-dialog .sheet > header { margin: 0; padding: 12px 12px 8px 20px; }
   #info-dialog .sheet > header h3 { font-size: 13px; font-weight: 600; color: var(--faint); letter-spacing: .2px; }
+  #info-dialog .scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 2px 20px 20px; margin-bottom: 10px; }
   #info-dialog .bookhead { flex-direction: column; align-items: center; text-align: center; gap: 14px; margin-bottom: 16px; }
   #info-dialog .bookhead .cover { width: 112px; text-align: left; }
+  #info-dialog .bookhead .cover strong { font-size: 12px; }
   #info-dialog .bookhead .meta { width: 100%; }
   #info-dialog .bookhead h3 { font-size: 23px; }
   #info-dialog .bookhead .by { margin-bottom: 6px; }
   #info-dialog .bookhead .facts { margin-bottom: 14px; }
-  #info-dialog .bookhead .cover strong { font-size: 12px; }
   #info-dialog .bookhead .actions { justify-content: center; }
   #info-dialog #info-listen { flex: 1 0 100%; padding: 12px 18px; }
   #info-dialog #info-download { flex: 1; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
-  #info-dialog .describe { flex: none; font-size: 15px; line-height: 1.5; max-height: 106px; margin-bottom: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+  #info-dialog .describe { font-size: 15px; line-height: 1.5; max-height: none; overflow: visible; margin-bottom: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
   #info-dialog h5 { padding-top: 14px; border-top: 1px solid var(--line); }
-  #info-dialog .contents { flex: 1 1 0; min-height: 150px; max-height: none; }
+  #info-dialog .contents { max-height: none; overflow: visible; }
   #info-dialog .contents button:hover { background: var(--surface); }
+
+  /* scrollbars inside panels and dialogs: a thin rounded thumb that keeps clear of the edge, and no track */
+  .scroll::-webkit-scrollbar, .contents::-webkit-scrollbar, .describe::-webkit-scrollbar, .notes::-webkit-scrollbar, #chapter-list::-webkit-scrollbar { width: 12px; }
+  .scroll::-webkit-scrollbar-thumb, .contents::-webkit-scrollbar-thumb, .describe::-webkit-scrollbar-thumb, .notes::-webkit-scrollbar-thumb, #chapter-list::-webkit-scrollbar-thumb
+    { background: var(--strong-line); border: 4px solid transparent; border-radius: 999px; background-clip: content-box; min-height: 40px; }
+  .scroll::-webkit-scrollbar-thumb:hover, .contents::-webkit-scrollbar-thumb:hover, .describe::-webkit-scrollbar-thumb:hover, .notes::-webkit-scrollbar-thumb:hover, #chapter-list::-webkit-scrollbar-thumb:hover
+    { background-color: var(--faint); }
+  .scroll::-webkit-scrollbar-track, .contents::-webkit-scrollbar-track, .describe::-webkit-scrollbar-track, .notes::-webkit-scrollbar-track, #chapter-list::-webkit-scrollbar-track { background: transparent; }
+  .scroll::-webkit-scrollbar-button, .contents::-webkit-scrollbar-button, .describe::-webkit-scrollbar-button, .notes::-webkit-scrollbar-button, #chapter-list::-webkit-scrollbar-button { display: none; }
+  @supports not selector(::-webkit-scrollbar) { .scroll, .contents, .describe, .notes, #chapter-list { scrollbar-width: thin; scrollbar-color: var(--strong-line) transparent; } }
 
   .options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .options button { text-align: left; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--line); min-width: 0; }
@@ -226,7 +239,7 @@
   #speeds button.on { font-weight: 700; color: var(--accent); }
   #speeds small { color: var(--faint); font-weight: 400; }
 
-  #chapters { position: fixed; top: 0; right: 0; bottom: 0; width: min(340px, 100vw); background: var(--surface); box-shadow: -20px 0 60px -20px var(--shade), 0 0 0 1px var(--line); display: flex; flex-direction: column; transform: translateX(105%); visibility: hidden; transition: transform .2s, visibility .2s; z-index: 5; }
+  #chapters { position: fixed; top: var(--top, 0px); right: 0; bottom: 0; width: min(340px, 100vw); background: var(--surface); box-shadow: -20px 0 60px -20px var(--shade), 0 0 0 1px var(--line); display: flex; flex-direction: column; transform: translateX(105%); visibility: hidden; transition: transform .2s, visibility .2s; z-index: 5; }
   #chapters.open { transform: none; visibility: visible; }
   #chapters header { display: flex; align-items: center; padding: 14px 14px 10px 22px; }
   #chapters h3 { flex: 1; margin: 0; font-size: 16px; font-weight: 700; }
@@ -237,7 +250,7 @@
   #chapter-list i { font-style: normal; color: var(--faint); font-variant-numeric: tabular-nums; min-width: 22px; }
   #chapter-list span { overflow-wrap: anywhere; }
 
-  #toast { position: fixed; left: 50%; top: 20px; transform: translateX(-50%); background: var(--ink); color: var(--on-ink); padding: 10px 18px; border-radius: 10px; font-size: 14px; z-index: 60; }
+  #toast { position: fixed; left: 50%; top: calc(20px + var(--top, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--on-ink); padding: 10px 18px; border-radius: 10px; font-size: 14px; z-index: 60; }
 
   /* onboarding: a veil with a hole around what is being shown, a hand-written note and a dashed arrow */
   #tour { position: fixed; inset: 0; z-index: 50; pointer-events: none; }   /* what it points at stays clickable */
@@ -269,6 +282,7 @@
   @media (prefers-reduced-motion: reduce) { #tour .dashes, #tour .reveal, #tour .head, #tour-note { animation: none; opacity: 1; } }
 
   /* inside the desktop window, whose header bar has the title and these buttons */
+  .shell { --top: 47px; }   /* the window's header bar lies over the top of the page; the window says how tall it is */
   .shell .top, .shell .rtop { display: none; }
   .shell .top.searching { display: flex; justify-content: center; }
   .shell .top.searching > :not(.search) { display: none; }
@@ -413,9 +427,10 @@
   </div>
 </dialog>
 
-<dialog id="info-dialog">
+<dialog id="info-dialog" tabindex="-1">
   <div class="sheet">
     <header><h3 data-t="aboutBook"></h3><button class="icon" data-close data-label="close"><svg width="20" height="20"><use href="#i-close"/></svg></button></header>
+    <div class="scroll">
     <div class="bookhead">
       <div id="info-cover"></div>
       <div class="meta">
@@ -432,6 +447,7 @@
     <p class="describe" id="info-description"></p>
     <h5 data-t="contents"></h5>
     <div class="contents" id="info-contents"></div>
+    </div>
   </div>
 </dialog>
 
@@ -583,6 +599,11 @@ function tellShell() {
 }
 let shellReply = null;
 window.shellAnswer = value => shellReply?.(value);
+let shellTop = shell ? 47 : 0;
+window.shellTop = height => { shellTop = height; document.documentElement.style.setProperty("--top", `${height}px`); };
+// the header bar steps aside for the panel that stands at the left edge, which reaches the top of the window
+const tellSide = () => tell({side: parseFloat(getComputedStyle(document.body).paddingLeft) || 0});
+window.addEventListener("resize", tellSide);
 function askShell(question) {   // where is one of the window's own buttons?
   return new Promise(resolve => {
     shellReply = resolve;
@@ -681,7 +702,7 @@ document.querySelectorAll("dialog").forEach(dialog => {
   dialog.querySelectorAll("[data-close]").forEach(b => b.onclick = () => dialog.close());
   dialog.addEventListener("click", e => { if (e.target === dialog) dialog.close(); });
 });
-$("info-dialog").addEventListener("close", () => document.body.classList.remove("with-info"));
+$("info-dialog").addEventListener("close", () => { document.body.classList.remove("with-info"); tellSide(); });
 const chapterTitle = (b, n) => b.chapters[n].title || t("chapterN", n + 1);
 
 /* library */
@@ -847,7 +868,9 @@ async function openInfo(id) {
     return row;
   }));
   $("info-dialog").show();   // not modal: the page stays in use beside it
+  $("info-dialog").focus({preventScroll: true});   // the panel itself, not its close button, which would show a focus ring
   document.body.classList.add("with-info");
+  tellSide();
 }
 
 /* downloading: a chapter or the whole book, as audio or text */
@@ -1331,7 +1354,7 @@ const tour = {
     {target: async () => {
        if (!shell) return $("add").getBoundingClientRect();
        const box = await askShell("add") || {left: 6, right: 40};
-       return {left: box.left, right: box.right, top: -34, bottom: -4};
+       return {left: box.left, right: box.right, top: shellTop - 34, bottom: shellTop - 4};
      },
      text: "tourAdd", from: () => shell ? [230, 240] : [-330, 170], bend: 80, last: true,
      before: async () => { await showLibrary(); tell({highlight: "add"}); }},
