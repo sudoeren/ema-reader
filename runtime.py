@@ -32,7 +32,7 @@ WHEELS = "https://download.pytorch.org/whl/"
 # the CUDA builds to try, the one that runs on the oldest drivers first
 CUDA = ("cu126", "cu128", "cu130")
 
-job = {"state": "idle", "step": None, "progress": 0, "error": None}
+job = {"state": "idle", "step": None, "progress": 0, "error": None, "choice": None}
 lock = threading.Lock()
 
 
@@ -132,7 +132,7 @@ def start(choice, done=None):
     with lock:
         if job["state"] == "working":
             return dict(job)
-        job.update(state="working", step="preparing", progress=0, error=None)
+        job.update(state="working", step="preparing", progress=0, error=None, choice=choice)
     threading.Thread(target=install, args=(choice, done), daemon=True).start()
     return dict(job)
 

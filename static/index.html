@@ -99,6 +99,22 @@
   #update-error:empty { display: none; }
   .about .version button { color: var(--accent); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 
+  #setup { max-width: 560px; margin: 0 auto; padding: 64px 20px 50px; text-align: center; }
+  #setup > img { width: 76px; height: 76px; }
+  #setup h1 { font-family: var(--serif); font-weight: 500; font-size: 36px; letter-spacing: -.6px; margin: 14px 0 10px; }
+  #setup > p { color: var(--muted); margin: 0 auto; font-size: 15.5px; line-height: 1.55; max-width: 470px; }
+  .kinds { display: grid; gap: 10px; margin: 28px 0 26px; text-align: left; }
+  .kind { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; padding: 14px 16px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--surface); }
+  .kind:hover { border-color: var(--strong-line); }
+  .kind.on { border-color: var(--accent); background: var(--accent-soft); }
+  .kind .dot { flex: none; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--strong-line); }
+  .kind.on .dot { border: 5px solid var(--accent); }
+  .kind b { display: block; font-size: 15px; font-weight: 600; }
+  .kind b em { font-style: normal; font-size: 11px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--accent); margin-left: 8px; }
+  .kind small { display: block; margin-top: 2px; color: var(--muted); font-size: 13.5px; }
+  .kind .size { margin-left: auto; color: var(--faint); font-size: 13px; white-space: nowrap; }
+  #setup .progress { margin: 26px 0 0; text-align: left; }
+  #setup-error:empty { display: none; }
   .welcome { text-align: center; padding: 70px 20px 0; }
   .welcome h1 { font-family: var(--serif); font-weight: 500; font-size: 38px; letter-spacing: -.6px; margin: 0 0 10px; }
   .welcome p { color: var(--muted); margin: 0 0 30px; font-size: 16px; }
@@ -401,7 +417,20 @@
   <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" fill="currentColor"/><path d="m16 9.5 5 5M21 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
 </svg>
 
-<main id="library">
+<main id="setup" hidden>
+  <img src="/static/logo.svg" alt="">
+  <h1 data-t="setupTitle"></h1>
+  <p id="setup-text"></p>
+  <div class="kinds" id="kinds" role="radiogroup"></div>
+  <button class="btn big" id="setup-run" data-t="setupStart"></button>
+  <div class="progress" id="setup-progress" hidden>
+    <div class="track"><i id="setup-bar"></i></div>
+    <p><span id="setup-step"></span><span id="setup-percent"></span></p>
+  </div>
+  <p class="status error" id="setup-error" role="status"></p>
+</main>
+
+<main id="library" hidden>
   <div class="top" id="top">
     <div class="brand"><img src="/static/logo.svg" alt="">EMA Reader</div>
     <label class="search" id="search-box" hidden><svg width="16" height="16"><use href="#i-search"/></svg><input id="search" type="search" data-placeholder="search"></label>
@@ -509,6 +538,7 @@
       <div class="field tall"><span data-t="theme"></span><div class="choice" id="set-theme"></div></div>
       <div class="field tall"><span data-t="accent"></span><div class="swatches" id="set-accent"></div></div>
       <div class="field tall"><span data-t="textSize"></span><div class="choice" id="set-size"></div></div>
+      <div class="field tall" id="set-device-row" hidden><span><span data-t="device"></span><small id="set-device-state"></small></span><div class="choice" id="set-device"></div></div>
       <div class="field"><span><span id="set-version"></span><small id="set-version-state"></small></span><button class="btn quiet" id="set-version-action"></button></div>
       <div class="field"><span><span data-t="updates"></span><small data-t="updatesHint"></small></span><div class="choice" id="set-updates"></div></div>
       <div class="field"><span><span data-t="tourAgain"></span><small data-t="tourAgainHint"></small></span><button class="btn quiet" id="replay-tour" data-t="show"></button></div>
@@ -684,6 +714,17 @@ const WORDS = {
   updateSteps: {preparing: "Hazırlanıyor…", downloading: "Yeni sürüm indiriliyor…", installing: "Kuruluyor…", restarting: "Uygulama yeniden başlatılıyor…"},
   updateFailed: "Güncellenemedi.", updateDone: v => `EMA Reader ${v} sürümüne güncellendi.`,
   addFailed: "Eklenemedi.",
+  setupTitle: "EMA Reader'ı hazırlayalım",
+  setupText: "Sesli okuyabilmesi için EMA Reader'ın bilgisayarına uyan parçaları bir kez indirmesi gerekiyor. Sonra internet olmadan da dinleyebilirsin.",
+  setupModelOnly: "Sesli okuyabilmesi için EMA Reader'ın ses modelini bir kez indirmesi gerekiyor (yaklaşık 34 MB). Sonra internet olmadan da dinleyebilirsin.",
+  kinds: {cuda: ["NVIDIA ekran kartı", "En hızlısı. Bilgisayarındaki NVIDIA kartını kullanır."],
+          mps: ["Apple silicon", "Mac'inin ekran kartını kullanır."],
+          cpu: ["İşlemci", "Her bilgisayarda çalışır, ekran kartı kullanmaz."]},
+  recommended: "Önerilen", aboutSize: s => `yaklaşık ${s}`,
+  setupStart: "İndir ve başla", setupRetry: "Yeniden dene", setupFailed: "İndirilemedi. İnternet bağlantını kontrol edip yeniden dene.",
+  setupSteps: {preparing: "Hazırlanıyor…", torch: "PyTorch indiriliyor…", model: "Ses modeli indiriliyor…", loading: "Ses modeli yükleniyor…"},
+  device: "Seslendirme", deviceNow: k => `Şu an: ${WORDS.kinds[k]?.[0] || k}`, deviceGetting: k => `${WORDS.kinds[k][0]} indiriliyor…`,
+  deviceRestart: "İndirildi. Kullanmak için uygulamayı yeniden başlat.", restart: "Yeniden başlat",
   tourWelcome: "Hoş geldin!", tourIntro: "EMA Reader kitapları ve makaleleri sana Türkçe okur. Nasıl çalıştığını yarım dakikada gösterelim.",
   tourStart: "Göster", tourNext: "İleri", tourDone: "Başlayalım", tourSkip: "Geç", tourMute: "Sesli anlatımı kapat", tourUnmute: "Sesli anlatımı aç",
   tourPlay: "Dinlemek için buna bas", tourSentence: "Bir cümleye tıkla, oradan okumaya başlasın",
@@ -1144,7 +1185,7 @@ function showTab(name) {
   $("tab-settings").hidden = name !== "settings"; $("tab-about").hidden = name !== "about";
 }
 document.querySelectorAll("#settings-dialog [data-tab]").forEach(b => b.onclick = () => showTab(b.dataset.tab));
-function openSettings(tab = "settings") { drawSettings(); showTab(tab); openPanel($("settings-dialog")); }
+function openSettings(tab = "settings") { drawSettings(); drawDevice(); showTab(tab); openPanel($("settings-dialog")); }
 const toggleSettings = () => togglePanel($("settings-dialog"), openSettings);
 $("open-settings").onclick = $("open-settings-reader").onclick = toggleSettings;
 $("replay-tour").onclick = () => showStep(0);   // which closes this panel
@@ -1228,6 +1269,114 @@ $("update-open").onclick = openUpdate;
 $("update-run").onclick = runUpdate;
 $("update-later").onclick = () => { try { localStorage.setItem("later", update.latest); } catch {} $("update").hidden = true; };
 checkUpdate();
+
+/* the first start: PyTorch for this computer and the model are downloaded once, before anything can be heard */
+
+function sizeText(bytes) {
+  return bytes >= 1e9 ? `${(bytes / 1e9).toLocaleString(lang, {maximumFractionDigits: 1})} GB` : `${Math.round(bytes / 1e6)} MB`;
+}
+
+let setup = null, chosen = null;   // the server's answer, and the kind chosen on screen
+async function showSetup(answer) {
+  setup = answer;
+  $("library").hidden = $("reader").hidden = true; $("setup").hidden = false;
+  tell({view: "setup", empty: true});
+  $("setup-text").textContent = t(setup.torch ? "setupModelOnly" : "setupText");
+  chosen = setup.choices[0]?.id;
+  drawKinds();
+  $("kinds").hidden = setup.torch;   // a copy run from source has PyTorch already
+  if (setup.job.state === "working") followSetup();
+}
+
+function drawKinds() {
+  $("kinds").replaceChildren(...setup.choices.map((c, i) => {
+    const [name, hint] = t("kinds")[c.id];
+    const b = el("button", c.id === chosen ? "kind on" : "kind");
+    b.setAttribute("role", "radio"); b.setAttribute("aria-checked", c.id === chosen);
+    const words = el("span"), title = el("b", "", name);
+    if (i === 0 && setup.choices.length > 1) title.append(el("em", "", t("recommended")));
+    words.append(title, el("small", "", hint));
+    b.append(el("span", "dot"), words, el("span", "size", t("aboutSize", sizeText(c.size))));
+    b.onclick = () => { chosen = c.id; drawKinds(); };
+    return b;
+  }));
+}
+
+async function runSetup() {
+  $("setup-error").textContent = "";
+  try {
+    await api("/api/setup", {method: "POST", headers: {"X-EMA-Reader": "update"}, body: JSON.stringify({choice: chosen})});
+    followSetup();
+  } catch (e) {
+    $("setup-error").textContent = e.told ? e.message : t("setupFailed");
+  }
+}
+
+async function followSetup() {
+  $("setup-run").hidden = true; $("kinds").inert = true; $("setup-progress").hidden = false;
+  const show = (step, progress = 0) => {
+    $("setup-step").textContent = t("setupSteps")[step] || t("setupSteps").preparing;
+    const at = {preparing: 2, torch: 4 + 80 * progress, model: 84 + 12 * progress, loading: 97}[step] ?? 2;
+    $("setup-bar").style.width = `${at}%`;
+    $("setup-percent").textContent = step === "torch" && progress ? `%${Math.round(100 * progress)}` : "";
+  };
+  show("preparing");
+  for (;;) {
+    await wait(700);
+    let now;
+    try { now = await api("/api/setup"); } catch { continue; }
+    if (now.job.state === "failed" || now.error) {
+      $("setup-progress").hidden = true; $("setup-run").hidden = false; $("kinds").inert = false;
+      $("setup-run").textContent = t("setupRetry");
+      $("setup-error").textContent = now.job.error || now.error || t("setupFailed");
+      return;
+    }
+    if (now.device) break;   // loaded: ready to read
+    show(now.job.state === "working" ? now.job.step : "loading", now.job.progress);
+  }
+  $("setup").hidden = true;
+  enterLibrary();
+}
+$("setup-run").onclick = runSetup;
+
+/* settings: which kind makes the speech; another one is downloaded beside it and used after a restart */
+
+async function drawDevice() {
+  let now;
+  try { now = await api("/api/setup"); } catch { return; }
+  const using = now.using || now.device;
+  $("set-device-row").hidden = !using || now.choices.length < 2;
+  if ($("set-device-row").hidden) return;
+  const working = now.job.state === "working";
+  $("set-device-state").textContent = now.restart ? t("deviceRestart") : working ? t("deviceGetting", now.job.choice || using)
+    : now.job.state === "failed" ? now.job.error : t("deviceNow", using);
+  if (now.restart) {
+    const b = el("button", "btn", t("restart"));
+    b.onclick = restartApp;
+    return $("set-device").replaceChildren(b);
+  }
+  $("set-device").replaceChildren(...now.choices.map(c => {
+    const b = el("button", c.id === using ? "on" : "", t("kinds")[c.id][0]);
+    b.disabled = working;
+    b.onclick = async () => {
+      if (c.id === using) return;
+      try {
+        await api("/api/setup", {method: "POST", headers: {"X-EMA-Reader": "update"}, body: JSON.stringify({choice: c.id})});
+      } catch (e) { toast(e.told ? e.message : t("setupFailed")); }
+      drawDevice();
+    };
+    return b;
+  }));
+  if (working) setTimeout(() => { if ($("settings-dialog").open) drawDevice(); }, 1500);
+}
+
+async function restartApp() {
+  try { await api("/api/restart", {method: "POST", headers: {"X-EMA-Reader": "update"}}); } catch {}
+  for (let tries = 0; tries < 100; tries++) {
+    await wait(700);
+    try { await api("/health"); await wait(800); return location.reload(); } catch {}
+  }
+}
 
 /* reader */
 
@@ -1677,7 +1826,12 @@ setPlaying(false);
 // "#book=ID" opens that book straight away; the desktop app uses it for files opened with it
 const wanted = location.hash.match(/^#book=([0-9a-f]{12})$/);
 history.replaceState(null, "", location.pathname + location.search);
-showLibrary().then(() => wanted ? openBook(wanted[1]) : maybeTour());
+function enterLibrary() {
+  $("library").hidden = false;
+  showLibrary().then(() => wanted ? openBook(wanted[1]) : maybeTour());
+}
+// the first start downloads what the voice needs before anything else
+api("/api/setup").then(answer => answer.ready ? enterLibrary() : showSetup(answer)).catch(enterLibrary);
 </script>
 </body>
 </html>
